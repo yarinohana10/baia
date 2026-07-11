@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
 
 async function getSession() {
   const headersList = await headers();
@@ -34,13 +35,17 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-ocean-700 text-white px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="text-lg font-light tracking-widest">BAIA Admin</span>
-          <span className="text-sm text-white/70">{session.user.email}</span>
+      <nav className="bg-ocean-700 text-white px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <span className="text-lg font-light tracking-[0.2em]">BAIA</span>
+          <span className="text-xs tracking-wider text-white/60 uppercase">Admin</span>
         </div>
+        <span className="text-sm text-white/70">{session.user.email}</span>
       </nav>
-      <main className="max-w-7xl mx-auto py-8 px-6">{children}</main>
+      <div className="flex">
+        <AdminSidebar />
+        <main className="flex-1 p-8">{children}</main>
+      </div>
     </div>
   );
 }
