@@ -1,0 +1,293 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth (better-auth managed) ───────────────────────────────
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          Role      @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  wishlistItems Wishlist[]
+  carts         Cart[]
+  orders        Order[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+// ─── Catalog ──────────────────────────────────────────────────
+
+model Category {
+  id        String     @id @default(cuid())
+  nameHe    String
+  nameEn    String
+  slug      String     @unique
+  image     String?
+  sortOrder Int        @default(0)
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  products  Product[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("categories")
+}
+
+model Product {
+  id            String           @id @default(cuid())
+  nameHe        String
+  nameEn        String
+  descriptionHe String?
+  descriptionEn String?
+  slug          String           @unique
+  basePrice     Decimal          @db.Decimal(10, 2)
+  categoryId    String
+  category      Category         @relation(fields: [categoryId], references: [id])
+  isFeatured    Boolean          @default(false)
+  isActive      Boolean          @default(true)
+  variants      ProductVariant[]
+  images        ProductImage[]
+  wishlistItems Wishlist[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@map("products")
+}
+
+model ProductVariant {
+  id            String      @id @default(cuid())
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color         String
+  size          String
+  sku           String      @unique
+  stockQuantity Int         @default(0)
+  priceOverride Decimal?    @db.Decimal(10, 2)
+  salePrice     Decimal?    @db.Decimal(10, 2)
+  saleStart     DateTime?
+  saleEnd       DateTime?
+  isActive      Boolean     @default(true)
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([productId, color, size])
+  @@map("product_variants")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  color     String?
+  altText   String?
+  sortOrder Int     @default(0)
+
+  @@map("product_images")
+}
+
+// ─── Wishlist ─────────────────────────────────────────────────
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@map("wishlists")
+}
+
+// ─── Cart ─────────────────────────────────────────────────────
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String?    @unique
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String         @id @default(cuid())
+  cartId    String
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  quantity  Int            @default(1)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([cartId, variantId])
+  @@map("cart_items")
+}
+
+// ─── Orders ───────────────────────────────────────────────────
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  orderNumber    String      @unique
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id])
+  customerEmail  String
+  status         OrderStatus @default(PENDING_PAYMENT)
+  subtotal       Decimal     @db.Decimal(10, 2)
+  shippingCost   Decimal     @db.Decimal(10, 2)
+  discountAmount Decimal     @default(0) @db.Decimal(10, 2)
+  total          Decimal     @db.Decimal(10, 2)
+  couponId       String?
+  coupon         Coupon?     @relation(fields: [couponId], references: [id])
+  trackingNumber String?
+  paymentRef     String?
+  items          OrderItem[]
+
+  shippingCity      String
+  shippingStreet    String
+  shippingNumber    String
+  shippingApartment String?
+  shippingZip       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String         @id @default(cuid())
+  orderId     String
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+  productName String
+  color       String
+  size        String
+  quantity    Int
+  unitPrice   Decimal        @db.Decimal(10, 2)
+  createdAt   DateTime       @default(now())
+
+  @@map("order_items")
+}
+
+// ─── Coupons ──────────────────────────────────────────────────
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model Coupon {
+  id           String       @id @default(cuid())
+  code         String       @unique
+  discountType DiscountType
+  value        Decimal      @db.Decimal(10, 2)
+  minCartValue Decimal?     @db.Decimal(10, 2)
+  maxUses      Int?
+  currentUses  Int          @default(0)
+  isActive     Boolean      @default(true)
+  expiresAt    DateTime?
+  orders       Order[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("coupons")
+}
+
+// ─── Site Config ──────────────────────────────────────────────
+
+model SiteConfig {
+  id                    String  @id @default("default")
+  shippingCost          Decimal @default(29.90) @db.Decimal(10, 2)
+  freeShippingThreshold Decimal @default(249) @db.Decimal(10, 2)
+  heroImageUrl          String?
+  heroTitleHe           String?
+  heroTitleEn           String?
+  heroSubtitleHe        String?
+  heroSubtitleEn        String?
+  heroCtaUrl            String?
+
+  @@map("site_config")
+}
