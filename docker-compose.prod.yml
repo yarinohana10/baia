@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: baia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-baia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-baia}
+      POSTGRES_DB: ${POSTGRES_DB:-baia}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: baia-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-baia}:${POSTGRES_PASSWORD:-baia}@postgres:5432/${POSTGRES_DB:-baia}
+      BETTER_AUTH_URL: ${SERVER_URL:-http://localhost:8000}
+      BETTER_AUTH_SECRET: ${AUTH_SECRET}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+      PORT: 8000
+      NODE_ENV: production
+      UPLOADS_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    ports:
+      - "8000:8000"
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${SERVER_URL:-http://localhost:8000}/v1
+        NEXT_PUBLIC_AUTH_URL: ${SERVER_URL:-http://localhost:8000}
+        NEXT_PUBLIC_SITE_URL: ${CLIENT_URL:-http://localhost:3000}
+    container_name: baia-client
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+
+volumes:
+  postgres_data:
+  uploads_data:
