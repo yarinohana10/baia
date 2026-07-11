@@ -1,0 +1,20 @@
+{
+  "name": "baia-swimwear",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "dev:client": "pnpm --filter @baia/client dev",
+    "dev:server": "pnpm --filter @baia/server dev",
+    "build": "pnpm -r run build",
+    "build:client": "pnpm --filter @baia/client build",
+    "build:server": "pnpm --filter @baia/server build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "clean": "pnpm -r run clean"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.4"
+}

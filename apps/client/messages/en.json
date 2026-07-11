@@ -1,0 +1,54 @@
+{
+  "common": {
+    "brandName": "BAIA",
+    "home": "Home",
+    "search": "Search...",
+    "cart": "Cart",
+    "wishlist": "Wishlist",
+    "account": "Account",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout"
+  },
+  "nav": {
+    "men": "Men",
+    "women": "Women",
+    "children": "Children",
+    "sale": "Sale",
+    "newArrivals": "New Arrivals"
+  },
+  "home": {
+    "heroTitle": "Summer Collection 2026",
+    "heroSubtitle": "Swimwear for the whole family",
+    "heroCta": "Shop Now",
+    "featuredTitle": "Featured Products",
+    "saleTitle": "On Sale",
+    "categoriesTitle": "Categories"
+  },
+  "product": {
+    "addToCart": "Add to Cart",
+    "outOfStock": "Out of Stock",
+    "size": "Size",
+    "color": "Color",
+    "description": "Description",
+    "sale": "Sale",
+    "newPrice": "New Price",
+    "originalPrice": "Original Price"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "freeShipping": "Free Shipping",
+    "total": "Total",
+    "checkout": "Checkout",
+    "continueShopping": "Continue Shopping"
+  },
+  "footer": {
+    "freeShipping": "Free shipping over ₪249",
+    "securePayment": "Secure Payment",
+    "easyReturns": "Easy Returns",
+    "copyright": "© 2026 BAIA Swimwear. All rights reserved."
+  }
+}

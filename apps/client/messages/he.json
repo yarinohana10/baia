@@ -1,0 +1,54 @@
+{
+  "common": {
+    "brandName": "BAIA",
+    "home": "דף הבית",
+    "search": "חיפוש...",
+    "cart": "עגלה",
+    "wishlist": "מועדפים",
+    "account": "חשבון",
+    "login": "התחברות",
+    "register": "הרשמה",
+    "logout": "התנתקות"
+  },
+  "nav": {
+    "men": "גברים",
+    "women": "נשים",
+    "children": "ילדים",
+    "sale": "מבצעים",
+    "newArrivals": "חדש באתר"
+  },
+  "home": {
+    "heroTitle": "קולקציית קיץ 2026",
+    "heroSubtitle": "בגדי ים לכל המשפחה",
+    "heroCta": "קנו עכשיו",
+    "featuredTitle": "מוצרים מובחרים",
+    "saleTitle": "מבצעים",
+    "categoriesTitle": "קטגוריות"
+  },
+  "product": {
+    "addToCart": "הוסף לעגלה",
+    "outOfStock": "אזל מהמלאי",
+    "size": "מידה",
+    "color": "צבע",
+    "description": "תיאור",
+    "sale": "מבצע",
+    "newPrice": "מחיר חדש",
+    "originalPrice": "מחיר מקורי"
+  },
+  "cart": {
+    "title": "עגלת קניות",
+    "empty": "העגלה ריקה",
+    "subtotal": "סכום ביניים",
+    "shipping": "משלוח",
+    "freeShipping": "משלוח חינם",
+    "total": "סה\"כ",
+    "checkout": "לתשלום",
+    "continueShopping": "המשך קניות"
+  },
+  "footer": {
+    "freeShipping": "משלוח חינם מעל ₪249",
+    "securePayment": "תשלום מאובטח",
+    "easyReturns": "החזרות קלות",
+    "copyright": "© 2026 BAIA Swimwear. כל הזכויות שמורות."
+  }
+}
