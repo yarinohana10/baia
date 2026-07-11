@@ -105,6 +105,9 @@ export class ProductsController {
       sku: string;
       stockQuantity: number;
       priceOverride?: number;
+      salePrice?: number;
+      saleStart?: string;
+      saleEnd?: string;
     },
   ) {
     return this.productsService.createVariant(productId, body);

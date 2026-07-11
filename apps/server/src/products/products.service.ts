@@ -161,12 +161,21 @@ export class ProductsService {
     sku: string;
     stockQuantity: number;
     priceOverride?: number;
+    salePrice?: number;
+    saleStart?: string;
+    saleEnd?: string;
   }) {
     return this.prisma.productVariant.create({
       data: {
-        ...data,
         productId,
+        color: data.color,
+        size: data.size,
+        sku: data.sku,
+        stockQuantity: data.stockQuantity,
         priceOverride: data.priceOverride ? new Prisma.Decimal(data.priceOverride) : null,
+        salePrice: data.salePrice ? new Prisma.Decimal(data.salePrice) : null,
+        saleStart: data.saleStart ? new Date(data.saleStart) : null,
+        saleEnd: data.saleEnd ? new Date(data.saleEnd) : null,
       },
     });
   }
@@ -177,11 +186,23 @@ export class ProductsService {
     sku: string;
     stockQuantity: number;
     priceOverride: number | null;
+    salePrice: number | null;
+    saleStart: string | null;
+    saleEnd: string | null;
     isActive: boolean;
   }>) {
     const updateData: any = { ...data };
     if (data.priceOverride !== undefined) {
       updateData.priceOverride = data.priceOverride ? new Prisma.Decimal(data.priceOverride) : null;
+    }
+    if (data.salePrice !== undefined) {
+      updateData.salePrice = data.salePrice ? new Prisma.Decimal(data.salePrice) : null;
+    }
+    if (data.saleStart !== undefined) {
+      updateData.saleStart = data.saleStart ? new Date(data.saleStart) : null;
+    }
+    if (data.saleEnd !== undefined) {
+      updateData.saleEnd = data.saleEnd ? new Date(data.saleEnd) : null;
     }
     return this.prisma.productVariant.update({
       where: { id: variantId },

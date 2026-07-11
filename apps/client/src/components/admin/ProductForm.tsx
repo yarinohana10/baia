@@ -27,6 +27,9 @@ type Variant = {
   sku: string;
   stockQuantity: number;
   priceOverride: number | null;
+  salePrice: number | null;
+  saleStart: string | null;
+  saleEnd: string | null;
   isActive: boolean;
   isNew?: boolean;
 };
@@ -132,10 +135,12 @@ export default function ProductForm({ product }: Props) {
           sku: v.sku,
           stockQuantity: v.stockQuantity,
           priceOverride: v.priceOverride,
+          salePrice: v.salePrice,
+          saleStart: v.saleStart,
+          saleEnd: v.saleEnd,
         });
       }
 
-      // Update existing variants
       const existingVariants = variants.filter((v) => v.id && !v.isNew);
       for (const v of existingVariants) {
         await api.put(`/admin/variants/${v.id}`, {
@@ -144,6 +149,9 @@ export default function ProductForm({ product }: Props) {
           sku: v.sku,
           stockQuantity: v.stockQuantity,
           priceOverride: v.priceOverride,
+          salePrice: v.salePrice,
+          saleStart: v.saleStart,
+          saleEnd: v.saleEnd,
           isActive: v.isActive,
         });
       }
@@ -165,6 +173,9 @@ export default function ProductForm({ product }: Props) {
         sku: '',
         stockQuantity: 0,
         priceOverride: null,
+        salePrice: null,
+        saleStart: null,
+        saleEnd: null,
         isActive: true,
         isNew: true,
       },
@@ -343,7 +354,7 @@ export default function ProductForm({ product }: Props) {
             {variants.map((v, i) => (
               <div
                 key={v.id || i}
-                className={`grid grid-cols-[1fr_80px_1fr_100px_100px_40px] gap-3 items-end p-3 border ${
+                className={`p-3 border space-y-2 ${
                   v.stockQuantity > 0 && v.stockQuantity <= LOW_STOCK_THRESHOLD
                     ? 'border-amber-300 bg-amber-50'
                     : v.stockQuantity === 0
@@ -351,81 +362,126 @@ export default function ProductForm({ product }: Props) {
                     : 'border-gray-200'
                 }`}
               >
-                <div>
-                  <label className="block text-xs text-gray-500 mb-0.5">Color</label>
-                  <input
-                    type="text"
-                    value={v.color}
-                    onChange={(e) => updateVariant(i, 'color', e.target.value)}
-                    className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
-                    placeholder="Black"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-0.5">Size</label>
-                  <select
-                    value={v.size}
-                    onChange={(e) => updateVariant(i, 'size', e.target.value)}
-                    className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none bg-white"
-                  >
-                    {SIZES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-0.5">SKU</label>
-                  <input
-                    type="text"
-                    value={v.sku}
-                    onChange={(e) => updateVariant(i, 'sku', e.target.value)}
-                    className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
-                    placeholder="BKN-BLK-M"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-0.5">Stock</label>
-                  <div className="relative">
+                <div className="grid grid-cols-[1fr_80px_1fr_100px_100px_40px] gap-3 items-end">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-0.5">Color</label>
+                    <input
+                      type="text"
+                      value={v.color}
+                      onChange={(e) => updateVariant(i, 'color', e.target.value)}
+                      className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                      placeholder="Black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-0.5">Size</label>
+                    <select
+                      value={v.size}
+                      onChange={(e) => updateVariant(i, 'size', e.target.value)}
+                      className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none bg-white"
+                    >
+                      {SIZES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-0.5">SKU</label>
+                    <input
+                      type="text"
+                      value={v.sku}
+                      onChange={(e) => updateVariant(i, 'sku', e.target.value)}
+                      className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                      placeholder="BKN-BLK-M"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-0.5">Stock</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        value={v.stockQuantity}
+                        onChange={(e) => updateVariant(i, 'stockQuantity', parseInt(e.target.value) || 0)}
+                        className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                      />
+                      {v.stockQuantity > 0 && v.stockQuantity <= LOW_STOCK_THRESHOLD && (
+                        <AlertTriangle
+                          size={12}
+                          className="absolute end-2 top-1/2 -translate-y-1/2 text-amber-500"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-0.5">Price ₪</label>
                     <input
                       type="number"
-                      min="0"
-                      value={v.stockQuantity}
-                      onChange={(e) => updateVariant(i, 'stockQuantity', parseInt(e.target.value) || 0)}
+                      step="0.01"
+                      value={v.priceOverride ?? ''}
+                      onChange={(e) =>
+                        updateVariant(
+                          i,
+                          'priceOverride',
+                          e.target.value ? parseFloat(e.target.value) : null,
+                        )
+                      }
                       className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                      placeholder="Base"
                     />
-                    {v.stockQuantity > 0 && v.stockQuantity <= LOW_STOCK_THRESHOLD && (
-                      <AlertTriangle
-                        size={12}
-                        className="absolute end-2 top-1/2 -translate-y-1/2 text-amber-500"
-                      />
-                    )}
+                  </div>
+                  <button
+                    onClick={() => removeVariant(i)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                {/* Sale price row */}
+                <div className="grid grid-cols-3 gap-3 pt-1 border-t border-dashed border-gray-200">
+                  <div>
+                    <label className="block text-xs text-red-500 mb-0.5">Sale Price ₪</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={v.salePrice ?? ''}
+                      onChange={(e) =>
+                        updateVariant(
+                          i,
+                          'salePrice',
+                          e.target.value ? parseFloat(e.target.value) : null,
+                        )
+                      }
+                      className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-red-400 focus:outline-none"
+                      placeholder="No sale"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-red-500 mb-0.5">Sale Start</label>
+                    <input
+                      type="date"
+                      value={v.saleStart ? v.saleStart.split('T')[0] : ''}
+                      onChange={(e) =>
+                        updateVariant(i, 'saleStart', e.target.value || null)
+                      }
+                      className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-red-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-red-500 mb-0.5">Sale End</label>
+                    <input
+                      type="date"
+                      value={v.saleEnd ? v.saleEnd.split('T')[0] : ''}
+                      onChange={(e) =>
+                        updateVariant(i, 'saleEnd', e.target.value || null)
+                      }
+                      className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-red-400 focus:outline-none"
+                    />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-0.5">Price ₪</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={v.priceOverride ?? ''}
-                    onChange={(e) =>
-                      updateVariant(
-                        i,
-                        'priceOverride',
-                        e.target.value ? parseFloat(e.target.value) : null,
-                      )
-                    }
-                    className="w-full px-2 py-1.5 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
-                    placeholder="Base"
-                  />
-                </div>
-                <button
-                  onClick={() => removeVariant(i)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
               </div>
             ))}
 
