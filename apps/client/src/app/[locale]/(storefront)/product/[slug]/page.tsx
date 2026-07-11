@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
 import { Heart, Minus, Plus, ChevronRight } from 'lucide-react';
+import { useCartStore } from '@/store/cart';
 
 type Variant = {
   id: string;
@@ -116,9 +117,15 @@ export default function ProductDetailPage() {
     return colorImages.length > 0 ? colorImages : product.images;
   }, [product, selectedColor]);
 
-  const handleAddToCart = () => {
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
+  const { addItem } = useCartStore();
+
+  const handleAddToCart = async () => {
+    if (!selectedVariant) return;
+    try {
+      await addItem(selectedVariant.id, quantity);
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+    } catch {}
   };
 
   if (loading) {

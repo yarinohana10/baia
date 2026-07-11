@@ -7,6 +7,8 @@ import { StorageModule } from './storage/storage.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
 import { CouponsModule } from './coupons/coupons.module';
+import { CartModule } from './cart/cart.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { CouponsModule } from './coupons/coupons.module';
     CategoriesModule,
     ProductsModule,
     CouponsModule,
+    CartModule,
+    WishlistModule,
   ],
 })
 export class AppModule {}
