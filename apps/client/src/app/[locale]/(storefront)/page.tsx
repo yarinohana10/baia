@@ -1,10 +1,58 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { api } from '@/lib/api';
+import ProductCard from '@/components/storefront/ProductCard';
+
+type Product = {
+  id: string;
+  nameHe: string;
+  nameEn: string;
+  slug: string;
+  basePrice: string;
+  isFeatured: boolean;
+  images: { url: string; color?: string }[];
+  variants: {
+    salePrice?: string | null;
+    saleStart?: string | null;
+    saleEnd?: string | null;
+    priceOverride?: string | null;
+  }[];
+};
+
+function hasSaleNow(variants: Product['variants']) {
+  const now = new Date();
+  return variants.some((v) => {
+    if (!v.salePrice) return false;
+    const start = v.saleStart ? new Date(v.saleStart) : null;
+    const end = v.saleEnd ? new Date(v.saleEnd) : null;
+    if (start && now < start) return false;
+    if (end && now > end) return false;
+    return true;
+  });
+}
 
 export default function HomePage() {
   const t = useTranslations('home');
   const tCommon = useTranslations('common');
   const tNav = useTranslations('nav');
+
+  const [featured, setFeatured] = useState<Product[]>([]);
+  const [onSale, setOnSale] = useState<Product[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    api
+      .get('/products', { params: { limit: 50 } })
+      .then((res) => {
+        const all: Product[] = res.data.products || [];
+        setFeatured(all.filter((p) => p.isFeatured).slice(0, 8));
+        setOnSale(all.filter((p) => hasSaleNow(p.variants)).slice(0, 8));
+      })
+      .finally(() => setLoaded(true));
+  }, []);
 
   return (
     <>
@@ -19,9 +67,7 @@ export default function HomePage() {
           <p className="text-xl md:text-2xl font-light mb-2 tracking-wider">
             {t('heroTitle')}
           </p>
-          <p className="text-base text-white/70 mb-10">
-            {t('heroSubtitle')}
-          </p>
+          <p className="text-base text-white/70 mb-10">{t('heroSubtitle')}</p>
           <Link
             href="/category/women"
             className="inline-block bg-sand-400 text-ocean-900 px-10 py-3.5 text-sm font-medium tracking-[0.2em] uppercase hover:bg-sand-300 transition-colors"
@@ -31,7 +77,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
+      {/* Categories */}
       <section className="max-w-7xl mx-auto py-20 px-4 sm:px-6">
         <h2 className="text-2xl font-light text-center tracking-[0.2em] uppercase mb-12">
           {t('categoriesTitle')}
@@ -62,50 +108,41 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products Placeholder */}
+      {/* Featured Products */}
       <section className="bg-ocean-50/50 py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-2xl font-light text-center tracking-[0.2em] uppercase mb-12">
             {t('featuredTitle')}
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="group">
-                <div className="aspect-[3/4] bg-white mb-3 overflow-hidden">
-                  <div className="w-full h-full bg-gray-100 group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                <p className="text-sm text-gray-400 text-center tracking-wider">
-                  Coming Soon
-                </p>
-              </div>
-            ))}
-          </div>
+          {loaded && featured.length === 0 ? (
+            <p className="text-center text-gray-400 tracking-wider">
+              More products coming soon.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {featured.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Sale Section Placeholder */}
-      <section className="py-20 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-light text-center tracking-[0.2em] uppercase mb-12">
-            {t('saleTitle')}
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="group">
-                <div className="aspect-[3/4] bg-white mb-3 overflow-hidden relative">
-                  <div className="absolute top-2 start-2 bg-red-500 text-white text-xs px-2 py-0.5 tracking-wider z-10">
-                    SALE
-                  </div>
-                  <div className="w-full h-full bg-gray-100 group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                <p className="text-sm text-gray-400 text-center tracking-wider">
-                  Coming Soon
-                </p>
-              </div>
-            ))}
+      {/* On Sale */}
+      {(onSale.length > 0 || !loaded) && (
+        <section className="py-20 px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-2xl font-light text-center tracking-[0.2em] uppercase mb-12">
+              {t('saleTitle')}
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {onSale.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </>
   );
 }
