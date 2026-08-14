@@ -23,7 +23,16 @@ export class ProductsService {
     const where: Prisma.ProductWhereInput = { isActive: true };
 
     if (categoryId) {
-      where.categoryId = categoryId;
+      const childCategories = await this.prisma.category.findMany({
+        where: { parentId: categoryId },
+        select: { id: true },
+      });
+
+      if (childCategories.length > 0) {
+        where.categoryId = { in: [categoryId, ...childCategories.map((c) => c.id)] };
+      } else {
+        where.categoryId = categoryId;
+      }
     }
 
     if (search) {

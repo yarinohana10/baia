@@ -13,20 +13,28 @@
   "nav": {
     "men": "Men",
     "women": "Women",
-    "children": "Children",
+    "children": "Kids",
     "sale": "Sale",
     "newArrivals": "New Arrivals"
   },
   "home": {
-    "heroTitle": "Summer Collection 2026",
-    "heroSubtitle": "Swimwear for the whole family",
-    "heroCta": "Shop Now",
+    "heroTitle": "SUMMER ESCAPE",
+    "heroSubtitle": "Discover the new collection for your perfect getaway",
+    "heroCta": "EXPLORE COLLECTION",
+    "shopByCategory": "Shop by Category",
+    "newArrivalsTitle": "New Arrivals",
     "featuredTitle": "Featured Products",
     "saleTitle": "On Sale",
-    "categoriesTitle": "Categories"
+    "categoriesTitle": "Categories",
+    "menCategory": "MEN'S",
+    "womenCategory": "WOMEN'S",
+    "kidsCategory": "KIDS",
+    "freeShippingBanner": "Free shipping on orders over ₪249",
+    "viewAll": "View All"
   },
   "product": {
     "addToCart": "Add to Cart",
+    "added": "Added!",
     "outOfStock": "Out of Stock",
     "size": "Size",
     "color": "Color",
@@ -46,6 +54,13 @@
     "continueShopping": "Continue Shopping"
   },
   "footer": {
+    "categoriesTitle": "Categories",
+    "helpTitle": "Help",
+    "accountTitle": "Account",
+    "brandDescription": "Premium swimwear for the whole family.",
+    "shippingPolicy": "Shipping Policy",
+    "returnsExchanges": "Returns & Exchanges",
+    "contactUs": "Contact Us",
     "freeShipping": "Free shipping over ₪249",
     "securePayment": "Secure Payment",
     "easyReturns": "Easy Returns",

@@ -50,7 +50,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={dir}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <meta name="theme-color" content="#1B4965" />
       </head>
       <body className="min-h-screen bg-white text-charcoal font-sans antialiased">

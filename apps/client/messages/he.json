@@ -18,15 +18,23 @@
     "newArrivals": "חדש באתר"
   },
   "home": {
-    "heroTitle": "קולקציית קיץ 2026",
-    "heroSubtitle": "בגדי ים לכל המשפחה",
-    "heroCta": "קנו עכשיו",
+    "heroTitle": "בריחה לקיץ",
+    "heroSubtitle": "גלו את הקולקציה החדשה לחופשה המושלמת שלכם",
+    "heroCta": "לגלות את הקולקציה",
+    "shopByCategory": "קנו לפי קטגוריה",
+    "newArrivalsTitle": "חדשים באתר",
     "featuredTitle": "מוצרים מובחרים",
     "saleTitle": "מבצעים",
-    "categoriesTitle": "קטגוריות"
+    "categoriesTitle": "קטגוריות",
+    "menCategory": "גברים",
+    "womenCategory": "נשים",
+    "kidsCategory": "ילדים",
+    "freeShippingBanner": "משלוח חינם בקנייה מעל ₪249",
+    "viewAll": "הצג הכל"
   },
   "product": {
     "addToCart": "הוסף לעגלה",
+    "added": "!נוסף",
     "outOfStock": "אזל מהמלאי",
     "size": "מידה",
     "color": "צבע",
@@ -46,6 +54,13 @@
     "continueShopping": "המשך קניות"
   },
   "footer": {
+    "categoriesTitle": "קטגוריות",
+    "helpTitle": "עזרה",
+    "accountTitle": "חשבון",
+    "brandDescription": "בגדי ים פרימיום לכל המשפחה.",
+    "shippingPolicy": "מדיניות משלוחים",
+    "returnsExchanges": "החזרות והחלפות",
+    "contactUs": "צור קשר",
     "freeShipping": "משלוח חינם מעל ₪249",
     "securePayment": "תשלום מאובטח",
     "easyReturns": "החזרות קלות",

@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: baia-postgres
+    environment:
+      POSTGRES_USER: baia
+      POSTGRES_PASSWORD: baia
+      POSTGRES_DB: baia
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baia"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile.dev
+    container_name: baia-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 8000
+      NODE_ENV: development
+      CLIENT_URL: http://localhost:3000
+      DATABASE_URL: postgresql://baia:baia@postgres:5432/baia?schema=public
+      BETTER_AUTH_SECRET: docker-dev-secret-change-me-in-production
+      BETTER_AUTH_URL: http://localhost:8000
+      AUTH_COOKIE_PREFIX: baia
+      STORAGE_PROVIDER: local
+      UPLOADS_DIR: ./uploads
+    ports:
+      - "8000:8000"
+      - "9229:9229"
+    volumes:
+      # Mount source for hot reload, but NOT the generated prisma client
+      - ./apps/server/src:/app/apps/server/src
+      - ./apps/server/prisma:/app/apps/server/prisma
+      - ./apps/server/docker-entrypoint.dev.sh:/app/apps/server/docker-entrypoint.dev.sh
+      - ./packages/shared/src:/app/packages/shared/src
+      # Preserve the container's generated prisma client (not overwritten by host mount)
+      - server_prisma_generated:/app/apps/server/src/generated
+      - uploads_data:/app/apps/server/uploads
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile.dev
+    container_name: baia-client
+    depends_on:
+      - server
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/v1
+      NEXT_PUBLIC_AUTH_URL: http://localhost:8000
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+      - "9230:9230"
+    volumes:
+      - ./apps/client/src:/app/apps/client/src
+      - ./apps/client/public:/app/apps/client/public
+      - ./apps/client/messages:/app/apps/client/messages
+      - ./packages/shared/src:/app/packages/shared/src
+
+volumes:
+  postgres_data:
+  uploads_data:
+  server_prisma_generated:

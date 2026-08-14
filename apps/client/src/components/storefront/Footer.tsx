@@ -5,6 +5,7 @@ import { Truck, Shield, RotateCcw } from 'lucide-react';
 export function Footer() {
   const t = useTranslations('footer');
   const tNav = useTranslations('nav');
+  const tCommon = useTranslations('common');
 
   return (
     <footer className="bg-ocean-700 text-white">
@@ -35,14 +36,14 @@ export function Footer() {
           <div>
             <h3 className="text-2xl font-light tracking-[0.3em] mb-4">BAIA</h3>
             <p className="text-sm text-white/60 leading-relaxed">
-              Premium swimwear for the whole family.
+              {t('brandDescription')}
             </p>
           </div>
 
           {/* Categories */}
           <div>
             <h4 className="text-xs font-medium tracking-widest uppercase mb-4 text-white/80">
-              {tNav('women') === 'נשים' ? 'קטגוריות' : 'Categories'}
+              {t('categoriesTitle')}
             </h4>
             <ul className="space-y-2">
               <li>
@@ -66,22 +67,22 @@ export function Footer() {
           {/* Help */}
           <div>
             <h4 className="text-xs font-medium tracking-widest uppercase mb-4 text-white/80">
-              {tNav('women') === 'נשים' ? 'עזרה' : 'Help'}
+              {t('helpTitle')}
             </h4>
             <ul className="space-y-2">
               <li>
                 <Link href="/shipping" className="text-sm text-white/60 hover:text-white transition-colors">
-                  {tNav('women') === 'נשים' ? 'מדיניות משלוחים' : 'Shipping Policy'}
+                  {t('shippingPolicy')}
                 </Link>
               </li>
               <li>
                 <Link href="/returns" className="text-sm text-white/60 hover:text-white transition-colors">
-                  {tNav('women') === 'נשים' ? 'החזרות והחלפות' : 'Returns & Exchanges'}
+                  {t('returnsExchanges')}
                 </Link>
               </li>
               <li>
                 <Link href="/contact" className="text-sm text-white/60 hover:text-white transition-colors">
-                  {tNav('women') === 'נשים' ? 'צור קשר' : 'Contact Us'}
+                  {t('contactUs')}
                 </Link>
               </li>
             </ul>
@@ -90,17 +91,17 @@ export function Footer() {
           {/* Account */}
           <div>
             <h4 className="text-xs font-medium tracking-widest uppercase mb-4 text-white/80">
-              {tNav('women') === 'נשים' ? 'חשבון' : 'Account'}
+              {t('accountTitle')}
             </h4>
             <ul className="space-y-2">
               <li>
                 <Link href="/login" className="text-sm text-white/60 hover:text-white transition-colors">
-                  {tNav('women') === 'נשים' ? 'התחברות' : 'Login'}
+                  {tCommon('login')}
                 </Link>
               </li>
               <li>
                 <Link href="/register" className="text-sm text-white/60 hover:text-white transition-colors">
-                  {tNav('women') === 'נשים' ? 'הרשמה' : 'Register'}
+                  {tCommon('register')}
                 </Link>
               </li>
             </ul>
