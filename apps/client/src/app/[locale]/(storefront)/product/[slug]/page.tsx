@@ -132,7 +132,7 @@ export default function ProductDetailPage() {
     return (
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 animate-pulse">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div className="aspect-square bg-gray-200" />
+          <div className="aspect-square bg-gray-200 rounded-xl" />
           <div className="space-y-4">
             <div className="h-8 bg-gray-200 w-3/4" />
             <div className="h-6 bg-gray-200 w-1/4" />
@@ -184,7 +184,7 @@ export default function ProductDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
         {/* Images */}
         <div className="space-y-3">
-          <div className="aspect-square bg-gray-100 overflow-hidden">
+          <div className="aspect-square bg-gray-100 overflow-hidden rounded-xl">
             {filteredImages[selectedImageIdx] ? (
               <img
                 src={filteredImages[selectedImageIdx].url}
@@ -201,7 +201,7 @@ export default function ProductDetailPage() {
                 <button
                   key={img.id}
                   onClick={() => setSelectedImageIdx(i)}
-                  className={`w-16 h-16 flex-shrink-0 overflow-hidden border-2 transition-colors ${
+                  className={`w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
                     selectedImageIdx === i ? 'border-ocean-700' : 'border-transparent'
                   }`}
                 >

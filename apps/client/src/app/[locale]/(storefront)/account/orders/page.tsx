@@ -31,7 +31,7 @@ export default function MyOrdersPage() {
       <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 animate-pulse">
         <div className="h-8 bg-gray-200 w-1/4 mb-8" />
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 bg-gray-100 mb-3" />
+          <div key={i} className="h-20 bg-gray-100 rounded-xl mb-3" />
         ))}
       </div>
     );
@@ -58,7 +58,7 @@ export default function MyOrdersPage() {
             <Link
               key={order.id}
               href={`/order-confirmation/${order.id}`}
-              className="flex items-center justify-between p-4 bg-white border border-gray-200 hover:border-ocean-300 transition-colors"
+              className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-ocean-300 transition-colors"
             >
               <div className="flex items-center gap-4">
                 <div>
@@ -72,7 +72,7 @@ export default function MyOrdersPage() {
               <div className="flex items-center gap-3">
                 <span className="font-medium text-sm">₪{parseFloat(order.total).toFixed(2)}</span>
                 <span
-                  className={`text-xs px-2 py-0.5 uppercase tracking-wider ${
+                  className={`text-xs px-2 py-0.5 uppercase tracking-wider rounded-full ${
                     statusColors[order.status] || 'bg-gray-100 text-gray-500'
                   }`}
                 >

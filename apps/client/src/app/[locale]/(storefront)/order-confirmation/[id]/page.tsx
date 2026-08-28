@@ -31,13 +31,13 @@ export default function OrderConfirmationPage() {
       <h1 className="text-3xl font-bold tracking-normal mb-2">Thank You!</h1>
       <p className="text-gray-500 mb-8">Your order has been placed successfully.</p>
 
-      <div className="bg-white border border-gray-200 p-6 text-start space-y-4 mb-8">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 text-start space-y-4 mb-8">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-gray-400">Order Number</p>
             <p className="font-mono font-medium">{order.orderNumber}</p>
           </div>
-          <span className="text-xs px-3 py-1 bg-green-50 text-green-600 uppercase tracking-wider">
+          <span className="text-xs px-3 py-1 bg-green-50 text-green-600 uppercase tracking-wider rounded-full">
             {order.status.replace('_', ' ')}
           </span>
         </div>

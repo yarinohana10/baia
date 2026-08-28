@@ -109,7 +109,7 @@ export default function CheckoutPage() {
       <h1 className="text-2xl font-bold tracking-normal mb-8">{t('checkout')}</h1>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6 flex items-center gap-2">
+        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6 flex items-center gap-2 rounded-lg">
           <AlertTriangle size={14} /> {error}
         </div>
       )}
@@ -118,7 +118,7 @@ export default function CheckoutPage() {
         {/* Form */}
         <div className="lg:col-span-2 space-y-6">
           {/* Contact */}
-          <section className="bg-white border border-gray-200 p-6 space-y-4">
+          <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
             <h2 className="font-medium text-gray-800 flex items-center gap-2">
               <CreditCard size={16} /> Contact
             </h2>
@@ -128,7 +128,7 @@ export default function CheckoutPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                 placeholder="your@email.com"
                 required
               />
@@ -136,7 +136,7 @@ export default function CheckoutPage() {
           </section>
 
           {/* Shipping */}
-          <section className="bg-white border border-gray-200 p-6 space-y-4">
+          <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
             <h2 className="font-medium text-gray-800 flex items-center gap-2">
               <Truck size={16} /> Shipping Address
             </h2>
@@ -147,7 +147,7 @@ export default function CheckoutPage() {
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                   required
                 />
               </div>
@@ -157,7 +157,7 @@ export default function CheckoutPage() {
                   type="text"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                   required
                 />
               </div>
@@ -169,7 +169,7 @@ export default function CheckoutPage() {
                   type="text"
                   value={number}
                   onChange={(e) => setNumber(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                   required
                 />
               </div>
@@ -179,7 +179,7 @@ export default function CheckoutPage() {
                   type="text"
                   value={apartment}
                   onChange={(e) => setApartment(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                 />
               </div>
               <div>
@@ -188,21 +188,21 @@ export default function CheckoutPage() {
                   type="text"
                   value={zip}
                   onChange={(e) => setZip(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                 />
               </div>
             </div>
           </section>
 
           {/* Coupon */}
-          <section className="bg-white border border-gray-200 p-6 space-y-3">
+          <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
             <h2 className="font-medium text-gray-800">Coupon Code</h2>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                className="flex-1 px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none uppercase"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none uppercase"
                 placeholder="Enter code"
               />
               <button
@@ -222,7 +222,7 @@ export default function CheckoutPage() {
         </div>
 
         {/* Order Summary */}
-        <div className="bg-white border border-gray-200 p-6 h-fit space-y-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 h-fit space-y-4">
           <h2 className="font-medium text-gray-800">Order Summary</h2>
 
           <div className="space-y-3 max-h-60 overflow-y-auto">

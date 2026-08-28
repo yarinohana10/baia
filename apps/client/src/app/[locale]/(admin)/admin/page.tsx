@@ -23,7 +23,7 @@ function DashboardCard({
   return (
     <a
       href={href}
-      className="block bg-white p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-100"
+      className="block bg-white p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-100 rounded-xl"
     >
       <p className="text-sm text-gray-500 uppercase tracking-wider">{title}</p>
       <p className="text-3xl font-bold mt-2 text-ocean-700">{value}</p>

@@ -57,8 +57,8 @@ export default function WishlistPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 animate-pulse">
           {[1, 2, 3, 4].map((i) => (
             <div key={i}>
-              <div className="aspect-[3/4] bg-gray-200 mb-3" />
-              <div className="h-4 bg-gray-200 w-3/4" />
+              <div className="aspect-[3/4] bg-gray-200 rounded-xl mb-3" />
+              <div className="h-4 bg-gray-200 rounded w-3/4" />
             </div>
           ))}
         </div>
@@ -105,7 +105,7 @@ export default function WishlistPage() {
               <ProductCard product={item.product} />
               <button
                 onClick={() => handleRemove(item.product.id)}
-                className="absolute top-2 end-2 z-10 p-1.5 bg-white/90 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                className="absolute top-2 end-2 z-10 p-1.5 bg-white/90 rounded-full text-red-500 hover:bg-red-500 hover:text-white transition-colors"
               >
                 <Trash2 size={14} />
               </button>

@@ -74,7 +74,7 @@ export default function AdminOrdersPage() {
       <div className="flex gap-2 mb-6 flex-wrap">
         <button
           onClick={() => { setStatusFilter(''); setPage(1); }}
-          className={`px-3 py-1 text-xs uppercase tracking-wider border transition-colors ${
+          className={`px-3 py-1 text-xs uppercase tracking-wider border rounded-lg transition-colors ${
             !statusFilter ? 'border-ocean-700 bg-ocean-700 text-white' : 'border-gray-300 hover:border-ocean-500'
           }`}
         >
@@ -84,7 +84,7 @@ export default function AdminOrdersPage() {
           <button
             key={s}
             onClick={() => { setStatusFilter(s); setPage(1); }}
-            className={`px-3 py-1 text-xs uppercase tracking-wider border transition-colors ${
+            className={`px-3 py-1 text-xs uppercase tracking-wider border rounded-lg transition-colors ${
               statusFilter === s ? 'border-ocean-700 bg-ocean-700 text-white' : 'border-gray-300 hover:border-ocean-500'
             }`}
           >
@@ -96,7 +96,7 @@ export default function AdminOrdersPage() {
       {/* Order detail modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
-          <div className="bg-white max-w-lg w-full max-h-[80vh] overflow-y-auto p-6 space-y-4">
+          <div className="bg-white max-w-lg w-full max-h-[80vh] overflow-y-auto rounded-xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-mono font-medium">{selectedOrder.orderNumber}</h2>
               <button
@@ -140,7 +140,7 @@ export default function AdminOrdersPage() {
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 text-sm bg-white focus:border-ocean-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:border-ocean-500 focus:outline-none"
                 >
                   {ORDER_STATUSES.map((s) => (
                     <option key={s} value={s}>
@@ -156,14 +156,14 @@ export default function AdminOrdersPage() {
                     type="text"
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                     placeholder="IL123456789"
                   />
                 </div>
               )}
               <button
                 onClick={handleStatusUpdate}
-                className="bg-ocean-700 text-white px-5 py-2 text-sm hover:bg-ocean-800 transition-colors"
+                className="bg-ocean-700 text-white px-5 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors"
               >
                 Update
               </button>
@@ -173,7 +173,7 @@ export default function AdminOrdersPage() {
       )}
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
@@ -199,7 +199,7 @@ export default function AdminOrdersPage() {
                   <td className="px-4 py-3 text-gray-600">{order.items.length}</td>
                   <td className="px-4 py-3 font-medium">₪{parseFloat(order.total).toFixed(2)}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 uppercase tracking-wider ${statusColors[order.status] || ''}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full uppercase tracking-wider ${statusColors[order.status] || ''}`}>
                       {order.status.replace('_', ' ')}
                     </span>
                   </td>
@@ -227,7 +227,7 @@ export default function AdminOrdersPage() {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="p-2 border border-gray-300 disabled:opacity-30"
+            className="p-2 border border-gray-300 rounded-lg disabled:opacity-30"
           >
             <ChevronLeft size={14} />
           </button>
@@ -237,7 +237,7 @@ export default function AdminOrdersPage() {
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="p-2 border border-gray-300 disabled:opacity-30"
+            className="p-2 border border-gray-300 rounded-lg disabled:opacity-30"
           >
             <ChevronRight size={14} />
           </button>

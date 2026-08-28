@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { Heart, ShoppingBag, Plus, Minus } from 'lucide-react';
+import { Heart, ShoppingBag, Loader2 } from 'lucide-react';
+import { useCartStore } from '@/store/cart';
 
 type Props = {
   product: {
@@ -44,24 +45,34 @@ export default function ProductCard({ product }: Props) {
   const basePrice = parseFloat(product.basePrice);
   const salePrice = getActiveSale(product.variants);
   const imageUrl = product.images[0]?.url;
-  const displayPrice = salePrice ?? basePrice;
   const discountPct = salePrice ? Math.round(((basePrice - salePrice) / basePrice) * 100) : 0;
 
-  const [quantity, setQuantity] = useState(1);
   const [wishlisted, setWishlisted] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false);
+  const [adding, setAdding] = useState(false);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const { addItem, openDrawer } = useCartStore();
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 1500);
+
+    const firstVariant = product.variants.find((v) => v.id);
+    if (!firstVariant?.id) return;
+
+    setAdding(true);
+    try {
+      await addItem(firstVariant.id, 1);
+      openDrawer();
+    } catch {
+      // silently fail
+    } finally {
+      setAdding(false);
+    }
   };
 
   return (
     <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100">
       <Link href={`/product/${product.slug}`} className="block">
-        {/* Image */}
         <div className="relative aspect-square bg-white overflow-hidden">
           {imageUrl ? (
             <Image
@@ -101,7 +112,6 @@ export default function ProductCard({ product }: Props) {
         </div>
       </Link>
 
-      {/* Info */}
       <div className="p-4">
         <Link href={`/product/${product.slug}`}>
           <h3 className="text-sm font-medium text-charcoal tracking-wide mb-2 line-clamp-1 hover:text-ocean-600 transition-colors">
@@ -109,7 +119,6 @@ export default function ProductCard({ product }: Props) {
           </h3>
         </Link>
 
-        {/* Price - centered */}
         <div className="flex items-center justify-center gap-2 mb-4">
           {salePrice ? (
             <>
@@ -121,48 +130,20 @@ export default function ProductCard({ product }: Props) {
           )}
         </div>
 
-        {/* Quantity + Add to Cart */}
-        <div className="flex items-center gap-2" onClick={(e) => e.preventDefault()}>
-          <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setQuantity(Math.max(1, quantity - 1));
-              }}
-              className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
-              aria-label="Decrease quantity"
-            >
-              <Minus size={14} />
-            </button>
-            <span className="w-8 text-center text-sm font-medium text-charcoal select-none">
-              {quantity}
-            </span>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setQuantity(quantity + 1);
-              }}
-              className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
-              aria-label="Increase quantity"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-
-          <button
-            onClick={handleAddToCart}
-            className={`flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl text-xs font-medium tracking-wider uppercase transition-all duration-300 ${
-              addedToCart
-                ? 'bg-green-500 text-white'
-                : 'bg-ocean-700 text-white hover:bg-ocean-600'
-            }`}
-          >
-            <ShoppingBag size={13} />
-            {addedToCart ? t('added') : t('addToCart')}
-          </button>
-        </div>
+        <button
+          onClick={handleAddToCart}
+          disabled={adding || !product.variants.some((v) => v.id)}
+          className="w-full h-10 flex items-center justify-center gap-2 rounded-xl text-xs font-medium tracking-wider uppercase transition-all duration-300 disabled:opacity-50 bg-ocean-700 text-white hover:bg-ocean-600"
+        >
+          {adding ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <>
+              <ShoppingBag size={14} />
+              {t('addToCart')}
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

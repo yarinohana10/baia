@@ -29,6 +29,9 @@ type CartItem = {
 type CartStore = {
   items: CartItem[];
   loading: boolean;
+  drawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
   fetchCart: () => Promise<void>;
   addItem: (variantId: string, quantity: number) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
@@ -50,6 +53,9 @@ function getGuestSession(): string {
 export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
   loading: false,
+  drawerOpen: false,
+  openDrawer: () => set({ drawerOpen: true }),
+  closeDrawer: () => set({ drawerOpen: false }),
 
   getGuestSessionId: () => getGuestSession(),
 

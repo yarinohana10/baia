@@ -11,6 +11,7 @@ import {
   X,
   Globe,
 } from 'lucide-react';
+import { useCartStore } from '@/store/cart';
 
 function Tooltip({ label, children, align = 'center' }: { label: string; children: React.ReactNode; align?: 'center' | 'start' | 'end' }) {
   const posClass =
@@ -40,7 +41,8 @@ export function Header() {
   const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const cartCount = 0;
+  const cartCount = useCartStore((s) => s.itemCount());
+  const openDrawer = useCartStore((s) => s.openDrawer);
 
   const categories = [
     { label: tNav('men'), href: '/category/men' },
@@ -130,9 +132,10 @@ export function Header() {
 
             {/* Cart */}
             <Tooltip label={t('cartTooltip')} align="end">
-              <Link
-                href="/cart"
+              <button
+                onClick={openDrawer}
                 className="p-2 text-black hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200 relative"
+                aria-label={t('cartTooltip')}
               >
                 <ShoppingCart size={21} strokeWidth={2} />
                 {cartCount > 0 && (
@@ -140,7 +143,7 @@ export function Header() {
                     {cartCount}
                   </span>
                 )}
-              </Link>
+              </button>
             </Tooltip>
           </div>
         </div>

@@ -41,7 +41,7 @@ export default function CartPage() {
         <h1 className="text-2xl font-bold tracking-normal mb-8">{t('title')}</h1>
         <div className="animate-pulse space-y-4">
           {[1, 2].map((i) => (
-            <div key={i} className="h-28 bg-gray-100" />
+            <div key={i} className="h-28 bg-gray-100 rounded-xl" />
           ))}
         </div>
       </div>
@@ -74,15 +74,15 @@ export default function CartPage() {
               const imageUrl = product.images[0]?.url;
 
               return (
-                <div key={item.id} className="flex gap-4 p-4 bg-white border border-gray-200">
+                <div key={item.id} className="flex gap-4 p-4 bg-white border border-gray-200 rounded-xl">
                   <Link
                     href={`/product/${product.slug}`}
-                    className="w-24 h-24 flex-shrink-0 bg-gray-100 overflow-hidden"
+                    className="w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden rounded-lg"
                   >
                     {imageUrl ? (
-                      <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+                      <img src={imageUrl} alt={name} className="w-full h-full object-contain" />
                     ) : (
-                      <div className="w-full h-full bg-gray-100" />
+                      <div className="w-full h-full bg-gray-100 rounded-lg" />
                     )}
                   </Link>
 
@@ -128,7 +128,7 @@ export default function CartPage() {
                         </div>
                         <button
                           onClick={() => removeItem(item.id)}
-                          className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -141,7 +141,7 @@ export default function CartPage() {
           </div>
 
           {/* Summary */}
-          <div className="bg-white border border-gray-200 p-6 h-fit space-y-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-6 h-fit space-y-4">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{t('subtotal')}</span>
               <span>₪{subtotal.toFixed(2)}</span>

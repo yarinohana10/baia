@@ -89,7 +89,7 @@ export default function CategoriesPage() {
             setFormData({ nameHe: '', nameEn: '', slug: '', parentId: '', sortOrder: 0 });
             setShowForm(true);
           }}
-          className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm hover:bg-ocean-800 transition-colors"
+          className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors"
         >
           <Plus size={16} /> Add Category
         </button>
@@ -97,7 +97,7 @@ export default function CategoriesPage() {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white p-6 border border-gray-200 mb-8">
+        <div className="bg-white p-6 border border-gray-200 rounded-xl mb-8">
           <h2 className="text-lg font-medium mb-4">
             {editing ? 'Edit Category' : 'New Category'}
           </h2>
@@ -107,7 +107,7 @@ export default function CategoriesPage() {
               <input
                 value={formData.nameHe}
                 onChange={(e) => setFormData({ ...formData, nameHe: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                 required
                 dir="rtl"
               />
@@ -124,7 +124,7 @@ export default function CategoriesPage() {
                     slug: editing ? formData.slug : autoSlug(nameEn),
                   });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                 required
               />
             </div>
@@ -133,7 +133,7 @@ export default function CategoriesPage() {
               <input
                 value={formData.slug}
                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                 required
               />
             </div>
@@ -142,7 +142,7 @@ export default function CategoriesPage() {
               <select
                 value={formData.parentId}
                 onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
               >
                 <option value="">None (Top Level)</option>
                 {categories.map((cat) => (
@@ -160,13 +160,13 @@ export default function CategoriesPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })
                 }
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
               />
             </div>
             <div className="flex items-end gap-3">
               <button
                 type="submit"
-                className="bg-ocean-700 text-white px-6 py-2 text-sm hover:bg-ocean-800 transition-colors"
+                className="bg-ocean-700 text-white px-6 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors"
               >
                 {editing ? 'Update' : 'Create'}
               </button>
@@ -176,7 +176,7 @@ export default function CategoriesPage() {
                   setShowForm(false);
                   setEditing(null);
                 }}
-                className="px-6 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors border border-gray-300"
+                className="px-6 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors border border-gray-300 rounded-lg"
               >
                 Cancel
               </button>
@@ -186,7 +186,7 @@ export default function CategoriesPage() {
       )}
 
       {/* Category tree */}
-      <div className="bg-white border border-gray-200">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {categories.length === 0 ? (
           <p className="p-6 text-gray-400 text-center">No categories yet.</p>
         ) : (

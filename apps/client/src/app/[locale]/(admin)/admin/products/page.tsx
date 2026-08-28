@@ -51,7 +51,7 @@ export default function ProductsPage() {
         <h1 className="text-2xl font-bold tracking-normal">Products</h1>
         <Link
           href="/admin/products/new"
-          className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm hover:bg-ocean-800 transition-colors"
+          className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors"
         >
           <Plus size={16} /> Add Product
         </Link>
@@ -64,12 +64,12 @@ export default function ProductsPage() {
           placeholder="Search products..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md px-4 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
         />
       </div>
 
       {/* Product table */}
-      <div className="bg-white border border-gray-200 overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
@@ -97,10 +97,10 @@ export default function ProductsPage() {
                       <img
                         src={product.images[0].url}
                         alt=""
-                        className="w-12 h-12 object-cover bg-gray-100"
+                        className="w-12 h-12 object-cover bg-gray-100 rounded-lg"
                       />
                     ) : (
-                      <div className="w-12 h-12 bg-gray-100" />
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg" />
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -112,7 +112,7 @@ export default function ProductsPage() {
                   <td className="px-4 py-3 text-gray-600">{product._count.variants}</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`text-xs px-2 py-0.5 ${
+                      className={`text-xs px-2 py-0.5 rounded-full ${
                         product.isActive
                           ? 'bg-green-50 text-green-600'
                           : 'bg-gray-100 text-gray-500'

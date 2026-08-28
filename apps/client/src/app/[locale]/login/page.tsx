@@ -33,14 +33,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-ocean-50 px-4">
-      <div className="w-full max-w-md bg-white p-8 shadow-sm">
+      <div className="w-full max-w-md bg-white p-8 shadow-sm rounded-2xl">
         <h1 className="text-3xl font-black tracking-[0.04em] text-center text-ocean-700 mb-8">
           BAIA
         </h1>
         <h2 className="text-xl font-semibold text-center mb-6">{t('login')}</h2>
 
         {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-3 mb-4 border border-red-200">
+          <div className="bg-red-50 text-red-600 text-sm p-3 mb-4 border border-red-200 rounded-lg">
             {error}
           </div>
         )}
@@ -52,7 +52,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 focus:border-ocean-500 focus:outline-none transition-colors"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-ocean-500 focus:outline-none transition-colors"
               required
             />
           </div>
@@ -63,7 +63,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 focus:border-ocean-500 focus:outline-none transition-colors"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-ocean-500 focus:outline-none transition-colors"
               required
             />
           </div>

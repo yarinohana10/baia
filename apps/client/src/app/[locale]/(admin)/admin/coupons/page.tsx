@@ -98,7 +98,7 @@ export default function CouponsPage() {
         <h1 className="text-2xl font-bold tracking-normal">Coupons</h1>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
-          className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm hover:bg-ocean-800 transition-colors"
+          className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors"
         >
           <Plus size={16} /> Create Coupon
         </button>
@@ -106,7 +106,7 @@ export default function CouponsPage() {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white border border-gray-200 p-6 mb-6 space-y-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-medium">{editing ? 'Edit Coupon' : 'New Coupon'}</h2>
             <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
@@ -121,7 +121,7 @@ export default function CouponsPage() {
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none uppercase"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none uppercase"
                 placeholder="SUMMER25"
               />
             </div>
@@ -130,7 +130,7 @@ export default function CouponsPage() {
               <select
                 value={discountType}
                 onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'FIXED')}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none bg-white"
               >
                 <option value="PERCENTAGE">Percentage (%)</option>
                 <option value="FIXED">Fixed Amount (₪)</option>
@@ -146,7 +146,7 @@ export default function CouponsPage() {
                 step="0.01"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                 placeholder={discountType === 'PERCENTAGE' ? '25' : '50'}
               />
             </div>
@@ -163,7 +163,7 @@ export default function CouponsPage() {
                 step="0.01"
                 value={minCartValue}
                 onChange={(e) => setMinCartValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                 placeholder="Optional"
               />
             </div>
@@ -174,7 +174,7 @@ export default function CouponsPage() {
                 min="0"
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
                 placeholder="Unlimited"
               />
             </div>
@@ -184,7 +184,7 @@ export default function CouponsPage() {
                 type="date"
                 value={expiresAt}
                 onChange={(e) => setExpiresAt(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 text-sm focus:border-ocean-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
               />
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function CouponsPage() {
           <button
             onClick={handleSubmit}
             disabled={!code || !value}
-            className="bg-ocean-700 text-white px-5 py-2 text-sm hover:bg-ocean-800 transition-colors disabled:opacity-40"
+            className="bg-ocean-700 text-white px-5 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-40"
           >
             {editing ? 'Update' : 'Create'}
           </button>
@@ -200,7 +200,7 @@ export default function CouponsPage() {
       )}
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
@@ -243,13 +243,13 @@ export default function CouponsPage() {
                   </td>
                   <td className="px-4 py-3">
                     {isExpired(c) ? (
-                      <span className="text-xs px-2 py-0.5 bg-red-50 text-red-500">Expired</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500">Expired</span>
                     ) : isMaxedOut(c) ? (
-                      <span className="text-xs px-2 py-0.5 bg-orange-50 text-orange-500">Maxed</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">Maxed</span>
                     ) : c.isActive ? (
-                      <span className="text-xs px-2 py-0.5 bg-green-50 text-green-600">Active</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600">Active</span>
                     ) : (
-                      <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500">Inactive</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Inactive</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
