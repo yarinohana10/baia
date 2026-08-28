@@ -37,7 +37,7 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-ocean-700 text-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <span className="text-lg font-light tracking-[0.2em]">BAIA</span>
+          <span className="text-lg font-black tracking-[0.04em]">BAIA</span>
           <span className="text-xs tracking-wider text-white/60 uppercase">Admin</span>
         </div>
         <span className="text-sm text-white/70">{session.user.email}</span>

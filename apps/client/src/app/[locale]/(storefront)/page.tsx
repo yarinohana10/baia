@@ -147,7 +147,7 @@ export default function HomePage() {
             </p>
             <Link
               href="/category/men"
-              className="inline-block bg-white text-gray-900 px-10 py-3.5 text-[14px] font-bold tracking-[0.15em] uppercase hover:bg-ocean-700 hover:text-white transition-all duration-300"
+              className="inline-block bg-white text-gray-900 px-10 py-3.5 text-[14px] font-bold tracking-[0.15em] uppercase rounded-lg hover:bg-ocean-700 hover:text-white transition-all duration-300"
             >
               {t('heroCta')}
             </Link>
@@ -216,7 +216,7 @@ export default function HomePage() {
 
           {loaded && newArrivals.length === 0 ? (
             <p className="text-center text-gray-400 py-12 text-sm tracking-wide">
-              More products coming soon.
+              {t('comingSoon')}
             </p>
           ) : (
             <div

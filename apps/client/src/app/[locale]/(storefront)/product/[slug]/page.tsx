@@ -214,7 +214,7 @@ export default function ProductDetailPage() {
 
         {/* Details */}
         <div>
-          <h1 className="text-2xl md:text-3xl font-light tracking-wider mb-3">{name}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-normal mb-3">{name}</h1>
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mb-6">
@@ -243,7 +243,7 @@ export default function ProductDetailPage() {
                   <button
                     key={color}
                     onClick={() => { setSelectedColor(color); setSelectedImageIdx(0); }}
-                    className={`px-3 py-1.5 text-sm border transition-colors ${
+                    className={`px-3 py-1.5 text-sm border rounded-lg transition-colors ${
                       selectedColor === color
                         ? 'border-ocean-700 bg-ocean-700 text-white'
                         : 'border-gray-300 hover:border-ocean-500'
@@ -267,7 +267,7 @@ export default function ProductDetailPage() {
                   key={v.size}
                   onClick={() => setSelectedSize(v.size)}
                   disabled={v.stockQuantity === 0}
-                  className={`w-11 h-11 text-sm border transition-colors ${
+                  className={`w-11 h-11 text-sm border rounded-lg transition-colors ${
                     selectedSize === v.size
                       ? 'border-ocean-700 bg-ocean-700 text-white'
                       : v.stockQuantity === 0
@@ -283,7 +283,7 @@ export default function ProductDetailPage() {
 
           {/* Quantity + Add to cart */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="flex items-center border border-gray-300">
+            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 className="px-3 py-2.5 text-gray-500 hover:text-ocean-600 transition-colors"
@@ -304,7 +304,7 @@ export default function ProductDetailPage() {
             <button
               onClick={handleAddToCart}
               disabled={!selectedVariant || selectedVariant.stockQuantity === 0}
-              className={`flex-1 py-3 text-sm font-medium tracking-[0.15em] uppercase transition-colors ${
+              className={`flex-1 py-3 text-sm font-medium tracking-wider uppercase rounded-lg transition-colors ${
                 addedToCart
                   ? 'bg-green-600 text-white'
                   : !selectedVariant || selectedVariant.stockQuantity === 0
@@ -320,7 +320,7 @@ export default function ProductDetailPage() {
             </button>
 
             <button
-              className="p-3 border border-gray-300 text-gray-400 hover:text-red-500 hover:border-red-300 transition-colors"
+              className="p-3 border border-gray-300 rounded-lg text-gray-400 hover:text-red-500 hover:border-red-300 transition-colors"
               aria-label="Add to wishlist"
             >
               <Heart size={18} />

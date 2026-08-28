@@ -80,9 +80,9 @@ export default function CategoryPage() {
     <div className="container-page py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-light tracking-[0.2em] uppercase mb-2">{catName}</h1>
+        <h1 className="text-2xl font-bold tracking-normal mb-2">{catName}</h1>
         <p className="text-sm text-gray-400">
-          {total} {total === 1 ? 'product' : 'products'}
+          {total} {total === 1 ? t('productSingular') : t('productPlural')}
         </p>
       </div>
 
@@ -91,19 +91,19 @@ export default function CategoryPage() {
         <div className="flex flex-wrap gap-2 mb-8">
           <button
             onClick={() => { setSelectedSubCat(null); setPage(1); }}
-            className={`px-4 py-1.5 text-sm border transition-colors ${
+            className={`px-4 py-1.5 text-sm border rounded-lg transition-colors ${
               !selectedSubCat
                 ? 'border-ocean-700 bg-ocean-700 text-white'
                 : 'border-gray-300 hover:border-ocean-500'
             }`}
           >
-            All
+            {t('all')}
           </button>
           {category.children.map((sub) => (
             <button
               key={sub.id}
               onClick={() => { setSelectedSubCat(sub.id); setPage(1); }}
-              className={`px-4 py-1.5 text-sm border transition-colors ${
+              className={`px-4 py-1.5 text-sm border rounded-lg transition-colors ${
                 selectedSubCat === sub.id
                   ? 'border-ocean-700 bg-ocean-700 text-white'
                   : 'border-gray-300 hover:border-ocean-500'
@@ -119,17 +119,17 @@ export default function CategoryPage() {
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <SlidersHorizontal size={14} />
-          <span>{total} results</span>
+          <span>{total} {t('results')}</span>
         </div>
         <div className="relative">
           <select
             value={sort}
             onChange={(e) => { setSort(e.target.value as SortOption); setPage(1); }}
-            className="appearance-none text-sm text-gray-600 bg-transparent pe-6 cursor-pointer focus:outline-none"
+            className="appearance-none text-sm text-gray-600 bg-transparent pe-6 cursor-pointer focus:outline-none rounded-lg"
           >
-            <option value="newest">Newest</option>
-            <option value="price-asc">Price: Low to High</option>
-            <option value="price-desc">Price: High to Low</option>
+            <option value="newest">{t('sortNewest')}</option>
+            <option value="price-asc">{t('sortPriceLow')}</option>
+            <option value="price-desc">{t('sortPriceHigh')}</option>
           </select>
           <ChevronDown size={12} className="absolute end-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         </div>
@@ -151,7 +151,7 @@ export default function CategoryPage() {
         </div>
       ) : products.length === 0 ? (
         <div className="text-center py-16 text-gray-400 tracking-wider">
-          No products in this category yet.
+          {t('noProducts')}
         </div>
       ) : (
         <>
@@ -168,7 +168,7 @@ export default function CategoryPage() {
                 <button
                   key={i}
                   onClick={() => setPage(i + 1)}
-                  className={`w-9 h-9 text-sm border transition-colors ${
+                  className={`w-9 h-9 text-sm border rounded-lg transition-colors ${
                     page === i + 1
                       ? 'border-ocean-700 bg-ocean-700 text-white'
                       : 'border-gray-300 hover:border-ocean-500'

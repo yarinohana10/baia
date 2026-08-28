@@ -67,7 +67,7 @@ export default function AdminOrdersPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-light tracking-wider">Orders ({total})</h1>
+        <h1 className="text-2xl font-bold tracking-normal">Orders ({total})</h1>
       </div>
 
       {/* Filters */}

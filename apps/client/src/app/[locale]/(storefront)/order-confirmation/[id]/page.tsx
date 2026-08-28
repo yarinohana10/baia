@@ -28,7 +28,7 @@ export default function OrderConfirmationPage() {
   return (
     <div className="max-w-2xl mx-auto py-16 px-4 text-center">
       <CheckCircle2 size={64} className="mx-auto text-green-500 mb-6" />
-      <h1 className="text-3xl font-light tracking-wider mb-2">Thank You!</h1>
+      <h1 className="text-3xl font-bold tracking-normal mb-2">Thank You!</h1>
       <p className="text-gray-500 mb-8">Your order has been placed successfully.</p>
 
       <div className="bg-white border border-gray-200 p-6 text-start space-y-4 mb-8">
@@ -91,13 +91,13 @@ export default function OrderConfirmationPage() {
       <div className="flex items-center justify-center gap-4">
         <Link
           href="/"
-          className="px-6 py-2.5 text-sm border border-gray-300 hover:bg-gray-50 transition-colors"
+          className="px-6 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
           Continue Shopping
         </Link>
         <Link
           href="/account/orders"
-          className="flex items-center gap-2 px-6 py-2.5 text-sm bg-ocean-700 text-white hover:bg-ocean-800 transition-colors"
+          className="flex items-center gap-2 px-6 py-2.5 text-sm bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 transition-colors"
         >
           <Package size={14} /> My Orders
         </Link>

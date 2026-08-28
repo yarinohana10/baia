@@ -39,7 +39,7 @@ export default function MyOrdersPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6">
-      <h1 className="text-2xl font-light tracking-[0.2em] uppercase mb-8">My Orders</h1>
+      <h1 className="text-2xl font-bold tracking-normal mb-8">My Orders</h1>
 
       {orders.length === 0 ? (
         <div className="text-center py-20">
@@ -47,7 +47,7 @@ export default function MyOrdersPage() {
           <p className="text-gray-400 mb-6">No orders yet.</p>
           <Link
             href="/"
-            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider hover:bg-ocean-800 transition-colors"
+            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider rounded-lg hover:bg-ocean-800 transition-colors"
           >
             Start Shopping
           </Link>

@@ -22,7 +22,7 @@ export default function EditProductPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-light tracking-wider mb-8">Edit Product</h1>
+      <h1 className="text-2xl font-bold tracking-normal mb-8">Edit Product</h1>
       <ProductForm product={product} />
     </div>
   );

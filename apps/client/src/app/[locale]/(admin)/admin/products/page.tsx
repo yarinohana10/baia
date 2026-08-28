@@ -48,7 +48,7 @@ export default function ProductsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-light tracking-wider">Products</h1>
+        <h1 className="text-2xl font-bold tracking-normal">Products</h1>
         <Link
           href="/admin/products/new"
           className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm hover:bg-ocean-800 transition-colors"

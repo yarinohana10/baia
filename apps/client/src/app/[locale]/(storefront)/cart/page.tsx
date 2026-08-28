@@ -38,7 +38,7 @@ export default function CartPage() {
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
-        <h1 className="text-2xl font-light tracking-[0.2em] uppercase mb-8">{t('title')}</h1>
+        <h1 className="text-2xl font-bold tracking-normal mb-8">{t('title')}</h1>
         <div className="animate-pulse space-y-4">
           {[1, 2].map((i) => (
             <div key={i} className="h-28 bg-gray-100" />
@@ -50,7 +50,7 @@ export default function CartPage() {
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
-      <h1 className="text-2xl font-light tracking-[0.2em] uppercase mb-8">{t('title')}</h1>
+      <h1 className="text-2xl font-bold tracking-normal mb-8">{t('title')}</h1>
 
       {items.length === 0 ? (
         <div className="text-center py-20">
@@ -58,7 +58,7 @@ export default function CartPage() {
           <p className="text-gray-400 mb-6">{t('empty')}</p>
           <Link
             href="/"
-            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider hover:bg-ocean-800 transition-colors"
+            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider rounded-lg hover:bg-ocean-800 transition-colors"
           >
             {t('continueShopping')}
           </Link>
@@ -98,7 +98,7 @@ export default function CartPage() {
                     </p>
 
                     <div className="flex items-center justify-between mt-3">
-                      <div className="flex items-center border border-gray-300">
+                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
                           className="px-2 py-1 text-gray-500 hover:text-ocean-600"
@@ -163,7 +163,7 @@ export default function CartPage() {
             </div>
             <Link
               href="/checkout"
-              className="block w-full bg-ocean-700 text-white text-center py-3 text-sm tracking-[0.15em] uppercase hover:bg-ocean-800 transition-colors"
+              className="block w-full bg-ocean-700 text-white text-center py-3 text-sm tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors"
             >
               {t('checkout')}
             </Link>

@@ -95,7 +95,7 @@ export default function CouponsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-light tracking-wider">Coupons</h1>
+        <h1 className="text-2xl font-bold tracking-normal">Coupons</h1>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
           className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm hover:bg-ocean-800 transition-colors"

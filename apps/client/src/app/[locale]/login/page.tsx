@@ -34,10 +34,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-ocean-50 px-4">
       <div className="w-full max-w-md bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-light tracking-widest text-center text-ocean-700 mb-8">
+        <h1 className="text-3xl font-black tracking-[0.04em] text-center text-ocean-700 mb-8">
           BAIA
         </h1>
-        <h2 className="text-xl font-light text-center mb-6">{t('login')}</h2>
+        <h2 className="text-xl font-semibold text-center mb-6">{t('login')}</h2>
 
         {error && (
           <div className="bg-red-50 text-red-600 text-sm p-3 mb-4 border border-red-200">
@@ -71,7 +71,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-ocean-700 text-white py-2.5 text-sm font-medium tracking-wider uppercase hover:bg-ocean-800 transition-colors disabled:opacity-50"
+            className="w-full bg-ocean-700 text-white py-2.5 text-sm font-medium tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-50"
           >
             {loading ? '...' : t('login')}
           </button>

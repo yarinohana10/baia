@@ -106,7 +106,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
-      <h1 className="text-2xl font-light tracking-[0.2em] uppercase mb-8">{t('checkout')}</h1>
+      <h1 className="text-2xl font-bold tracking-normal mb-8">{t('checkout')}</h1>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6 flex items-center gap-2">
@@ -207,7 +207,7 @@ export default function CheckoutPage() {
               />
               <button
                 onClick={applyCoupon}
-                className="px-4 py-2 text-sm bg-ocean-700 text-white hover:bg-ocean-800 transition-colors"
+                className="px-4 py-2 text-sm bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 transition-colors"
               >
                 Apply
               </button>
@@ -268,7 +268,7 @@ export default function CheckoutPage() {
           <button
             onClick={handleSubmit}
             disabled={submitting || !email || !city || !street || !number}
-            className="w-full bg-ocean-700 text-white py-3 text-sm tracking-[0.15em] uppercase hover:bg-ocean-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full bg-ocean-700 text-white py-3 text-sm tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <ShieldCheck size={16} />
             {submitting ? 'Processing...' : 'Place Order'}

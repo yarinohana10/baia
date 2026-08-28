@@ -53,7 +53,7 @@ export default function WishlistPage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6">
-        <h1 className="text-2xl font-light tracking-[0.2em] uppercase mb-8">{t('wishlist')}</h1>
+        <h1 className="text-2xl font-bold tracking-normal mb-8">{t('wishlist')}</h1>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 animate-pulse">
           {[1, 2, 3, 4].map((i) => (
             <div key={i}>
@@ -73,7 +73,7 @@ export default function WishlistPage() {
         <p className="text-gray-400 mb-4">Please log in to view your wishlist.</p>
         <Link
           href="/login"
-          className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider hover:bg-ocean-800 transition-colors"
+          className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider rounded-lg hover:bg-ocean-800 transition-colors"
         >
           {t('login')}
         </Link>
@@ -83,7 +83,7 @@ export default function WishlistPage() {
 
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6">
-      <h1 className="text-2xl font-light tracking-[0.2em] uppercase mb-8">
+      <h1 className="text-2xl font-bold tracking-normal mb-8">
         {t('wishlist')} ({items.length})
       </h1>
 
@@ -93,7 +93,7 @@ export default function WishlistPage() {
           <p className="text-gray-400 mb-6">Your wishlist is empty.</p>
           <Link
             href="/"
-            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider hover:bg-ocean-800 transition-colors"
+            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider rounded-lg hover:bg-ocean-800 transition-colors"
           >
             Browse Products
           </Link>

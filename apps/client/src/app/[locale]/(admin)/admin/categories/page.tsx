@@ -82,7 +82,7 @@ export default function CategoriesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-light tracking-wider">Categories</h1>
+        <h1 className="text-2xl font-bold tracking-normal">Categories</h1>
         <button
           onClick={() => {
             setEditing(null);
