@@ -62,14 +62,14 @@ export default function ProductCard({ product }: Props) {
     <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100">
       <Link href={`/product/${product.slug}`} className="block">
         {/* Image */}
-        <div className="relative aspect-square bg-gray-50 overflow-hidden">
+        <div className="relative aspect-square bg-white overflow-hidden">
           {imageUrl ? (
             <Image
               src={imageUrl}
               alt={name}
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-              className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              className="object-contain object-center group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-ocean-50">

@@ -129,39 +129,28 @@ export default function HomePage() {
   return (
     <>
       {/* ─── Hero Banner ──────────────────────────────── */}
-      <section className="relative w-full h-[300px] sm:h-[360px] lg:h-[400px] overflow-hidden">
+      <section className="relative w-full h-[420px] sm:h-[480px] lg:h-[540px] overflow-hidden">
         <Image
-          src="/hero/hero-banner.jpg"
-          alt="BAIA Swimwear Summer Collection"
+          src="/hero/hero-banner.png"
+          alt="BAIA Swimwear — Summer Collection"
           fill
           priority
           sizes="100vw"
           className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
-        <div className="absolute inset-0 flex items-center">
-          <div className="container-page">
-            <div className="max-w-lg">
-              {/* BAIA Logo as hero heading */}
-              <Image
-                src="/logo/baia-logo-transparent.png"
-                alt="BAIA Swimwear"
-                width={360}
-                height={120}
-                priority
-                className="h-24 sm:h-32 lg:h-36 w-auto mb-4 drop-shadow-xl"
-              />
-              <p className="text-[15px] sm:text-base text-white/90 mb-6 font-light leading-relaxed max-w-sm">
-                {t('heroSubtitle')}
-              </p>
-              <Link
-                href="/category/men"
-                className="inline-block bg-white text-gray-900 px-8 py-3 text-[13px] font-semibold tracking-[0.12em] uppercase hover:bg-ocean-700 hover:text-white transition-all duration-300 rounded-sm"
-              >
-                {t('heroCta')}
-              </Link>
-            </div>
+        <div className="absolute inset-0 flex items-end">
+          <div className="container-page pb-10 sm:pb-14">
+            <p className="text-lg sm:text-xl text-white font-bold leading-snug max-w-md drop-shadow-lg mb-8">
+              {t('heroSubtitle')}
+            </p>
+            <Link
+              href="/category/men"
+              className="inline-block bg-white text-gray-900 px-10 py-3.5 text-[14px] font-bold tracking-[0.15em] uppercase hover:bg-ocean-700 hover:text-white transition-all duration-300"
+            >
+              {t('heroCta')}
+            </Link>
           </div>
         </div>
       </section>
