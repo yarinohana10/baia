@@ -61,7 +61,6 @@ export default function ProductDetailPage() {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
     api
@@ -117,15 +116,17 @@ export default function ProductDetailPage() {
     return colorImages.length > 0 ? colorImages : product.images;
   }, [product, selectedColor]);
 
-  const { addItem } = useCartStore();
+  const { addItem, openDrawer, closeDrawer } = useCartStore();
 
   const handleAddToCart = async () => {
     if (!selectedVariant) return;
     try {
       await addItem(selectedVariant.id, quantity);
-      setAddedToCart(true);
-      setTimeout(() => setAddedToCart(false), 2000);
-    } catch {}
+    } catch {
+      // silently fail
+    }
+    closeDrawer();
+    setTimeout(() => openDrawer(), 50);
   };
 
   if (loading) {
@@ -165,19 +166,19 @@ export default function ProductDetailPage() {
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-8">
         <Link href="/" className="hover:text-ocean-600 transition-colors">Home</Link>
-        <ChevronRight size={10} />
+        <ChevronRight size={10} className="rtl:rotate-180" />
         {parentCatName && product.category.parent && (
           <>
             <Link href={`/category/${product.category.parent.slug}`} className="hover:text-ocean-600 transition-colors">
               {parentCatName}
             </Link>
-            <ChevronRight size={10} />
+            <ChevronRight size={10} className="rtl:rotate-180" />
           </>
         )}
         <Link href={`/category/${product.category.slug}`} className="hover:text-ocean-600 transition-colors">
           {catName}
         </Link>
-        <ChevronRight size={10} />
+        <ChevronRight size={10} className="rtl:rotate-180" />
         <span className="text-gray-600">{name}</span>
       </nav>
 
@@ -305,16 +306,12 @@ export default function ProductDetailPage() {
               onClick={handleAddToCart}
               disabled={!selectedVariant || selectedVariant.stockQuantity === 0}
               className={`flex-1 py-3 text-sm font-medium tracking-wider uppercase rounded-lg transition-colors ${
-                addedToCart
-                  ? 'bg-green-600 text-white'
-                  : !selectedVariant || selectedVariant.stockQuantity === 0
+                !selectedVariant || selectedVariant.stockQuantity === 0
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-ocean-700 text-white hover:bg-ocean-800'
               }`}
             >
-              {addedToCart
-                ? 'Added!'
-                : !selectedVariant || selectedVariant.stockQuantity === 0
+              {!selectedVariant || selectedVariant.stockQuantity === 0
                 ? t('outOfStock')
                 : t('addToCart')}
             </button>

@@ -13,6 +13,26 @@
     "userTooltip": "My Account",
     "cartTooltip": "Shopping Cart"
   },
+  "auth": {
+    "welcomeBack": "Welcome Back",
+    "signInSubtitle": "Sign in to access your exclusive benefits and orders.",
+    "emailLabel": "Email Address",
+    "passwordLabel": "Password",
+    "forgotPassword": "Forgot?",
+    "signIn": "Sign In",
+    "newToBaia": "New to Baia?",
+    "createAnAccount": "Create an Account",
+    "createAccount": "Create Account",
+    "createAccountSubtitle": "Enter your details to join the Baia community.",
+    "fullNameLabel": "Full Name",
+    "confirmPasswordLabel": "Confirm Password",
+    "newsletterSignup": "Sign up for emails to receive updates, exclusive offers, and early access to new collections.",
+    "alreadyHaveAccount": "Already have an account?",
+    "signInLink": "Sign In",
+    "heroLoginSubtitle": "Discover the new standard in coastal luxury and sophisticated summer escapes.",
+    "heroRegisterTitle": "Discover Your Endless Summer",
+    "heroRegisterSubtitle": "Join Baia Swimwear for exclusive access to new collections and premium member benefits."
+  },
   "nav": {
     "men": "Men",
     "women": "Women",

@@ -34,6 +34,8 @@
   --color-warm-200: #f8f0e3;
 
   --font-sans: var(--font-lato), 'Lato', 'Roboto', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-libre-caslon), 'Libre Caslon Text', 'Georgia', serif;
+  --font-body: var(--font-dm-sans), 'DM Sans', 'Lato', ui-sans-serif, system-ui, sans-serif;
 }
 
 @theme inline {

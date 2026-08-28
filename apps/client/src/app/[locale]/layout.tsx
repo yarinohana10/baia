@@ -3,7 +3,7 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import type { Metadata } from 'next';
-import { Lato } from 'next/font/google';
+import { Lato, Libre_Caslon_Text, DM_Sans } from 'next/font/google';
 import '../globals.css';
 
 const lato = Lato({
@@ -11,6 +11,20 @@ const lato = Lato({
   weight: ['100', '300', '400', '700', '900'],
   display: 'swap',
   variable: '--font-lato',
+});
+
+const libreCaslon = Libre_Caslon_Text({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  display: 'swap',
+  variable: '--font-libre-caslon',
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  display: 'swap',
+  variable: '--font-dm-sans',
 });
 
 export const metadata: Metadata = {
@@ -56,7 +70,7 @@ export default async function LocaleLayout({
   const dir = locale === 'he' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={locale} dir={dir} className={lato.variable}>
+    <html lang={locale} dir={dir} className={`${lato.variable} ${libreCaslon.variable} ${dmSans.variable}`}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
