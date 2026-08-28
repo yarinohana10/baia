@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, ShoppingBag, Plus, Minus, Heart } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '@/components/storefront/ProductCard';
 
 type Product = {
@@ -24,89 +24,44 @@ type Product = {
   }[];
 };
 
-/* ─── New Arrivals Card ───────────────────────────── */
+/* ─── New Arrival Card (horizontal: image left, text right) ─── */
 
 function NewArrivalCard({ product, locale }: { product: Product; locale: string }) {
   const name = locale === 'he' ? product.nameHe : product.nameEn;
   const price = parseFloat(product.basePrice);
   const imageUrl = product.images[0]?.url;
-  const t = useTranslations('product');
-
-  const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
-
-  const handleAdd = () => {
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1400);
-  };
 
   return (
-    <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex-shrink-0 w-[220px] sm:w-[240px]">
-      <Link href={`/product/${product.slug}`} className="block">
-        <div className="relative aspect-square bg-gray-50 overflow-hidden">
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt={name}
-              fill
-              sizes="240px"
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-gray-300 text-xs">BAIA</span>
-            </div>
-          )}
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            className="absolute top-2.5 end-2.5 p-1.5 rounded-full bg-white/80 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all"
-          >
-            <Heart size={14} />
-          </button>
-        </div>
-      </Link>
-      <div className="p-3.5">
-        <Link href={`/product/${product.slug}`}>
-          <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-1.5 leading-snug hover:text-ocean-700 transition-colors min-h-[2.5rem]">
-            {name}
-          </h3>
-        </Link>
-        <p className="text-base font-semibold text-gray-900 text-center mb-3">₪{price.toFixed(0)}</p>
-
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setQty(Math.max(1, qty - 1))}
-              className="w-7 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50"
-            >
-              <Minus size={12} />
-            </button>
-            <span className="w-6 text-center text-xs font-medium">{qty}</span>
-            <button
-              onClick={() => setQty(qty + 1)}
-              className="w-7 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50"
-            >
-              <Plus size={12} />
-            </button>
+    <Link
+      href={`/product/${product.slug}`}
+      className="flex-shrink-0 w-[260px] sm:w-[280px] flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-3 hover:shadow-md hover:border-ocean-200 transition-all duration-250 snap-start"
+    >
+      <div className="relative w-[88px] h-[88px] flex-shrink-0 bg-warm-100 rounded-lg overflow-hidden">
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={name}
+            fill
+            sizes="88px"
+            className="object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">
+            BAIA
           </div>
-          <button
-            onClick={handleAdd}
-            className={`flex-1 h-8 rounded-lg text-xs font-medium tracking-wide flex items-center justify-center gap-1 transition-all duration-300 ${
-              added
-                ? 'bg-green-500 text-white'
-                : 'bg-ocean-700 text-white hover:bg-ocean-600'
-            }`}
-          >
-            <ShoppingBag size={12} />
-            {added ? t('added') : t('addToCart')}
-          </button>
-        </div>
+        )}
       </div>
-    </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-snug mb-1.5">
+          {name}
+        </h3>
+        <p className="text-[15px] font-semibold text-gray-900">₪{price.toFixed(0)}</p>
+      </div>
+    </Link>
   );
 }
 
-/* ─── Homepage ────────────────────────────────────── */
+/* ─── Homepage ─── */
 
 export default function HomePage() {
   const t = useTranslations('home');
@@ -114,8 +69,10 @@ export default function HomePage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [scrollPos, setScrollPos] = useState(0);
-  const [maxScroll, setMaxScroll] = useState(0);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   useEffect(() => {
     api
@@ -126,21 +83,41 @@ export default function HomePage() {
 
   const newArrivals = products.slice(0, 12);
 
-  const carouselRef = useCallback((node: HTMLDivElement | null) => {
-    if (!node) return;
-    const updateScroll = () => {
-      setScrollPos(node.scrollLeft);
-      setMaxScroll(node.scrollWidth - node.clientWidth);
-    };
-    node.addEventListener('scroll', updateScroll);
-    updateScroll();
+  const updateScrollButtons = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateScrollButtons);
+    updateScrollButtons();
+    return () => el.removeEventListener('scroll', updateScrollButtons);
   }, [loaded]);
 
+  /* Auto-scroll */
+  const [isHovered, setIsHovered] = useState(false);
+  useEffect(() => {
+    if (isHovered || !loaded || newArrivals.length === 0) return;
+    const interval = setInterval(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 2) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: 1, behavior: 'auto' });
+      }
+    }, 25);
+    return () => clearInterval(interval);
+  }, [isHovered, loaded, newArrivals.length]);
+
   const scroll = (dir: 'left' | 'right') => {
-    const el = document.getElementById('new-arrivals-scroll');
+    const el = scrollRef.current;
     if (!el) return;
-    const amount = 260;
-    el.scrollBy({ left: dir === 'right' ? amount : -amount, behavior: 'smooth' });
+    el.scrollBy({ left: dir === 'right' ? 300 : -300, behavior: 'smooth' });
   };
 
   const categories = [
@@ -152,7 +129,7 @@ export default function HomePage() {
   return (
     <>
       {/* ─── Hero Banner ──────────────────────────────── */}
-      <section className="relative w-full h-[420px] sm:h-[500px] lg:h-[560px] overflow-hidden">
+      <section className="relative w-full h-[300px] sm:h-[360px] lg:h-[400px] overflow-hidden">
         <Image
           src="/hero/hero-banner.jpg"
           alt="BAIA Swimwear Summer Collection"
@@ -161,20 +138,26 @@ export default function HomePage() {
           sizes="100vw"
           className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
 
         <div className="absolute inset-0 flex items-center">
-          <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16 w-full">
+          <div className="container-page">
             <div className="max-w-lg">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light italic text-white mb-4 leading-tight tracking-wide">
-                {t('heroTitle')}
-              </h1>
-              <p className="text-base sm:text-lg text-white/80 mb-8 font-light leading-relaxed">
+              {/* BAIA Logo as hero heading */}
+              <Image
+                src="/logo/baia-logo-transparent.png"
+                alt="BAIA Swimwear"
+                width={360}
+                height={120}
+                priority
+                className="h-24 sm:h-32 lg:h-36 w-auto mb-4 drop-shadow-xl"
+              />
+              <p className="text-[15px] sm:text-base text-white/90 mb-6 font-light leading-relaxed max-w-sm">
                 {t('heroSubtitle')}
               </p>
               <Link
                 href="/category/men"
-                className="inline-block bg-white text-gray-900 px-8 py-3 text-sm font-semibold tracking-widest uppercase border-2 border-white hover:bg-transparent hover:text-white transition-all duration-300"
+                className="inline-block bg-white text-gray-900 px-8 py-3 text-[13px] font-semibold tracking-[0.12em] uppercase hover:bg-ocean-700 hover:text-white transition-all duration-300 rounded-sm"
               >
                 {t('heroCta')}
               </Link>
@@ -184,90 +167,94 @@ export default function HomePage() {
       </section>
 
       {/* ─── Shop by Category ─────────────────────────── */}
-      <section className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-        <h2 className="text-2xl sm:text-3xl font-light text-gray-900 mb-8 sm:mb-10">
-          {t('shopByCategory')}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-          {categories.map((cat) => (
-            <Link
-              key={cat.slug}
-              href={`/category/${cat.slug}`}
-              className="group relative h-[280px] sm:h-[320px] lg:h-[380px] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300"
-            >
-              <Image
-                src={cat.image}
-                alt={cat.label}
-                fill
-                sizes="(max-width: 640px) 100vw, 33vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-white text-xl sm:text-2xl font-semibold tracking-wider drop-shadow-lg">
-                  {cat.label}
-                </span>
-              </div>
-            </Link>
-          ))}
+      <section className="bg-warm-50">
+        <div className="container-page py-12 sm:py-16">
+          <h2 className="text-[22px] sm:text-2xl font-semibold text-gray-900 mb-6 sm:mb-8 tracking-tight">
+            {t('shopByCategory')}
+          </h2>
+          <div className="grid grid-cols-3 gap-3 sm:gap-5">
+            {categories.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/category/${cat.slug}`}
+                className="group relative h-[200px] sm:h-[260px] lg:h-[300px] overflow-hidden rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300"
+              >
+                <Image
+                  src={cat.image}
+                  alt={cat.label}
+                  fill
+                  sizes="(max-width: 640px) 33vw, 33vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-600"
+                />
+                <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 transition-colors duration-300" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-base sm:text-lg lg:text-xl font-bold tracking-[0.1em] uppercase drop-shadow-md">
+                    {cat.label}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ─── New Arrivals Carousel ─────────────────────── */}
-      <section className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-14 sm:pb-20">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl sm:text-3xl font-light text-gray-900">
-            {t('newArrivalsTitle')}
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => scroll('left')}
-              disabled={scrollPos <= 0}
-              className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              aria-label="Previous"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              onClick={() => scroll('right')}
-              disabled={scrollPos >= maxScroll - 1}
-              className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              aria-label="Next"
-            >
-              <ChevronRight size={18} />
-            </button>
+      {/* ─── New Arrivals ─────────────────────────────── */}
+      <section className="bg-white">
+        <div className="container-page py-12 sm:py-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-[22px] sm:text-2xl font-semibold text-gray-900 tracking-tight">
+              {t('newArrivalsTitle')}
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => scroll('left')}
+                disabled={!canScrollLeft}
+                className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:bg-ocean-50 hover:border-ocean-300 hover:text-ocean-700 disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200"
+                aria-label="Previous"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={() => scroll('right')}
+                disabled={!canScrollRight}
+                className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:bg-ocean-50 hover:border-ocean-300 hover:text-ocean-700 disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200"
+                aria-label="Next"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
           </div>
-        </div>
 
-        {loaded && newArrivals.length === 0 ? (
-          <p className="text-center text-gray-400 py-12 tracking-wider">
-            More products coming soon.
-          </p>
-        ) : (
-          <div
-            id="new-arrivals-scroll"
-            ref={carouselRef}
-            className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1 snap-x"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {newArrivals.map((product) => (
-              <NewArrivalCard key={product.id} product={product} locale={locale} />
-            ))}
-          </div>
-        )}
+          {loaded && newArrivals.length === 0 ? (
+            <p className="text-center text-gray-400 py-12 text-sm tracking-wide">
+              More products coming soon.
+            </p>
+          ) : (
+            <div
+              ref={scrollRef}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x"
+            >
+              {newArrivals.map((product) => (
+                <NewArrivalCard key={product.id} product={product} locale={locale} />
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* ─── Featured Products Grid ────────────────────── */}
       {products.filter(p => p.isFeatured).length > 0 && (
-        <section className="bg-gray-50 py-14 sm:py-20">
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl sm:text-3xl font-light text-gray-900">
+        <section className="bg-ocean-50/40">
+          <div className="container-page py-12 sm:py-16">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-[22px] sm:text-2xl font-semibold text-gray-900 tracking-tight">
                 {t('featuredTitle')}
               </h2>
               <Link
                 href="/category/men"
-                className="text-sm font-medium text-ocean-700 hover:text-ocean-600 transition-colors"
+                className="text-sm font-medium text-ocean-700 hover:text-ocean-500 transition-colors"
               >
                 {t('viewAll')} →
               </Link>

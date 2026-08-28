@@ -3,7 +3,15 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import type { Metadata } from 'next';
+import { Lato } from 'next/font/google';
 import '../globals.css';
+
+const lato = Lato({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['100', '300', '400', '700', '900'],
+  display: 'swap',
+  variable: '--font-lato',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -48,12 +56,15 @@ export default async function LocaleLayout({
   const dir = locale === 'he' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={locale} dir={dir}>
+    <html lang={locale} dir={dir} className={lato.variable}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <meta name="theme-color" content="#1B4965" />
+        <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content="#7BB4D4" />
       </head>
-      <body className="min-h-screen bg-white text-charcoal font-sans antialiased">
+      <body className={`min-h-screen bg-white text-charcoal antialiased ${lato.className}`}>
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>

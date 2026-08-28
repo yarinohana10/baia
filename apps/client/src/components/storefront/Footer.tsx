@@ -11,7 +11,7 @@ export function Footer() {
     <footer className="bg-ocean-700 text-white">
       {/* Trust badges */}
       <div className="border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="container-page py-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
             <div className="flex flex-col items-center gap-2">
               <Truck size={28} strokeWidth={1.5} />
@@ -30,11 +30,14 @@ export function Footer() {
       </div>
 
       {/* Links */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+      <div className="container-page py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
-            <h3 className="text-2xl font-light tracking-[0.3em] mb-4">BAIA</h3>
+            <div dir="ltr" className="flex items-baseline gap-2 mb-4">
+              <span className="text-2xl font-black tracking-[0.08em]">BAIA</span>
+              <span className="text-2xl font-black tracking-[0.08em] text-white/50">SWIMWEAR</span>
+            </div>
             <p className="text-sm text-white/60 leading-relaxed">
               {t('brandDescription')}
             </p>
@@ -111,7 +114,7 @@ export function Footer() {
 
       {/* Copyright */}
       <div className="border-t border-white/10 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+        <div className="container-page text-center">
           <p className="text-xs text-white/40 tracking-wider">{t('copyright')}</p>
         </div>
       </div>

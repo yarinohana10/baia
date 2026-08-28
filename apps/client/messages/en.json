@@ -3,12 +3,15 @@
     "brandName": "BAIA",
     "home": "Home",
     "search": "Search...",
-    "cart": "Cart",
+    "cart": "Shopping Cart",
     "wishlist": "Wishlist",
-    "account": "Account",
+    "account": "My Account",
     "login": "Login",
     "register": "Register",
-    "logout": "Logout"
+    "logout": "Logout",
+    "switchLang": "Switch to Hebrew",
+    "userTooltip": "My Account",
+    "cartTooltip": "Shopping Cart"
   },
   "nav": {
     "men": "Men",

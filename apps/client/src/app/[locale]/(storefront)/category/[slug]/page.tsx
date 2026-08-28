@@ -77,7 +77,7 @@ export default function CategoryPage() {
     : '';
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+    <div className="container-page py-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-light tracking-[0.2em] uppercase mb-2">{catName}</h1>
