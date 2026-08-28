@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { signUp } from '@/lib/auth-client';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
-import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
@@ -75,7 +75,19 @@ export default function RegisterPage() {
       </div>
 
       {/* Right: Register Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-5 sm:p-12 lg:p-24 bg-white">
+      <div className="w-full lg:w-1/2 flex flex-col bg-white">
+        {/* Back to home */}
+        <div className="p-5 sm:p-8 lg:p-12 lg:pb-0">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 font-body text-sm text-[#3f484c] hover:text-[#1a1c1c] transition-colors"
+          >
+            <ArrowLeft size={16} className="rtl:rotate-180" />
+            {t('backToHome')}
+          </Link>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center p-5 sm:p-12 lg:p-24">
         <div className="w-full max-w-md flex flex-col space-y-12">
           {/* Mobile Brand (hidden on desktop) */}
           <div className="lg:hidden flex flex-col items-center">
@@ -236,6 +248,7 @@ export default function RegisterPage() {
               </div>
             </div>
           </form>
+        </div>
         </div>
       </div>
     </div>

@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '@/components/storefront/ProductCard';
 
 type Product = {
@@ -70,10 +69,6 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
   useEffect(() => {
     api
       .get('/products', { params: { limit: 50 } })
@@ -82,43 +77,6 @@ export default function HomePage() {
   }, []);
 
   const newArrivals = products.slice(0, 12);
-
-  const updateScrollButtons = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
-  };
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', updateScrollButtons);
-    updateScrollButtons();
-    return () => el.removeEventListener('scroll', updateScrollButtons);
-  }, [loaded]);
-
-  /* Auto-scroll */
-  const [isHovered, setIsHovered] = useState(false);
-  useEffect(() => {
-    if (isHovered || !loaded || newArrivals.length === 0) return;
-    const interval = setInterval(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 2) {
-        el.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        el.scrollBy({ left: 1, behavior: 'auto' });
-      }
-    }, 25);
-    return () => clearInterval(interval);
-  }, [isHovered, loaded, newArrivals.length]);
-
-  const scroll = (dir: 'left' | 'right') => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir === 'right' ? 300 : -300, behavior: 'smooth' });
-  };
 
   const categories = [
     { slug: 'men', label: t('menCategory'), image: '/categories/men.jpg' },
@@ -187,50 +145,30 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── New Arrivals ─────────────────────────────── */}
+      {/* ─── New Arrivals (infinite marquee) ──────────── */}
       <section className="bg-white">
-        <div className="container-page py-12 sm:py-16">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-[22px] sm:text-2xl font-semibold text-gray-900 tracking-tight">
-              {t('newArrivalsTitle')}
-            </h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => scroll('left')}
-                disabled={!canScrollLeft}
-                className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:bg-ocean-50 hover:border-ocean-300 hover:text-ocean-700 disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200"
-                aria-label="Previous"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                onClick={() => scroll('right')}
-                disabled={!canScrollRight}
-                className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:bg-ocean-50 hover:border-ocean-300 hover:text-ocean-700 disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200"
-                aria-label="Next"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
+        <div className="container-page pt-12 sm:pt-16 pb-4">
+          <h2 className="text-[22px] sm:text-2xl font-semibold text-gray-900 tracking-tight mb-6 sm:mb-8">
+            {t('newArrivalsTitle')}
+          </h2>
+        </div>
 
-          {loaded && newArrivals.length === 0 ? (
-            <p className="text-center text-gray-400 py-12 text-sm tracking-wide">
-              {t('comingSoon')}
-            </p>
-          ) : (
+        {loaded && newArrivals.length === 0 ? (
+          <p className="text-center text-gray-400 py-12 text-sm tracking-wide">
+            {t('comingSoon')}
+          </p>
+        ) : newArrivals.length > 0 ? (
+          <div className="overflow-hidden pb-12 sm:pb-16 marquee-wrapper">
             <div
-              ref={scrollRef}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x"
+              className="marquee-track gap-4"
+              style={{ '--marquee-duration': `${newArrivals.length * 4}s` } as React.CSSProperties}
             >
-              {newArrivals.map((product) => (
-                <NewArrivalCard key={product.id} product={product} locale={locale} />
+              {[...newArrivals, ...newArrivals].map((product, i) => (
+                <NewArrivalCard key={`${product.id}-${i}`} product={product} locale={locale} />
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        ) : null}
       </section>
 
       {/* ─── Featured Products Grid ────────────────────── */}

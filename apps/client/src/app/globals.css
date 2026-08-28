@@ -177,3 +177,27 @@
     box-sizing: border-box;
   }
 }
+
+@keyframes marquee-ltr {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes marquee-rtl {
+  from { transform: translateX(0); }
+  to   { transform: translateX(50%); }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-ltr var(--marquee-duration, 40s) linear infinite;
+}
+
+[dir="rtl"] .marquee-track {
+  animation-name: marquee-rtl;
+}
+
+.marquee-track:has(> *:hover) {
+  animation-play-state: paused;
+}
