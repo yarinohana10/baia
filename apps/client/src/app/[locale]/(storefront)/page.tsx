@@ -50,7 +50,7 @@ function NewArrivalCard({ product, locale }: { product: Product; locale: string 
           </div>
         )}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 text-center">
         <h3 className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-snug mb-1.5">
           {name}
         </h3>
