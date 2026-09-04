@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
-import { useSession } from '@/lib/auth-client';
+import { useSession, signOut } from '@/lib/auth-client';
 import {
   ShoppingCart,
   User,
   Menu,
   X,
   Globe,
+  LogOut,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 
@@ -43,6 +44,11 @@ export function Header() {
 
   const cartCount = useCartStore((s) => s.itemCount());
   const openDrawer = useCartStore((s) => s.openDrawer);
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = '/';
+  };
 
   const categories = [
     { label: tNav('men'), href: '/category/men' },
@@ -112,23 +118,37 @@ export function Header() {
             </Tooltip>
 
             {/* Account */}
-            <Tooltip label={t('userTooltip')} align="end">
-              {session?.user ? (
-                <Link
-                  href="/account"
-                  className="p-2 text-black hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200"
-                >
-                  <User size={21} strokeWidth={2} />
-                </Link>
-              ) : (
+            {session?.user ? (
+              <div className="flex items-center">
+                <Tooltip label={t('myAccount')} align="end">
+                  <Link
+                    href="/account"
+                    className="p-2 text-black hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200"
+                  >
+                    <User size={21} strokeWidth={2} />
+                  </Link>
+                </Tooltip>
+                <Tooltip label={t('signOut')} align="end">
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="p-1.5 text-gray-500 hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200"
+                    aria-label={t('signOut')}
+                  >
+                    <LogOut size={16} strokeWidth={1.8} />
+                  </button>
+                </Tooltip>
+              </div>
+            ) : (
+              <Tooltip label={t('userTooltip')} align="end">
                 <Link
                   href="/login"
                   className="p-2 text-black hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200"
                 >
                   <User size={21} strokeWidth={2} />
                 </Link>
-              )}
-            </Tooltip>
+              </Tooltip>
+            )}
 
             {/* Cart */}
             <Tooltip label={t('cartTooltip')} align="end">

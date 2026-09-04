@@ -1,4 +1,5 @@
 import { PrismaClient } from '../src/generated/prisma';
+import { auth } from '../src/auth/auth';
 
 const prisma = new PrismaClient();
 
@@ -30,12 +31,44 @@ async function main() {
   console.log('Seeding database...');
 
   const adminEmail = 'yarinohana9@gmail.com';
+  const adminPassword = '123456789';
   const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (!existingAdmin) {
-    await prisma.user.create({
-      data: { email: adminEmail, name: 'Yarin Ohana', role: 'ADMIN', emailVerified: true },
+    // Create admin via better-auth so password is properly hashed
+    const ctx = await auth.api.signUpEmail({
+      body: { email: adminEmail, password: adminPassword, name: 'Yarin Ohana' },
     });
-    console.log(`Admin user created: ${adminEmail}`);
+    if (ctx?.user?.id) {
+      // Promote to ADMIN and verify email
+      await prisma.user.update({
+        where: { id: ctx.user.id },
+        data: { role: 'ADMIN', emailVerified: true },
+      });
+      console.log(`Admin user created: ${adminEmail} (password: ${adminPassword})`);
+    } else {
+      console.error('Failed to create admin user via better-auth');
+    }
+  } else {
+    // Ensure existing admin has a password — check if credential account exists
+    const hasCredential = await prisma.account.findFirst({
+      where: { userId: existingAdmin.id, providerId: 'credential' },
+    });
+    if (!hasCredential) {
+      // Delete and recreate via better-auth
+      await prisma.user.delete({ where: { id: existingAdmin.id } });
+      const ctx = await auth.api.signUpEmail({
+        body: { email: adminEmail, password: adminPassword, name: 'Yarin Ohana' },
+      });
+      if (ctx?.user?.id) {
+        await prisma.user.update({
+          where: { id: ctx.user.id },
+          data: { role: 'ADMIN', emailVerified: true },
+        });
+        console.log(`Admin user recreated with password: ${adminEmail}`);
+      }
+    } else {
+      console.log(`Admin user already exists: ${adminEmail}`);
+    }
   }
 
   await prisma.siteConfig.upsert({

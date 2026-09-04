@@ -11,7 +11,18 @@
     "logout": "התנתקות",
     "switchLang": "עבור לאנגלית",
     "userTooltip": "החשבון שלי",
-    "cartTooltip": "עגלת קניות"
+    "cartTooltip": "עגלת קניות",
+    "myAccount": "החשבון שלי",
+    "signOut": "התנתקות"
+  },
+  "account": {
+    "title": "החשבון שלי",
+    "welcome": "ברוכים השבים",
+    "nameLabel": "שם",
+    "emailLabel": "אימייל",
+    "myOrders": "ההזמנות שלי",
+    "myOrdersDescription": "צפו בהיסטוריית ההזמנות ועקבו אחר משלוחים",
+    "signOut": "התנתקות"
   },
   "auth": {
     "welcomeBack": "ברוכים השבים",
@@ -32,7 +43,9 @@
     "heroLoginSubtitle": "גלו את הסטנדרט החדש של יוקרה חופית ובריחות קיץ מתוחכמות.",
     "heroRegisterTitle": "גלו את הקיץ האינסופי שלכם",
     "heroRegisterSubtitle": "הצטרפו ל-Baia Swimwear לגישה בלעדית לקולקציות חדשות והטבות חברים פרימיום.",
-    "backToHome": "חזרה לדף הבית"
+    "backToHome": "חזרה לדף הבית",
+    "orContinueWith": "או המשיכו עם",
+    "signInWithGoogle": "התחברות עם Google"
   },
   "nav": {
     "men": "גברים",

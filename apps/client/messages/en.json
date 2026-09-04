@@ -11,7 +11,18 @@
     "logout": "Logout",
     "switchLang": "Switch to Hebrew",
     "userTooltip": "My Account",
-    "cartTooltip": "Shopping Cart"
+    "cartTooltip": "Shopping Cart",
+    "myAccount": "My Account",
+    "signOut": "Sign Out"
+  },
+  "account": {
+    "title": "My Account",
+    "welcome": "Welcome back",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "myOrders": "My Orders",
+    "myOrdersDescription": "View your order history and track shipments",
+    "signOut": "Sign Out"
   },
   "auth": {
     "welcomeBack": "Welcome Back",
@@ -32,7 +43,9 @@
     "heroLoginSubtitle": "Discover the new standard in coastal luxury and sophisticated summer escapes.",
     "heroRegisterTitle": "Discover Your Endless Summer",
     "heroRegisterSubtitle": "Join Baia Swimwear for exclusive access to new collections and premium member benefits.",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "orContinueWith": "or continue with",
+    "signInWithGoogle": "Sign in with Google"
   },
   "nav": {
     "men": "Men",
