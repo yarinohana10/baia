@@ -27,6 +27,14 @@ const dmSans = DM_Sans({
   variable: '--font-dm-sans',
 });
 
+function getMetadataBase(): URL {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+  } catch {
+    return new URL('http://localhost:3000');
+  }
+}
+
 export const metadata: Metadata = {
   title: {
     default: 'BAIA Swimwear — Premium Swimwear for the Whole Family',
@@ -50,7 +58,7 @@ export const metadata: Metadata = {
     alternateLocale: 'he_IL',
   },
   robots: { index: true, follow: true },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  metadataBase: getMetadataBase(),
 };
 
 export default async function LocaleLayout({

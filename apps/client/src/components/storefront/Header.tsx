@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Link, usePathname, useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useSession, signOut } from '@/lib/auth-client';
 import {
   ShoppingCart,
@@ -11,14 +11,15 @@ import {
   X,
   Globe,
   LogOut,
+  Shield,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 
 function Tooltip({ label, children, align = 'center' }: { label: string; children: React.ReactNode; align?: 'center' | 'start' | 'end' }) {
   const posClass =
     align === 'start' ? 'start-0' :
-    align === 'end'   ? 'end-0' :
-    'start-1/2 -translate-x-1/2';
+      align === 'end' ? 'end-0' :
+        'start-1/2 -translate-x-1/2';
 
   return (
     <div className="relative group/tip flex items-center">
@@ -33,34 +34,63 @@ function Tooltip({ label, children, align = 'center' }: { label: string; childre
   );
 }
 
+async function handleSignOut() {
+  await signOut();
+  window.location.href = '/';
+}
+
+function LocaleSwitcher({
+  label,
+  onAfterSwitch,
+  className,
+  children,
+}: {
+  label: string;
+  onAfterSwitch?: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const locale = useLocale();
+  const router = useRouter();
+
+  const switchLocale = () => {
+    const newLocale = locale === 'he' ? 'en' : 'he';
+    const pathname = window.location.pathname.replace(/^\/(en|he)(?=\/|$)/, '') || '/';
+    router.replace(pathname, { locale: newLocale });
+    onAfterSwitch?.();
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={switchLocale}
+      className={className}
+      aria-label={label}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function Header() {
   const t = useTranslations('common');
   const tNav = useTranslations('nav');
   const locale = useLocale();
-  const pathname = usePathname();
-  const router = useRouter();
   const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const cartCount = useCartStore((s) => s.itemCount());
   const openDrawer = useCartStore((s) => s.openDrawer);
 
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/';
-  };
-
-  const categories = [
-    { label: tNav('men'), href: '/category/men' },
-    { label: tNav('women'), href: '/category/women' },
-    { label: tNav('children'), href: '/category/children' },
-    { label: tNav('newArrivals'), href: '/new-arrivals' },
-  ];
-
-  const switchLocale = () => {
-    const newLocale = locale === 'he' ? 'en' : 'he';
-    router.replace(pathname, { locale: newLocale });
-  };
+  const categories = useMemo(
+    () => [
+      { label: tNav('men'), href: '/category/men' },
+      { label: tNav('women'), href: '/category/women' },
+      { label: tNav('children'), href: '/category/children' },
+      { label: tNav('newArrivals'), href: '/new-arrivals' },
+    ],
+    [tNav],
+  );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
@@ -108,13 +138,12 @@ export function Header() {
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Language switch */}
             <Tooltip label={t('switchLang')} align="end">
-              <button
-                onClick={switchLocale}
+              <LocaleSwitcher
+                label={t('switchLang')}
                 className="p-2 text-black hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200"
-                aria-label={t('switchLang')}
               >
                 <Globe size={21} strokeWidth={2} />
-              </button>
+              </LocaleSwitcher>
             </Tooltip>
 
             {/* Account */}
@@ -150,6 +179,19 @@ export function Header() {
               </Tooltip>
             )}
 
+
+            {/* Admin Panel (only for admins) */}
+            {session?.user && (session.user as any).role === 'ADMIN' && (
+              <Tooltip label={t('adminPanel')} align="end">
+                <Link
+                  href="/admin"
+                  className="p-2 text-ocean-700 hover:text-ocean-900 hover:bg-ocean-50 rounded-full transition-all duration-200"
+                  aria-label={t('adminPanel')}
+                >
+                  <Shield size={21} strokeWidth={2} />
+                </Link>
+              </Tooltip>
+            )}
             {/* Cart */}
             <Tooltip label={t('cartTooltip')} align="end">
               <button
@@ -183,14 +225,27 @@ export function Header() {
                 {cat.label}
               </Link>
             ))}
+            {session?.user && (session.user as any).role === 'ADMIN' && (
+              <div className="border-t border-gray-100 mt-2 pt-2">
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-3 text-[15px] text-ocean-700 font-semibold hover:text-ocean-900 hover:bg-ocean-50 py-3 px-3 rounded-lg transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Shield size={18} strokeWidth={1.6} />
+                  {t('adminPanel')}
+                </Link>
+              </div>
+            )}
             <div className="border-t border-gray-100 mt-2 pt-2">
-              <button
-                onClick={() => { switchLocale(); setMobileMenuOpen(false); }}
+              <LocaleSwitcher
+                label={locale === 'he' ? 'English' : 'עברית'}
+                onAfterSwitch={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 text-[15px] text-gray-700 hover:text-ocean-700 hover:bg-ocean-50 py-3 px-3 rounded-lg w-full transition-colors"
               >
                 <Globe size={18} strokeWidth={1.6} />
                 {locale === 'he' ? 'English' : 'עברית'}
-              </button>
+              </LocaleSwitcher>
             </div>
           </nav>
         </div>

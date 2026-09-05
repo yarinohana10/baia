@@ -1,7 +1,84 @@
 import { PrismaClient } from '../src/generated/prisma';
 import { auth } from '../src/auth/auth';
+import * as fs from 'fs';
+import * as path from 'path';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
+
+const useS3 = process.env.STORAGE_PROVIDER === 's3';
+
+let s3Client: any = null;
+let PutObjectCommand: any = null;
+
+async function getS3() {
+  if (!s3Client) {
+    const sdk = await import('@aws-sdk/client-s3');
+    s3Client = new sdk.S3Client({
+      region: process.env.S3_REGION || 'us-east-1',
+      endpoint: process.env.S3_ENDPOINT || 'http://localhost:4566',
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY || 'test',
+        secretAccessKey: process.env.S3_SECRET_KEY || 'test',
+      },
+      forcePathStyle: true,
+    });
+    PutObjectCommand = sdk.PutObjectCommand;
+
+    // Ensure bucket exists
+    try {
+      await s3Client.send(new sdk.HeadBucketCommand({ Bucket: process.env.S3_BUCKET || 'baia-assets' }));
+    } catch {
+      try {
+        await s3Client.send(new sdk.CreateBucketCommand({ Bucket: process.env.S3_BUCKET || 'baia-assets' }));
+        console.log(`S3 bucket "${process.env.S3_BUCKET || 'baia-assets'}" created`);
+      } catch (e) {
+        console.warn('Could not create S3 bucket:', e);
+      }
+    }
+  }
+  return { s3Client, PutObjectCommand };
+}
+
+async function uploadToS3(filePath: string, s3Key: string, mimeType: string): Promise<string> {
+  const { s3Client: client, PutObjectCommand: Cmd } = await getS3();
+  const bucket = process.env.S3_BUCKET || 'baia-assets';
+  const fileBuffer = fs.readFileSync(filePath);
+
+  await client.send(
+    new Cmd({
+      Bucket: bucket,
+      Key: s3Key,
+      Body: fileBuffer,
+      ContentType: mimeType,
+    }),
+  );
+
+  const publicUrl = process.env.S3_PUBLIC_URL || process.env.S3_ENDPOINT || 'http://localhost:4566';
+  return `${publicUrl}/${bucket}/${s3Key}`;
+}
+
+async function createUploadRecord(
+  s3Key: string,
+  filePath: string,
+  mimeType: string,
+): Promise<string> {
+  const bucket = process.env.S3_BUCKET || 'baia-assets';
+  const stats = fs.statSync(filePath);
+
+  const upload = await prisma.upload.create({
+    data: {
+      s3Key,
+      s3Bucket: bucket,
+      mimeType,
+      sizeBytes: stats.size,
+      fileName: path.basename(filePath),
+      uploadedBy: null,
+    },
+  });
+
+  return upload.id;
+}
 
 const MEN_PRODUCTS = [
   { nameEn: 'Classic Swim Shorts - Cream', nameHe: 'מכנסי ים קלאסיק - קרם', slug: 'classic-cream', color: 'Cream', image: '/products/men/classic-cream.jpg', price: 149.90, featured: true },
@@ -27,19 +104,36 @@ const MEN_PRODUCTS = [
 
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 
+// Resolve path to client public directory (works from both local and Docker)
+function resolvePublicPath(imagePath: string): string | null {
+  const cwd = process.cwd();
+  const candidates = [
+    // Running from apps/server/ (pnpm --filter @baia/server prisma:seed)
+    path.join(cwd, '../client/public', imagePath),
+    // Running from monorepo root
+    path.join(cwd, 'apps/client/public', imagePath),
+    // Running from apps/server/prisma/
+    path.join(cwd, '../../client/public', imagePath),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  console.warn(`  Could not resolve public path: ${imagePath} (cwd: ${cwd})`);
+  return null;
+}
+
 async function main() {
   console.log('Seeding database...');
+  console.log(`Storage provider: ${useS3 ? 's3' : 'local'}`);
 
   const adminEmail = 'yarinohana9@gmail.com';
   const adminPassword = '123456789';
   const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (!existingAdmin) {
-    // Create admin via better-auth so password is properly hashed
     const ctx = await auth.api.signUpEmail({
       body: { email: adminEmail, password: adminPassword, name: 'Yarin Ohana' },
     });
     if (ctx?.user?.id) {
-      // Promote to ADMIN and verify email
       await prisma.user.update({
         where: { id: ctx.user.id },
         data: { role: 'ADMIN', emailVerified: true },
@@ -49,12 +143,10 @@ async function main() {
       console.error('Failed to create admin user via better-auth');
     }
   } else {
-    // Ensure existing admin has a password — check if credential account exists
     const hasCredential = await prisma.account.findFirst({
       where: { userId: existingAdmin.id, providerId: 'credential' },
     });
     if (!hasCredential) {
-      // Delete and recreate via better-auth
       await prisma.user.delete({ where: { id: existingAdmin.id } });
       const ctx = await auth.api.signUpEmail({
         body: { email: adminEmail, password: adminPassword, name: 'Yarin Ohana' },
@@ -71,9 +163,39 @@ async function main() {
     }
   }
 
+  // Seed SiteConfig with hero image (upload to S3 if available)
+  const existingSiteConfig = await prisma.siteConfig.findUnique({ where: { id: 'default' } });
+  const needsHeroUpload = !existingSiteConfig?.heroImageUploadId;
+
+  let heroImageUrl: string | null = existingSiteConfig?.heroImageUrl || null;
+  let heroImageUploadId: string | null = existingSiteConfig?.heroImageUploadId || null;
+
+  if (needsHeroUpload) {
+    if (useS3) {
+      const heroPath = resolvePublicPath('/hero/hero-banner.png');
+      if (heroPath) {
+        const uid = randomUUID();
+        const s3Key = `site/hero-${uid}.png`;
+        try {
+          heroImageUrl = await uploadToS3(heroPath, s3Key, 'image/png');
+          heroImageUploadId = await createUploadRecord(s3Key, heroPath, 'image/png');
+          console.log(`  S3: hero-banner.png → ${s3Key}`);
+        } catch {
+          console.warn('  S3 upload failed for hero banner, using local path');
+          heroImageUrl = '/hero/hero-banner.png';
+        }
+      }
+    } else {
+      heroImageUrl = '/hero/hero-banner.png';
+    }
+  }
+
   await prisma.siteConfig.upsert({
     where: { id: 'default' },
-    update: {},
+    update: {
+      heroImageUrl: heroImageUrl ?? undefined,
+      heroImageUploadId: heroImageUploadId ?? undefined,
+    },
     create: {
       id: 'default',
       shippingCost: 29.90,
@@ -82,8 +204,53 @@ async function main() {
       heroTitleEn: 'Summer Collection 2026',
       heroSubtitleHe: 'בגדי ים לכל המשפחה',
       heroSubtitleEn: 'Swimwear for the whole family',
+      heroImageUrl,
+      heroImageUploadId,
     },
   });
+
+  // Helper: upload category image to S3 and return { image, imageUploadId }
+  async function seedCategoryImage(localPath: string): Promise<{ image: string | null; imageUploadId: string | null }> {
+    if (useS3) {
+      const filePath = resolvePublicPath(localPath);
+      if (filePath) {
+        const uid = randomUUID();
+        const ext = path.extname(localPath).slice(1) || 'jpg';
+        const s3Key = `categories/seed/${uid}.${ext}`;
+        try {
+          const url = await uploadToS3(filePath, s3Key, `image/${ext}`);
+          const uploadId = await createUploadRecord(s3Key, filePath, `image/${ext}`);
+          console.log(`  S3: ${localPath} → ${s3Key}`);
+          return { image: url, imageUploadId: uploadId };
+        } catch {
+          console.warn(`  S3 upload failed for ${localPath}, using local path`);
+        }
+      }
+    }
+    return { image: localPath, imageUploadId: null };
+  }
+
+  // Seed categories — always runs (upsert with image update)
+  async function upsertCategoryWithImage(
+    slug: string, nameHe: string, nameEn: string, sortOrder: number, imagePath: string,
+  ) {
+    const existing = await prisma.category.findUnique({ where: { slug } });
+    const needsImage = !existing?.imageUploadId;
+    const imgData = needsImage ? await seedCategoryImage(imagePath) : { image: existing?.image, imageUploadId: existing?.imageUploadId };
+
+    return prisma.category.upsert({
+      where: { slug },
+      update: {
+        image: imgData.image ?? undefined,
+        imageUploadId: imgData.imageUploadId ?? undefined,
+      },
+      create: { nameHe, nameEn, slug, sortOrder, image: imgData.image, imageUploadId: imgData.imageUploadId },
+    });
+  }
+
+  const men = await upsertCategoryWithImage('men', 'גברים', 'Men', 1, '/categories/men.jpg');
+  const women = await upsertCategoryWithImage('women', 'נשים', 'Women', 2, '/categories/women.jpg');
+  const children = await upsertCategoryWithImage('children', 'ילדים', 'Children', 3, '/categories/kids.jpg');
 
   const existingProducts = await prisma.product.count();
   if (existingProducts > 0) {
@@ -91,22 +258,6 @@ async function main() {
     console.log('To re-seed, run: prisma migrate reset');
     return;
   }
-
-  const men = await prisma.category.upsert({
-    where: { slug: 'men' },
-    update: {},
-    create: { nameHe: 'גברים', nameEn: 'Men', slug: 'men', sortOrder: 1 },
-  });
-  const women = await prisma.category.upsert({
-    where: { slug: 'women' },
-    update: {},
-    create: { nameHe: 'נשים', nameEn: 'Women', slug: 'women', sortOrder: 2 },
-  });
-  const children = await prisma.category.upsert({
-    where: { slug: 'children' },
-    update: {},
-    create: { nameHe: 'ילדים', nameEn: 'Children', slug: 'children', sortOrder: 3 },
-  });
 
   const menSwimShorts = await prisma.category.upsert({
     where: { slug: 'men-swim-shorts' },
@@ -129,6 +280,25 @@ async function main() {
   console.log('Categories seeded');
 
   for (const product of MEN_PRODUCTS) {
+    let imageUrl = product.image;
+    let uploadId: string | undefined;
+
+    if (useS3) {
+      const filePath = resolvePublicPath(product.image);
+      if (filePath) {
+        const uid = randomUUID();
+        const ext = path.extname(product.image).slice(1) || 'jpg';
+        const s3Key = `products/seed/${uid}.${ext}`;
+        try {
+          imageUrl = await uploadToS3(filePath, s3Key, 'image/jpeg');
+          uploadId = await createUploadRecord(s3Key, filePath, 'image/jpeg');
+          console.log(`  S3: ${product.image} → ${s3Key}`);
+        } catch (e) {
+          console.warn(`  S3 upload failed for ${product.image}, using local path`);
+        }
+      }
+    }
+
     const created = await prisma.product.create({
       data: {
         nameHe: product.nameHe,
@@ -141,7 +311,13 @@ async function main() {
         isFeatured: product.featured,
         isActive: true,
         images: {
-          create: [{ url: product.image, color: product.color, altText: product.nameEn, sortOrder: 0 }],
+          create: [{
+            url: imageUrl,
+            uploadId: uploadId || null,
+            color: product.color,
+            altText: product.nameEn,
+            sortOrder: 0,
+          }],
         },
       },
     });

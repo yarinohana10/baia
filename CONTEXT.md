@@ -49,6 +49,14 @@
 - **Wishlist**: A saved list of Products that a Customer has marked as favorites (heart icon). Requires an Account.
 - **Trust Badge**: A visual element in the footer area communicating reliability (e.g., free shipping, secure payment, easy returns).
 
+## Storage & Uploads
+
+- **Upload**: A database entity tracking a file stored in object storage (S3). Each Upload has a unique `s3Key`, the `s3Bucket` it resides in, file metadata (mimeType, sizeBytes, fileName), and the userId of who uploaded it. All domain models that reference files (ProductImage, Category, SiteConfig) point to an Upload record via foreign key.
+- **S3 Bucket**: The object storage container for all Baia assets. Named `baia-assets`. Stores product images, category images, and site assets (hero banners, etc.).
+- **S3 Key**: The unique path of a file within the S3 Bucket. Structured as `{entity}/{entityId}/{uploadId}.{ext}` (e.g., `products/abc123/def456.jpg`).
+- **LocalStack**: An AWS service emulator used in development to provide S3 without incurring cloud costs. Runs as a Docker container at `localhost:4566`.
+- **Storage Provider**: The configured backend for file storage. Set via `STORAGE_PROVIDER` environment variable — `s3` for S3-compatible storage (LocalStack in dev, AWS/R2/B2 in prod), `local` for legacy filesystem storage.
+
 ## Internationalization
 
 - **Locale**: A language + direction pair. Supported: `he` (Hebrew, RTL) and `en` (English, LTR).

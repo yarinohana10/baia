@@ -9,6 +9,9 @@
     "start:prod": "node dist/main",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"{src,test}/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
     "clean": "rm -rf dist",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
@@ -16,6 +19,7 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1126.0",
     "@baia/shared": "workspace:*",
     "@nestjs/common": "^11.1.3",
     "@nestjs/config": "^4.0.2",
@@ -35,11 +39,15 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.7",
     "@nestjs/schematics": "^11.0.2",
+    "@nestjs/testing": "^11.2.3",
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.11.29",
     "@types/express": "^5.0.3",
+    "@types/jest": "^30.0.0",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.15.21",
+    "jest": "^30.5.1",
+    "ts-jest": "^29.4.12",
     "ts-loader": "^9.5.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.23.0",

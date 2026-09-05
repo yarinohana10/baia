@@ -1,0 +1,54 @@
+name: React Doctor PR Review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  react-doctor:
+    name: React Doctor (PR diff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: React Doctor — diff only
+        id: doctor
+        uses: millionco/react-doctor@v2
+        with:
+          directory: apps/client
+          diff: main
+          verbose: true
+          fail-on: error
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enforce minimum score
+        env:
+          SCORE: ${{ steps.doctor.outputs.score }}
+          FLOOR: '50'
+        run: |
+          echo "React Doctor score: $SCORE"
+          if [ -z "$SCORE" ]; then
+            echo "::warning::Score not available. Skipping threshold check."
+            exit 0
+          fi
+          if [ "$SCORE" -lt "$FLOOR" ]; then
+            echo "::error::React Doctor score $SCORE is below the minimum threshold of $FLOOR"
+            exit 1
+          fi
+          echo "✅ Score $SCORE meets the minimum threshold of $FLOOR"

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/storefront/ProductCard';
@@ -32,9 +32,8 @@ type Product = {
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc';
 
-export default function CategoryPage() {
+function CategoryPageContent() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const slug = params.slug as string;
   const locale = useLocale();
   const t = useTranslations('product');
@@ -125,6 +124,7 @@ export default function CategoryPage() {
           <select
             value={sort}
             onChange={(e) => { setSort(e.target.value as SortOption); setPage(1); }}
+            aria-label={t('sortNewest')}
             className="appearance-none text-sm text-gray-600 bg-transparent pe-6 cursor-pointer focus:outline-none rounded-lg"
           >
             <option value="newest">{t('sortNewest')}</option>
@@ -182,5 +182,26 @@ export default function CategoryPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function CategoryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container-page py-8">
+          <div className="animate-pulse h-8 bg-gray-200 w-48 mb-8 rounded" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-7">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={`skeleton-${i}`} className="animate-pulse bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                <div className="aspect-square bg-gray-200" />
+              </div>
+            ))}
+          </div>
+        </div>
+      }
+    >
+      <CategoryPageContent />
+    </Suspense>
   );
 }

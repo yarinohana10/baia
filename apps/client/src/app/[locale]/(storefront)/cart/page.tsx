@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { useCartStore } from '@/store/cart';
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
@@ -24,7 +25,7 @@ export default function CartPage() {
   const locale = useLocale();
   const { items, loading, fetchCart, updateQuantity, removeItem } = useCartStore();
 
-  useEffect(() => { fetchCart(); }, []);
+  useEffect(() => { fetchCart(); }, [fetchCart]);
 
   const subtotal = items.reduce((sum, item) => {
     const { price } = getEffectivePrice(item);
@@ -80,7 +81,7 @@ export default function CartPage() {
                     className="w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden rounded-lg"
                   >
                     {imageUrl ? (
-                      <img src={imageUrl} alt={name} className="w-full h-full object-contain" />
+                      <Image src={imageUrl} alt={name} width={96} height={96} className="w-full h-full object-contain" />
                     ) : (
                       <div className="w-full h-full bg-gray-100 rounded-lg" />
                     )}
@@ -101,6 +102,7 @@ export default function CartPage() {
                       <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          aria-label={t('decreaseQuantity')}
                           className="px-2 py-1 text-gray-500 hover:text-ocean-600"
                         >
                           <Minus size={12} />
@@ -109,6 +111,7 @@ export default function CartPage() {
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
                           disabled={item.quantity >= item.variant.stockQuantity}
+                          aria-label={t('increaseQuantity')}
                           className="px-2 py-1 text-gray-500 hover:text-ocean-600 disabled:text-gray-300"
                         >
                           <Plus size={12} />
@@ -128,6 +131,7 @@ export default function CartPage() {
                         </div>
                         <button
                           onClick={() => removeItem(item.id)}
+                          aria-label={t('removeItem')}
                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         >
                           <Trash2 size={14} />

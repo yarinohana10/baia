@@ -1,0 +1,113 @@
+# Baia Swimwear — Cursor AI Context
+
+## Project Overview
+
+Baia Swimwear is a bilingual (Hebrew/English) e-commerce platform for premium swimwear.
+Monorepo managed by **pnpm 9** workspaces.
+
+## Tech Stack
+
+| Layer       | Technology                          |
+|-------------|-------------------------------------|
+| Client      | Next.js 15 (App Router), React 19  |
+| Server      | NestJS 11                           |
+| Database    | PostgreSQL 16, Prisma 6 ORM        |
+| Auth        | better-auth (session cookies)       |
+| Styling     | Tailwind CSS v4, shadcn/ui         |
+| State       | Zustand (cart), server data via fetch |
+| Storage     | S3 (LocalStack dev, any S3-compat prod) via Upload entity |
+| i18n        | next-intl, RTL support for Hebrew  |
+| Monorepo    | pnpm workspaces                     |
+
+## Monorepo Structure
+
+```
+baia/
+├── apps/client/          # Next.js storefront + admin panel (port 3000)
+├── apps/server/          # NestJS REST API (port 8000)
+├── packages/shared/      # Zod schemas, shared TypeScript types
+├── scripts/              # Migration & init scripts
+├── docs/                 # SPEC.md, ADRs
+└── CONTEXT.md            # Domain glossary
+```
+
+## Authentication
+
+- **NOT JWT** — uses better-auth with HTTP-only session cookies (prefix: `baia`)
+- Roles: `ADMIN` | `CUSTOMER` (Prisma enum on User model)
+- Admin guard: `@UseGuards(AuthGuard) @Roles('ADMIN')` on NestJS routes
+- Client admin guard: server layout fetches `/api/auth/get-session`, redirects if not ADMIN
+- Auth routes: `/api/auth/*` (mounted before NestJS `/v1` prefix)
+
+## API Conventions
+
+- Global prefix: `/v1`
+- Public routes: `/v1/products`, `/v1/categories`, `/v1/cart`, etc.
+- Auth-required: `/v1/orders/my`, `/v1/wishlist`
+- Admin routes: `/v1/admin/products`, `/v1/admin/categories`, `/v1/admin/orders`, `/v1/admin/analytics`, `/v1/admin/uploads`, `/v1/admin/site-config`
+- Guards applied per-route (no global guard)
+- No DTO classes — inline TypeScript types in controllers
+
+## Database Schema (Key Models)
+
+- `User` — better-auth managed, has `role` (ADMIN/CUSTOMER)
+- `Category` — self-referencing hierarchy via `parentId`, bilingual names, `imageUploadId` -> Upload
+- `Product` — bilingual name/description, basePrice, categoryId, isFeatured, isActive
+- `ProductVariant` — color, size, sku, stockQuantity, priceOverride, salePrice with date range
+- `ProductImage` — linked to Product, has `uploadId` -> Upload for S3, legacy `url` field
+- `Upload` — single source of truth for all S3 files (s3Key, s3Bucket, mimeType, sizeBytes, fileName)
+- `Cart` / `CartItem` — guest (sessionId) or authenticated (userId)
+- `Order` / `OrderItem` — full order lifecycle with status enum
+- `Coupon` — percentage or fixed discount with rules
+- `SiteConfig` — singleton for shipping, hero banner, `heroImageUploadId` -> Upload
+
+## Storage Architecture
+
+- `StorageService` interface: `upload(file, key, mimeType)`, `delete(key)`, `getUrl(key)`
+- `S3StorageService` — production/dev implementation using @aws-sdk/client-s3
+- `LocalStorageService` — legacy fallback writing to `./uploads/`
+- Switch via `STORAGE_PROVIDER` env var (`s3` or `local`)
+- `Upload` entity tracks every file in S3 (s3Key, bucket, metadata)
+- S3 key structure: `products/{productId}/{uploadId}.{ext}`, `categories/{categoryId}/{uploadId}.{ext}`, `site/{uploadId}.{ext}`
+- Dev: LocalStack S3 at localhost:4566, bucket `baia-assets`
+- Prod: any S3-compatible provider (AWS, R2, B2)
+
+## Environment Variables (Server)
+
+```
+PORT=8000
+DATABASE_URL=postgresql://baia:baia@localhost:5433/baia
+BETTER_AUTH_SECRET=<secret>
+BETTER_AUTH_URL=http://localhost:8000
+CLIENT_URL=http://localhost:3000
+STORAGE_PROVIDER=s3          # s3 | local
+S3_ENDPOINT=http://localhost:4566
+S3_PUBLIC_URL=http://localhost:4566
+S3_REGION=us-east-1
+S3_ACCESS_KEY=test
+S3_SECRET_KEY=test
+S3_BUCKET=baia-assets
+```
+
+## Environment Variables (Client)
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000/v1
+NEXT_PUBLIC_AUTH_URL=http://localhost:8000
+```
+
+## Client Routing
+
+- `/{locale}/` — storefront (header + footer)
+- `/{locale}/admin/` — admin panel (AdminShell sidebar)
+- `/{locale}/login`, `/{locale}/register` — standalone auth pages
+- Locales: `he` (default, RTL), `en` (LTR)
+
+## Coding Conventions
+
+- Server: NestJS modules per domain, services inject PrismaService and STORAGE_SERVICE
+- Client: `'use client'` for interactive admin pages, server components for layouts
+- Bilingual fields: `nameHe`/`nameEn`, `descriptionHe`/`descriptionEn`
+- Prices: Prisma Decimal(10,2), converted to number in API responses
+- IDs: cuid() for all models
+- Slugs: unique, URL-safe identifiers for products and categories

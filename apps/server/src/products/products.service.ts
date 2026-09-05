@@ -1,8 +1,20 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService, STORAGE_SERVICE } from '../storage/storage.interface';
 import { Prisma } from '../generated/prisma';
 import { randomUUID } from 'crypto';
+
+type ImageWithUpload = {
+  id: string;
+  url: string;
+  upload: { s3Key: string } | null;
+  [key: string]: unknown;
+};
+
+type ProductWithImages = {
+  images?: ImageWithUpload[];
+  [key: string]: unknown;
+};
 
 @Injectable()
 export class ProductsService {
@@ -10,6 +22,20 @@ export class ProductsService {
     private prisma: PrismaService,
     @Inject(STORAGE_SERVICE) private storage: StorageService,
   ) {}
+
+  private resolveImageUrl(image: ImageWithUpload): ImageWithUpload {
+    if (image.upload) {
+      return { ...image, url: this.storage.getUrl(image.upload.s3Key) };
+    }
+    return image;
+  }
+
+  private resolveProductImages<T extends ProductWithImages>(product: T): T {
+    if (product.images) {
+      return { ...product, images: product.images.map((img) => this.resolveImageUrl(img)) };
+    }
+    return product;
+  }
 
   async findAll(params?: {
     categoryId?: string;
@@ -53,7 +79,7 @@ export class ProductsService {
         include: {
           category: true,
           variants: { where: { isActive: true } },
-          images: { orderBy: { sortOrder: 'asc' } },
+          images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
         },
         orderBy,
         skip: (page - 1) * limit,
@@ -62,7 +88,13 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
 
-    return { products, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+      products: products.map((p) => this.resolveProductImages(p)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findAllAdmin(params?: { search?: string; categoryId?: string }) {
@@ -76,16 +108,18 @@ export class ProductsService {
       ];
     }
 
-    return this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where,
       include: {
         category: true,
         variants: true,
-        images: { orderBy: { sortOrder: 'asc' } },
+        images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
         _count: { select: { variants: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return products.map((p) => this.resolveProductImages(p));
   }
 
   async findBySlug(slug: string) {
@@ -94,11 +128,11 @@ export class ProductsService {
       include: {
         category: { include: { parent: true } },
         variants: { where: { isActive: true }, orderBy: { color: 'asc' } },
-        images: { orderBy: { sortOrder: 'asc' } },
+        images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
       },
     });
     if (!product) throw new NotFoundException('Product not found');
-    return product;
+    return this.resolveProductImages(product);
   }
 
   async findById(id: string) {
@@ -107,11 +141,11 @@ export class ProductsService {
       include: {
         category: true,
         variants: { orderBy: [{ color: 'asc' }, { size: 'asc' }] },
-        images: { orderBy: { sortOrder: 'asc' } },
+        images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
       },
     });
     if (!product) throw new NotFoundException('Product not found');
-    return product;
+    return this.resolveProductImages(product);
   }
 
   async create(data: {
@@ -124,6 +158,17 @@ export class ProductsService {
     categoryId: string;
     isFeatured?: boolean;
   }) {
+    if (!data.categoryId) {
+      throw new BadRequestException('Every product must be assigned to a category');
+    }
+
+    const category = await this.prisma.category.findUnique({
+      where: { id: data.categoryId },
+    });
+    if (!category) {
+      throw new BadRequestException(`Category with id "${data.categoryId}" does not exist`);
+    }
+
     return this.prisma.product.create({
       data: {
         ...data,
@@ -145,6 +190,19 @@ export class ProductsService {
     isActive: boolean;
   }>) {
     await this.findById(id);
+
+    if (data.categoryId !== undefined) {
+      if (!data.categoryId) {
+        throw new BadRequestException('Cannot remove category from a product — every product must belong to a category');
+      }
+      const category = await this.prisma.category.findUnique({
+        where: { id: data.categoryId },
+      });
+      if (!category) {
+        throw new BadRequestException(`Category with id "${data.categoryId}" does not exist`);
+      }
+    }
+
     const updateData: any = { ...data };
     if (data.basePrice !== undefined) {
       updateData.basePrice = new Prisma.Decimal(data.basePrice);
@@ -152,12 +210,28 @@ export class ProductsService {
     return this.prisma.product.update({
       where: { id },
       data: updateData,
-      include: { category: true, variants: true, images: true },
-    });
+      include: {
+        category: true,
+        variants: true,
+        images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
+      },
+    }).then((p) => this.resolveProductImages(p));
   }
 
   async delete(id: string) {
-    await this.findById(id);
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: { images: { include: { upload: true } } },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    for (const image of product.images) {
+      if (image.upload) {
+        await this.storage.delete(image.upload.s3Key);
+        await this.prisma.upload.delete({ where: { id: image.upload.id } });
+      }
+    }
+
     await this.prisma.product.delete({ where: { id } });
     return { deleted: true };
   }
@@ -232,36 +306,64 @@ export class ProductsService {
     originalName: string,
     mimeType: string,
     color?: string,
+    uploadedBy?: string,
   ) {
     const ext = originalName.split('.').pop() || 'jpg';
-    const key = `products/${productId}/${randomUUID()}.${ext}`;
-    const url = await this.storage.upload(file, key, mimeType);
+    const uploadId = randomUUID();
+    const s3Key = `products/${productId}/${uploadId}.${ext}`;
+    const bucket = process.env.S3_BUCKET || 'baia-assets';
 
-    const maxSort = await this.prisma.productImage.aggregate({
-      where: { productId },
-      _max: { sortOrder: true },
-    });
+    const url = await this.storage.upload(file, s3Key, mimeType);
 
-    return this.prisma.productImage.create({
-      data: {
-        productId,
-        url,
-        color,
-        sortOrder: (maxSort._max.sortOrder || 0) + 1,
-      },
-    });
+    try {
+      const upload = await this.prisma.upload.create({
+        data: {
+          s3Key,
+          s3Bucket: bucket,
+          mimeType,
+          sizeBytes: file.length,
+          fileName: originalName,
+          uploadedBy,
+        },
+      });
+
+      const maxSort = await this.prisma.productImage.aggregate({
+        where: { productId },
+        _max: { sortOrder: true },
+      });
+
+      return await this.prisma.productImage.create({
+        data: {
+          productId,
+          url,
+          uploadId: upload.id,
+          color,
+          sortOrder: (maxSort._max.sortOrder || 0) + 1,
+        },
+        include: { upload: true },
+      });
+    } catch (err) {
+      // DB write failed — clean up the S3 object to prevent orphans
+      await this.storage.delete(s3Key).catch(() => {});
+      throw err;
+    }
   }
 
   async deleteImage(imageId: string) {
-    const image = await this.prisma.productImage.findUnique({ where: { id: imageId } });
+    const image = await this.prisma.productImage.findUnique({
+      where: { id: imageId },
+      include: { upload: true },
+    });
     if (!image) throw new NotFoundException('Image not found');
 
-    const urlParts = image.url.split('/uploads/');
-    if (urlParts[1]) {
-      await this.storage.delete(urlParts[1]);
+    if (image.upload) {
+      await this.storage.delete(image.upload.s3Key);
+      await this.prisma.productImage.delete({ where: { id: imageId } });
+      await this.prisma.upload.delete({ where: { id: image.upload.id } });
+    } else {
+      await this.prisma.productImage.delete({ where: { id: imageId } });
     }
 
-    await this.prisma.productImage.delete({ where: { id: imageId } });
     return { deleted: true };
   }
 }

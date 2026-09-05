@@ -25,7 +25,7 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => { fetchCart(); }, []);
+  useEffect(() => { fetchCart(); }, [fetchCart]);
 
   const subtotal = items.reduce((sum, item) => {
     const variant = item.variant;
@@ -123,13 +123,13 @@ export default function CheckoutPage() {
               <CreditCard size={16} /> Contact
             </h2>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+              <label htmlFor="checkout-email" className="block text-xs font-medium text-gray-500 mb-1">Email</label>
               <input
+                id="checkout-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-                placeholder="your@email.com"
                 required
               />
             </div>
@@ -142,8 +142,9 @@ export default function CheckoutPage() {
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">City</label>
+                <label htmlFor="checkout-city" className="block text-xs font-medium text-gray-500 mb-1">City</label>
                 <input
+                  id="checkout-city"
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
@@ -152,8 +153,9 @@ export default function CheckoutPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Street</label>
+                <label htmlFor="checkout-street" className="block text-xs font-medium text-gray-500 mb-1">Street</label>
                 <input
+                  id="checkout-street"
                   type="text"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
@@ -164,8 +166,9 @@ export default function CheckoutPage() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Number</label>
+                <label htmlFor="checkout-number" className="block text-xs font-medium text-gray-500 mb-1">Number</label>
                 <input
+                  id="checkout-number"
                   type="text"
                   value={number}
                   onChange={(e) => setNumber(e.target.value)}
@@ -174,8 +177,9 @@ export default function CheckoutPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Apartment</label>
+                <label htmlFor="checkout-apartment" className="block text-xs font-medium text-gray-500 mb-1">Apartment</label>
                 <input
+                  id="checkout-apartment"
                   type="text"
                   value={apartment}
                   onChange={(e) => setApartment(e.target.value)}
@@ -183,8 +187,9 @@ export default function CheckoutPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">ZIP</label>
+                <label htmlFor="checkout-zip" className="block text-xs font-medium text-gray-500 mb-1">ZIP</label>
                 <input
+                  id="checkout-zip"
                   type="text"
                   value={zip}
                   onChange={(e) => setZip(e.target.value)}
@@ -198,12 +203,14 @@ export default function CheckoutPage() {
           <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
             <h2 className="font-medium text-gray-800">Coupon Code</h2>
             <div className="flex gap-2">
+              <label htmlFor="checkout-coupon" className="sr-only">Coupon Code</label>
               <input
+                id="checkout-coupon"
                 type="text"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none uppercase"
-                placeholder="Enter code"
+                aria-label="Coupon code"
               />
               <button
                 onClick={applyCoupon}

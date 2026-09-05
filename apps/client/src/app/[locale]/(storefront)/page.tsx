@@ -23,6 +23,24 @@ type Product = {
   }[];
 };
 
+type CategoryData = {
+  id: string;
+  nameHe: string;
+  nameEn: string;
+  slug: string;
+  image: string | null;
+  children?: CategoryData[];
+};
+
+type SiteConfigData = {
+  heroImageUrl: string | null;
+  heroTitleHe: string | null;
+  heroTitleEn: string | null;
+  heroSubtitleHe: string | null;
+  heroSubtitleEn: string | null;
+  heroCtaUrl: string | null;
+};
+
 /* ─── New Arrival Card (horizontal: image left, text right) ─── */
 
 function NewArrivalCard({ product, locale }: { product: Product; locale: string }) {
@@ -67,29 +85,46 @@ export default function HomePage() {
   const locale = useLocale();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [siteConfig, setSiteConfig] = useState<SiteConfigData | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    api
-      .get('/products', { params: { limit: 50 } })
-      .then((res) => setProducts(res.data.products || []))
+    Promise.all([
+      api.get('/products', { params: { limit: 50 } }),
+      api.get('/categories'),
+      api.get('/site-config'),
+    ])
+      .then(([productsRes, categoriesRes, configRes]) => {
+        setProducts(productsRes.data.products || []);
+        setCategories(categoriesRes.data || []);
+        setSiteConfig(configRes.data || null);
+      })
+      .catch(() => {})
       .finally(() => setLoaded(true));
   }, []);
 
   const newArrivals = products.slice(0, 12);
 
-  const categories = [
-    { slug: 'men', label: t('menCategory'), image: '/categories/men.jpg' },
-    { slug: 'women', label: t('womenCategory'), image: '/categories/women.jpg' },
-    { slug: 'children', label: t('kidsCategory'), image: '/categories/kids.jpg' },
-  ];
+  const heroImage = siteConfig?.heroImageUrl || '/hero/hero-banner.png';
+  const heroSubtitle = locale === 'he'
+    ? (siteConfig?.heroSubtitleHe || t('heroSubtitle'))
+    : (siteConfig?.heroSubtitleEn || t('heroSubtitle'));
+  const heroCtaUrl = siteConfig?.heroCtaUrl || '/category/men';
+
+  // Map top-level categories with their images from DB
+  const categoryCards = categories.map((cat) => ({
+    slug: cat.slug,
+    label: locale === 'he' ? cat.nameHe : cat.nameEn,
+    image: cat.image || `/categories/${cat.slug}.jpg`,
+  }));
 
   return (
     <>
       {/* ─── Hero Banner ──────────────────────────────── */}
       <section className="relative w-full h-[420px] sm:h-[480px] lg:h-[540px] overflow-hidden">
         <Image
-          src="/hero/hero-banner.png"
+          src={heroImage}
           alt="BAIA Swimwear — Summer Collection"
           fill
           priority
@@ -101,10 +136,10 @@ export default function HomePage() {
         <div className="absolute inset-0 flex items-end">
           <div className="container-page pb-10 sm:pb-14">
             <p className="text-lg sm:text-xl text-white font-bold leading-snug max-w-md drop-shadow-lg mb-8">
-              {t('heroSubtitle')}
+              {heroSubtitle}
             </p>
             <Link
-              href="/category/men"
+              href={heroCtaUrl}
               className="inline-block bg-white text-gray-900 px-10 py-3.5 text-[14px] font-bold tracking-[0.15em] uppercase rounded-lg hover:bg-ocean-700 hover:text-white transition-all duration-300"
             >
               {t('heroCta')}
@@ -120,7 +155,7 @@ export default function HomePage() {
             {t('shopByCategory')}
           </h2>
           <div className="grid grid-cols-3 gap-3 sm:gap-5">
-            {categories.map((cat) => (
+            {categoryCards.map((cat) => (
               <Link
                 key={cat.slug}
                 href={`/category/${cat.slug}`}
@@ -164,7 +199,11 @@ export default function HomePage() {
               style={{ '--marquee-duration': `${newArrivals.length * 4}s` } as React.CSSProperties}
             >
               {[...newArrivals, ...newArrivals].map((product, i) => (
-                <NewArrivalCard key={`${product.id}-${i}`} product={product} locale={locale} />
+                <NewArrivalCard
+                  key={`${product.id}-${i < newArrivals.length ? 'a' : 'b'}`}
+                  product={product}
+                  locale={locale}
+                />
               ))}
             </div>
           </div>

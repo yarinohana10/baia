@@ -125,4 +125,201 @@ export class AnalyticsService {
       })),
     };
   }
+
+  async getOrdersByStatus() {
+    const statuses = await this.prisma.order.groupBy({
+      by: ['status'],
+      _count: { id: true },
+    });
+
+    return statuses.map((s) => ({
+      status: s.status,
+      count: s._count.id,
+    }));
+  }
+
+  async getTopProducts(limit = 10) {
+    const items = await this.prisma.orderItem.groupBy({
+      by: ['variantId', 'productName'],
+      _sum: { quantity: true },
+      _count: { id: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: limit,
+    });
+
+    const results = [];
+    for (const item of items) {
+      const variant = await this.prisma.productVariant.findUnique({
+        where: { id: item.variantId },
+        include: {
+          product: {
+            include: {
+              images: { take: 1, orderBy: { sortOrder: 'asc' }, include: { upload: true } },
+            },
+          },
+        },
+      });
+
+      results.push({
+        productName: item.productName,
+        totalQuantity: item._sum.quantity || 0,
+        orderCount: item._count.id,
+        variantId: item.variantId,
+        product: variant?.product
+          ? {
+              id: variant.product.id,
+              nameHe: variant.product.nameHe,
+              nameEn: variant.product.nameEn,
+              image: variant.product.images[0]?.url || null,
+            }
+          : null,
+      });
+    }
+
+    return results;
+  }
+
+  async getRevenueByCategory() {
+    const orders = await this.prisma.orderItem.findMany({
+      where: {
+        order: { status: { notIn: EXCLUDED_STATUSES } },
+      },
+      select: {
+        quantity: true,
+        unitPrice: true,
+        variant: {
+          select: {
+            product: {
+              select: {
+                category: {
+                  select: {
+                    id: true,
+                    nameHe: true,
+                    nameEn: true,
+                    parent: { select: { id: true, nameHe: true, nameEn: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const categoryMap = new Map<string, { nameHe: string; nameEn: string; revenue: number; orders: number }>();
+
+    for (const item of orders) {
+      const category = item.variant.product.category;
+      const topCategory = category.parent || category;
+      const key = topCategory.id;
+
+      if (!categoryMap.has(key)) {
+        categoryMap.set(key, {
+          nameHe: topCategory.nameHe,
+          nameEn: topCategory.nameEn,
+          revenue: 0,
+          orders: 0,
+        });
+      }
+
+      const entry = categoryMap.get(key)!;
+      entry.revenue += Number(item.unitPrice) * item.quantity;
+      entry.orders++;
+    }
+
+    return Array.from(categoryMap.entries()).map(([id, data]) => ({
+      categoryId: id,
+      ...data,
+      revenue: Math.round(data.revenue * 100) / 100,
+    }));
+  }
+
+  async getCustomerGrowth(days = 30) {
+    const startDate = this.startOfDay();
+    startDate.setDate(startDate.getDate() - (days - 1));
+
+    const customers = await this.prisma.user.findMany({
+      where: {
+        role: Role.CUSTOMER,
+        createdAt: { gte: startDate },
+      },
+      select: { createdAt: true },
+    });
+
+    const dayMap = new Map<string, number>();
+
+    for (let i = 0; i < days; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      dayMap.set(d.toISOString().split('T')[0], 0);
+    }
+
+    for (const customer of customers) {
+      const key = customer.createdAt.toISOString().split('T')[0];
+      const current = dayMap.get(key);
+      if (current !== undefined) {
+        dayMap.set(key, current + 1);
+      }
+    }
+
+    return {
+      days: Array.from(dayMap.entries()).map(([date, count]) => ({
+        date,
+        newCustomers: count,
+      })),
+    };
+  }
+
+  async getAverageOrderValue(days = 30) {
+    const startDate = this.startOfDay();
+    startDate.setDate(startDate.getDate() - (days - 1));
+
+    const orders = await this.prisma.order.findMany({
+      where: {
+        createdAt: { gte: startDate },
+        status: { notIn: EXCLUDED_STATUSES },
+      },
+      select: { createdAt: true, total: true },
+    });
+
+    const dayMap = new Map<string, { totalRevenue: number; count: number }>();
+
+    for (let i = 0; i < days; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      dayMap.set(d.toISOString().split('T')[0], { totalRevenue: 0, count: 0 });
+    }
+
+    for (const order of orders) {
+      const key = order.createdAt.toISOString().split('T')[0];
+      const entry = dayMap.get(key);
+      if (entry) {
+        entry.totalRevenue += Number(order.total);
+        entry.count++;
+      }
+    }
+
+    let overallTotal = 0;
+    let overallCount = 0;
+
+    const days_data = Array.from(dayMap.entries()).map(([date, data]) => {
+      overallTotal += data.totalRevenue;
+      overallCount += data.count;
+      return {
+        date,
+        averageOrderValue: data.count > 0
+          ? Math.round((data.totalRevenue / data.count) * 100) / 100
+          : 0,
+        orderCount: data.count,
+      };
+    });
+
+    return {
+      overallAverage: overallCount > 0
+        ? Math.round((overallTotal / overallCount) * 100) / 100
+        : 0,
+      totalOrders: overallCount,
+      days: days_data,
+    };
+  }
 }

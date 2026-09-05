@@ -116,6 +116,7 @@ export function CartDrawer() {
                         <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            aria-label={t('decreaseQuantity')}
                             className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
                           >
                             <Minus size={12} />
@@ -124,6 +125,7 @@ export function CartDrawer() {
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
                             disabled={item.quantity >= item.variant.stockQuantity}
+                            aria-label={t('increaseQuantity')}
                             className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors disabled:text-gray-300"
                           >
                             <Plus size={12} />
@@ -133,6 +135,7 @@ export function CartDrawer() {
                           <span className="text-sm font-semibold">₪{(price * item.quantity).toFixed(0)}</span>
                           <button
                             onClick={() => removeItem(item.id)}
+                            aria-label={t('removeItem')}
                             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                           >
                             <Trash2 size={14} />

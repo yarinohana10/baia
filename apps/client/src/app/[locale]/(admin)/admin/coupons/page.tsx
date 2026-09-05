@@ -1,7 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Plus, Pencil, Trash2, X, Eye, EyeOff } from 'lucide-react';
 
 type Coupon = {
@@ -17,7 +23,29 @@ type Coupon = {
   _count: { orders: number };
 };
 
+function selectClassName() {
+  return cn(
+    'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
+  );
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${month}/${day}/${d.getFullYear()}`;
+}
+
+function isExpired(c: Coupon) {
+  return c.expiresAt !== null && new Date(c.expiresAt) < new Date();
+}
+
+function isMaxedOut(c: Coupon) {
+  return c.maxUses !== null && c.currentUses >= c.maxUses;
+}
+
 export default function CouponsPage() {
+  const t = useTranslations('admin.coupons');
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Coupon | null>(null);
@@ -79,7 +107,7 @@ export default function CouponsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this coupon?')) return;
+    if (!confirm(t('deleteConfirm'))) return;
     await api.delete(`/admin/coupons/${id}`);
     fetchCoupons();
   };
@@ -89,189 +117,199 @@ export default function CouponsPage() {
     fetchCoupons();
   };
 
-  const isExpired = (c: Coupon) => c.expiresAt && new Date(c.expiresAt) < new Date();
-  const isMaxedOut = (c: Coupon) => c.maxUses !== null && c.currentUses >= c.maxUses;
-
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold tracking-normal">Coupons</h1>
-        <button
+        <h1 className="font-serif text-2xl font-bold tracking-normal text-foreground">{t('title')}</h1>
+        <Button
           onClick={() => { resetForm(); setShowForm(true); }}
-          className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors"
+          className="gap-2 bg-ocean-700 text-white hover:bg-ocean-800"
         >
-          <Plus size={16} /> Create Coupon
-        </button>
+          <Plus size={16} /> {t('createCoupon')}
+        </Button>
       </div>
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-medium">{editing ? 'Edit Coupon' : 'New Coupon'}</h2>
-            <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
-              <X size={16} />
-            </button>
-          </div>
+        <Card className="mb-6">
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-serif">{editing ? t('editCoupon') : t('newCoupon')}</CardTitle>
+              <Button type="button" variant="ghost" size="icon-sm" onClick={resetForm} className="text-muted-foreground" aria-label={t('closeForm')}>
+                <X size={16} />
+              </Button>
+            </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Code</label>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none uppercase"
-                placeholder="SUMMER25"
-              />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="coupon-code">{t('code')}</Label>
+                <Input
+                  id="coupon-code"
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  className="uppercase"
+                  placeholder="SUMMER25"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="coupon-discountType">{t('type')}</Label>
+                <select
+                  id="coupon-discountType"
+                  value={discountType}
+                  onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'FIXED')}
+                  className={selectClassName()}
+                >
+                  <option value="PERCENTAGE">{t('percentage')}</option>
+                  <option value="FIXED">{t('fixedAmount')}</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="coupon-value">
+                  {`${t('value')} ${discountType === 'PERCENTAGE' ? '(%)' : '(₪)'}`}
+                </Label>
+                <Input
+                  id="coupon-value"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder={discountType === 'PERCENTAGE' ? '25' : '50'}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
-              <select
-                value={discountType}
-                onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'FIXED')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none bg-white"
-              >
-                <option value="PERCENTAGE">Percentage (%)</option>
-                <option value="FIXED">Fixed Amount (₪)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                Value {discountType === 'PERCENTAGE' ? '(%)' : '(₪)'}
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-                placeholder={discountType === 'PERCENTAGE' ? '25' : '50'}
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                Min Cart Value (₪)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={minCartValue}
-                onChange={(e) => setMinCartValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-                placeholder="Optional"
-              />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="coupon-minCartValue">{t('minCartValue')}</Label>
+                <Input
+                  id="coupon-minCartValue"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={minCartValue}
+                  onChange={(e) => setMinCartValue(e.target.value)}
+                  placeholder={t('optional')}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="coupon-maxUses">{t('maxUses')}</Label>
+                <Input
+                  id="coupon-maxUses"
+                  type="number"
+                  min="0"
+                  value={maxUses}
+                  onChange={(e) => setMaxUses(e.target.value)}
+                  placeholder={t('unlimited')}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="coupon-expiresAt">{t('expires')}</Label>
+                <Input
+                  id="coupon-expiresAt"
+                  type="date"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Max Uses</label>
-              <input
-                type="number"
-                min="0"
-                value={maxUses}
-                onChange={(e) => setMaxUses(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-                placeholder="Unlimited"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Expires</label>
-              <input
-                type="date"
-                value={expiresAt}
-                onChange={(e) => setExpiresAt(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-              />
-            </div>
-          </div>
 
-          <button
-            onClick={handleSubmit}
-            disabled={!code || !value}
-            className="bg-ocean-700 text-white px-5 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-40"
-          >
-            {editing ? 'Update' : 'Create'}
-          </button>
-        </div>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!code || !value}
+              className="bg-ocean-700 text-white hover:bg-ocean-800"
+            >
+              {editing ? t('update') : t('create')}
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-start px-4 py-3 font-medium text-gray-500">Code</th>
-              <th className="text-start px-4 py-3 font-medium text-gray-500">Discount</th>
-              <th className="text-start px-4 py-3 font-medium text-gray-500">Min Cart</th>
-              <th className="text-start px-4 py-3 font-medium text-gray-500">Usage</th>
-              <th className="text-start px-4 py-3 font-medium text-gray-500">Expires</th>
-              <th className="text-start px-4 py-3 font-medium text-gray-500">Status</th>
-              <th className="text-end px-4 py-3 font-medium text-gray-500">Actions</th>
+            <tr className="bg-muted border-b border-border">
+              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('code')}</th>
+              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('discount')}</th>
+              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('minCart')}</th>
+              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('usage')}</th>
+              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('expires')}</th>
+              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('status')}</th>
+              <th className="text-end px-4 py-3 font-medium text-muted-foreground">{t('actions')}</th>
             </tr>
           </thead>
           <tbody>
             {coupons.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                  No coupons yet.
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  {t('noCoupons')}
                 </td>
               </tr>
             ) : (
               coupons.map((c) => (
-                <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
+                <tr key={c.id} className="border-b border-border hover:bg-muted/50">
                   <td className="px-4 py-3 font-mono font-medium">{c.code}</td>
                   <td className="px-4 py-3">
                     {c.discountType === 'PERCENTAGE'
                       ? `${parseFloat(c.value)}%`
                       : `₪${parseFloat(c.value).toFixed(2)}`}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {c.minCartValue ? `₪${parseFloat(c.minCartValue).toFixed(2)}` : '—'}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {c.currentUses}{c.maxUses ? ` / ${c.maxUses}` : ''}{' '}
-                    <span className="text-xs text-gray-400">({c._count.orders} orders)</span>
+                    <span className="text-xs text-muted-foreground">({c._count.orders} {t('orders')})</span>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {c.expiresAt
-                      ? new Date(c.expiresAt).toLocaleDateString()
-                      : 'Never'}
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {c.expiresAt ? formatDate(c.expiresAt) : t('never')}
                   </td>
                   <td className="px-4 py-3">
                     {isExpired(c) ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500">Expired</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-destructive">{t('expired')}</span>
                     ) : isMaxedOut(c) ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">Maxed</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{t('maxed')}</span>
                     ) : c.isActive ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600">Active</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600">{t('active')}</span>
                     ) : (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Inactive</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{t('inactive')}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => toggleActive(c)}
-                        className="p-1.5 text-gray-400 hover:text-ocean-600 transition-colors"
+                        className="text-muted-foreground hover:text-ocean-600"
+                        aria-label={c.isActive ? t('deactivate') : t('activateCoupon')}
                       >
                         {c.isActive ? <Eye size={14} /> : <EyeOff size={14} />}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => startEdit(c)}
-                        className="p-1.5 text-gray-400 hover:text-ocean-600 transition-colors"
+                        className="text-muted-foreground hover:text-ocean-600"
+                        aria-label={t('editAction')}
                       >
                         <Pencil size={14} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => handleDelete(c.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label={t('deleteAction')}
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -279,7 +317,7 @@ export default function CouponsPage() {
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   );
 }

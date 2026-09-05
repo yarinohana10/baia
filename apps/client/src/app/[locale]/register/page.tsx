@@ -7,6 +7,17 @@ import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c3.42-3.15 5.384-7.786 5.384-13.615z" />
+      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" />
+      <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" />
+      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" />
+    </svg>
+  );
+}
+
 export default function RegisterPage() {
   const t = useTranslations('auth');
   const [name, setName] = useState('');
@@ -185,6 +196,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? t('hidePassword') : t('showPassword')}
                   className="absolute end-1 top-3 text-[#3f484c] hover:text-[#1a1c1c] transition-colors"
                   tabIndex={-1}
                 >
@@ -267,12 +279,7 @@ export default function RegisterPage() {
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
                   <>
-                    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-                      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c3.42-3.15 5.384-7.786 5.384-13.615z" />
-                      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" />
-                      <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" />
-                      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" />
-                    </svg>
+                    <GoogleIcon />
                     {t('signInWithGoogle')}
                   </>
                 )}
@@ -283,7 +290,7 @@ export default function RegisterPage() {
                   {t('alreadyHaveAccount')}{' '}
                   <Link
                     href="/login"
-                    className="font-body text-sm font-bold uppercase tracking-[0.1em] text-[#005d72] hover:text-[#007791] transition-colors relative after:absolute after:bottom-0 after:start-0 after:w-full after:h-px after:bg-current after:scale-x-0 hover:after:scale-x-100 after:origin-end hover:after:origin-start after:transition-transform after:duration-300"
+                    className="font-body text-sm font-bold uppercase tracking-[0.1em] text-[#005d72] hover:text-[#007791] transition-colors relative after:absolute after:bottom-0 after:start-0 after:w-full after:h-px after:bg-current after:scale-x-[0.95] hover:after:scale-x-100 after:origin-end hover:after:origin-start after:transition-transform after:duration-300"
                   >
                     {t('signInLink')}
                   </Link>

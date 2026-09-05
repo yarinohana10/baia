@@ -79,21 +79,41 @@ model Verification {
   @@map("verifications")
 }
 
+// ─── Uploads ──────────────────────────────────────────────────
+
+model Upload {
+  id         String   @id @default(cuid())
+  s3Key      String   @unique
+  s3Bucket   String
+  mimeType   String
+  sizeBytes  Int
+  fileName   String
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+
+  productImages ProductImage[]
+  categories    Category[]
+
+  @@map("uploads")
+}
+
 // ─── Catalog ──────────────────────────────────────────────────
 
 model Category {
-  id        String     @id @default(cuid())
-  nameHe    String
-  nameEn    String
-  slug      String     @unique
-  image     String?
-  sortOrder Int        @default(0)
-  parentId  String?
-  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryHierarchy")
-  products  Product[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             String     @id @default(cuid())
+  nameHe         String
+  nameEn         String
+  slug           String     @unique
+  image          String?
+  imageUploadId  String?
+  imageUpload    Upload?    @relation(fields: [imageUploadId], references: [id])
+  sortOrder      Int        @default(0)
+  parentId       String?
+  parent         Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children       Category[] @relation("CategoryHierarchy")
+  products       Product[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@map("categories")
 }
@@ -146,6 +166,8 @@ model ProductImage {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
+  uploadId  String?
+  upload    Upload? @relation(fields: [uploadId], references: [id])
   color     String?
   altText   String?
   sortOrder Int     @default(0)
@@ -283,6 +305,7 @@ model SiteConfig {
   shippingCost          Decimal @default(29.90) @db.Decimal(10, 2)
   freeShippingThreshold Decimal @default(249) @db.Decimal(10, 2)
   heroImageUrl          String?
+  heroImageUploadId     String?
   heroTitleHe           String?
   heroTitleEn           String?
   heroSubtitleHe        String?

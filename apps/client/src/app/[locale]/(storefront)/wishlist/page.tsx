@@ -105,6 +105,7 @@ export default function WishlistPage() {
               <ProductCard product={item.product} />
               <button
                 onClick={() => handleRemove(item.product.id)}
+                aria-label="Remove from wishlist"
                 className="absolute top-2 end-2 z-10 p-1.5 bg-white/90 rounded-full text-red-500 hover:bg-red-500 hover:text-white transition-colors"
               >
                 <Trash2 size={14} />

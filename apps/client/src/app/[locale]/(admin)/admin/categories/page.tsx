@@ -1,7 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { api } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 
 type Category = {
@@ -14,10 +20,27 @@ type Category = {
   children: Category[];
 };
 
+function autoSlug(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .trim();
+}
+
+function selectClassName() {
+  return cn(
+    'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
+  );
+}
+
 export default function CategoriesPage() {
+  const t = useTranslations('admin.categories');
+  const locale = useLocale();
   const [categories, setCategories] = useState<Category[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     nameHe: '',
     nameEn: '',
@@ -37,21 +60,28 @@ export default function CategoriesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      ...formData,
-      parentId: formData.parentId || undefined,
-    };
+    if (submitting) return;
+    setSubmitting(true);
 
-    if (editing) {
-      await api.put(`/admin/categories/${editing.id}`, data);
-    } else {
-      await api.post('/admin/categories', data);
+    try {
+      const data = {
+        ...formData,
+        parentId: formData.parentId || undefined,
+      };
+
+      if (editing) {
+        await api.put(`/admin/categories/${editing.id}`, data);
+      } else {
+        await api.post('/admin/categories', data);
+      }
+
+      setShowForm(false);
+      setEditing(null);
+      setFormData({ nameHe: '', nameEn: '', slug: '', parentId: '', sortOrder: 0 });
+      fetchCategories();
+    } finally {
+      setSubmitting(false);
     }
-
-    setShowForm(false);
-    setEditing(null);
-    setFormData({ nameHe: '', nameEn: '', slug: '', parentId: '', sortOrder: 0 });
-    fetchCategories();
   };
 
   const handleEdit = (cat: Category) => {
@@ -67,128 +97,126 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    if (!confirm(t('deleteConfirm'))) return;
     await api.delete(`/admin/categories/${id}`);
     fetchCategories();
   };
 
-  const autoSlug = (name: string) =>
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .trim();
-
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold tracking-normal">Categories</h1>
-        <button
+        <h1 className="font-serif text-2xl font-bold tracking-normal text-foreground">{t('title')}</h1>
+        <Button
           onClick={() => {
             setEditing(null);
             setFormData({ nameHe: '', nameEn: '', slug: '', parentId: '', sortOrder: 0 });
             setShowForm(true);
           }}
-          className="flex items-center gap-2 bg-ocean-700 text-white px-4 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors"
+          className="gap-2 bg-ocean-700 text-white hover:bg-ocean-800"
         >
-          <Plus size={16} /> Add Category
-        </button>
+          <Plus size={16} /> {t('addCategory')}
+        </Button>
       </div>
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white p-6 border border-gray-200 rounded-xl mb-8">
-          <h2 className="text-lg font-medium mb-4">
-            {editing ? 'Edit Category' : 'New Category'}
-          </h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Name (Hebrew)</label>
-              <input
-                value={formData.nameHe}
-                onChange={(e) => setFormData({ ...formData, nameHe: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-                required
-                dir="rtl"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Name (English)</label>
-              <input
-                value={formData.nameEn}
-                onChange={(e) => {
-                  const nameEn = e.target.value;
-                  setFormData({
-                    ...formData,
-                    nameEn,
-                    slug: editing ? formData.slug : autoSlug(nameEn),
-                  });
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Slug</label>
-              <input
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Parent Category</label>
-              <select
-                value={formData.parentId}
-                onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-              >
-                <option value="">None (Top Level)</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.nameEn}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Sort Order</label>
-              <input
-                type="number"
-                value={formData.sortOrder}
-                onChange={(e) =>
-                  setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
-              />
-            </div>
-            <div className="flex items-end gap-3">
-              <button
-                type="submit"
-                className="bg-ocean-700 text-white px-6 py-2 text-sm rounded-lg hover:bg-ocean-800 transition-colors"
-              >
-                {editing ? 'Update' : 'Create'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setEditing(null);
-                }}
-                className="px-6 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors border border-gray-300 rounded-lg"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
+        <Card className="mb-8">
+          <CardContent className="space-y-4">
+            <CardTitle className="font-serif text-lg">
+              {editing ? t('editCategory') : t('newCategory')}
+            </CardTitle>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="category-nameHe">{t('nameHe')}</Label>
+                <Input
+                  id="category-nameHe"
+                  value={formData.nameHe}
+                  onChange={(e) => setFormData({ ...formData, nameHe: e.target.value })}
+                  required
+                  dir="rtl"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="category-nameEn">{t('nameEn')}</Label>
+                <Input
+                  id="category-nameEn"
+                  value={formData.nameEn}
+                  onChange={(e) => {
+                    const nameEn = e.target.value;
+                    setFormData({
+                      ...formData,
+                      nameEn,
+                      slug: editing ? formData.slug : autoSlug(nameEn),
+                    });
+                  }}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="category-slug">{t('slug')}</Label>
+                <Input
+                  id="category-slug"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="category-parentId">{t('parentCategory')}</Label>
+                <select
+                  id="category-parentId"
+                  value={formData.parentId}
+                  onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
+                  className={selectClassName()}
+                >
+                  <option value="">{t('noneTopLevel')}</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {locale === 'he' ? cat.nameHe : cat.nameEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="category-sortOrder">{t('sortOrder')}</Label>
+                <Input
+                  id="category-sortOrder"
+                  type="number"
+                  value={formData.sortOrder}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })
+                  }
+                />
+              </div>
+              <div className="flex items-end gap-3">
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="bg-ocean-700 px-6 text-white hover:bg-ocean-800"
+                >
+                  {editing ? t('update') : t('create')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditing(null);
+                  }}
+                  className="px-6"
+                >
+                  {t('cancel')}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {/* Category tree */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <Card className="overflow-hidden p-0">
         {categories.length === 0 ? (
-          <p className="p-6 text-gray-400 text-center">No categories yet.</p>
+          <p className="p-6 text-muted-foreground text-center">{t('noCategories')}</p>
         ) : (
           categories.map((cat) => (
             <CategoryRow
@@ -196,10 +224,12 @@ export default function CategoriesPage() {
               category={cat}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              t={t}
+              locale={locale}
             />
           ))
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -208,11 +238,15 @@ function CategoryRow({
   category,
   onEdit,
   onDelete,
+  t,
+  locale,
   depth = 0,
 }: {
   category: Category;
   onEdit: (cat: Category) => void;
   onDelete: (id: string) => void;
+  t: ReturnType<typeof useTranslations<'admin.categories'>>;
+  locale: string;
   depth?: number;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -221,34 +255,52 @@ function CategoryRow({
   return (
     <>
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50"
+        className="flex items-center justify-between px-4 py-3 border-b border-border hover:bg-muted rounded-lg"
         style={{ paddingInlineStart: `${16 + depth * 24}px` }}
       >
         <div className="flex items-center gap-2">
           {hasChildren ? (
-            <button onClick={() => setExpanded(!expanded)} className="p-0.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => setExpanded(!expanded)}
+              aria-label={expanded ? t('collapse') : t('expand')}
+            >
               {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </button>
+            </Button>
           ) : (
             <span className="w-5" />
           )}
-          <span className="text-sm font-medium">{category.nameEn}</span>
-          <span className="text-xs text-gray-400">({category.nameHe})</span>
-          <span className="text-xs text-gray-300">/{category.slug}</span>
+          <span className="text-sm font-medium text-foreground">
+            {locale === 'he' ? category.nameHe : category.nameEn}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            ({locale === 'he' ? category.nameEn : category.nameHe})
+          </span>
+          <span className="text-xs text-muted-foreground/60">/{category.slug}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => onEdit(category)}
-            className="p-1.5 text-gray-400 hover:text-ocean-600 transition-colors"
+            className="text-muted-foreground hover:text-ocean-600"
+            aria-label={t('editAction')}
           >
             <Pencil size={14} />
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => onDelete(category.id)}
-            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+            className="text-muted-foreground hover:text-destructive"
+            aria-label={t('deleteAction')}
           >
             <Trash2 size={14} />
-          </button>
+          </Button>
         </div>
       </div>
       {expanded &&
@@ -259,6 +311,8 @@ function CategoryRow({
             category={{ ...child, children: [] }}
             onEdit={onEdit}
             onDelete={onDelete}
+            t={t}
+            locale={locale}
             depth={depth + 1}
           />
         ))}

@@ -5,14 +5,14 @@ import { Link } from '@/i18n/navigation';
 import { useSession, signOut } from '@/lib/auth-client';
 import { Package, LogOut, ChevronRight, Loader2 } from 'lucide-react';
 
+async function handleSignOut() {
+  await signOut();
+  window.location.href = '/';
+}
+
 export default function AccountPage() {
   const t = useTranslations('account');
   const { data: session, isPending } = useSession();
-
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/';
-  };
 
   if (isPending) {
     return (

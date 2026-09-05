@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { Heart, Minus, Plus, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
@@ -187,9 +188,11 @@ export default function ProductDetailPage() {
         <div className="space-y-3">
           <div className="aspect-square bg-gray-100 overflow-hidden rounded-xl">
             {filteredImages[selectedImageIdx] ? (
-              <img
+              <Image
                 src={filteredImages[selectedImageIdx].url}
                 alt={name}
+                width={500}
+                height={500}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -202,11 +205,12 @@ export default function ProductDetailPage() {
                 <button
                   key={img.id}
                   onClick={() => setSelectedImageIdx(i)}
+                  aria-label={`${t('color')} ${img.color || i + 1}`}
                   className={`w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
                     selectedImageIdx === i ? 'border-ocean-700' : 'border-transparent'
                   }`}
                 >
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  <Image src={img.url} alt="" width={64} height={64} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -259,15 +263,20 @@ export default function ProductDetailPage() {
 
           {/* Size */}
           <div className="mb-6">
-            <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">
+            <span
+              id="size-label"
+              className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider"
+            >
               {t('size')}
-            </label>
-            <div className="flex flex-wrap gap-2">
+            </span>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="size-label">
               {availableSizes.map((v) => (
                 <button
                   key={v.size}
                   onClick={() => setSelectedSize(v.size)}
                   disabled={v.stockQuantity === 0}
+                  aria-label={`${t('size')} ${v.size}`}
+                  aria-pressed={selectedSize === v.size}
                   className={`w-11 h-11 text-sm border rounded-lg transition-colors ${
                     selectedSize === v.size
                       ? 'border-ocean-700 bg-ocean-700 text-white'
@@ -287,6 +296,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                aria-label={tCart('decreaseQuantity')}
                 className="px-3 py-2.5 text-gray-500 hover:text-ocean-600 transition-colors"
               >
                 <Minus size={14} />
@@ -296,6 +306,7 @@ export default function ProductDetailPage() {
                 onClick={() =>
                   setQuantity(Math.min(selectedVariant?.stockQuantity || 1, quantity + 1))
                 }
+                aria-label={tCart('increaseQuantity')}
                 className="px-3 py-2.5 text-gray-500 hover:text-ocean-600 transition-colors"
               >
                 <Plus size={14} />

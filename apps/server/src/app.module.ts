@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { StorageModule } from './storage/storage.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
 import { CouponsModule } from './coupons/coupons.module';
@@ -12,6 +13,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentModule } from './payment/payment.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { SiteConfigModule } from './site-config/site-config.module';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     StorageModule,
     AuthModule,
     HealthModule,
+    UploadsModule,
     CategoriesModule,
     ProductsModule,
     CouponsModule,
@@ -28,6 +31,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     OrdersModule,
     PaymentModule,
     AnalyticsModule,
+    SiteConfigModule,
   ],
 })
 export class AppModule {}

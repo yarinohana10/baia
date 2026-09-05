@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -14,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
 import { AuthGuard, Roles } from '../auth/auth.guard';
+import { Request } from 'express';
 
 @Controller()
 export class ProductsController {
@@ -137,13 +139,16 @@ export class ProductsController {
     @Param('id') productId: string,
     @UploadedFile() file: Express.Multer.File,
     @Body('color') color?: string,
+    @Req() req?: Request,
   ) {
+    const userId = (req as any)?.user?.id;
     return this.productsService.uploadImage(
       productId,
       file.buffer,
       file.originalname,
       file.mimetype,
       color,
+      userId,
     );
   }
 
