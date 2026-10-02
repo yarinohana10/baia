@@ -99,44 +99,54 @@ export class OrdersService {
 
     const total = subtotal + shippingCost - discountAmount;
 
-    const order = await this.prisma.order.create({
-      data: {
-        orderNumber: generateOrderNumber(),
-        userId: data.userId,
-        customerEmail: data.customerEmail,
-        subtotal: new Prisma.Decimal(subtotal),
-        shippingCost: new Prisma.Decimal(shippingCost),
-        discountAmount: new Prisma.Decimal(discountAmount),
-        total: new Prisma.Decimal(total),
-        couponId,
-        shippingCity: data.shippingCity,
-        shippingStreet: data.shippingStreet,
-        shippingNumber: data.shippingNumber,
-        shippingApartment: data.shippingApartment,
-        shippingZip: data.shippingZip,
-        items: { create: orderItems },
-      },
-      include: { items: true },
+    // Use a transaction to ensure order creation + stock decrement are atomic
+    const order = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          orderNumber: generateOrderNumber(),
+          userId: data.userId,
+          customerEmail: data.customerEmail,
+          subtotal: new Prisma.Decimal(subtotal),
+          shippingCost: new Prisma.Decimal(shippingCost),
+          discountAmount: new Prisma.Decimal(discountAmount),
+          total: new Prisma.Decimal(total),
+          couponId,
+          shippingCity: data.shippingCity,
+          shippingStreet: data.shippingStreet,
+          shippingNumber: data.shippingNumber,
+          shippingApartment: data.shippingApartment,
+          shippingZip: data.shippingZip,
+          items: { create: orderItems },
+        },
+        include: { items: true },
+      });
+
+      // Decrement stock atomically
+      for (const item of cart.items) {
+        const updated = await tx.productVariant.update({
+          where: { id: item.variant.id },
+          data: { stockQuantity: { decrement: item.quantity } },
+        });
+        if (updated.stockQuantity < 0) {
+          throw new BadRequestException(
+            `Insufficient stock for ${item.variant.product.nameEn} (${item.variant.color}/${item.variant.size})`,
+          );
+        }
+      }
+
+      // Increment coupon usage
+      if (couponId) {
+        await tx.coupon.update({
+          where: { id: couponId },
+          data: { currentUses: { increment: 1 } },
+        });
+      }
+
+      // Clear cart
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+      return created;
     });
-
-    // Decrement stock
-    for (const item of cart.items) {
-      await this.prisma.productVariant.update({
-        where: { id: item.variant.id },
-        data: { stockQuantity: { decrement: item.quantity } },
-      });
-    }
-
-    // Increment coupon usage
-    if (couponId) {
-      await this.prisma.coupon.update({
-        where: { id: couponId },
-        data: { currentUses: { increment: 1 } },
-      });
-    }
-
-    // Clear cart
-    await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
     return order;
   }
@@ -179,8 +189,34 @@ export class OrdersService {
 
   async updateStatus(id: string, status: string, trackingNumber?: string) {
     const order = await this.findById(id);
+    const previousStatus = order.status;
     const updateData: any = { status };
     if (trackingNumber) updateData.trackingNumber = trackingNumber;
+
+    const stockRestoreStatuses = ['CANCELLED', 'REFUNDED'];
+    const needsStockRestore =
+      stockRestoreStatuses.includes(status) &&
+      !stockRestoreStatuses.includes(previousStatus);
+
+    if (needsStockRestore) {
+      return this.prisma.$transaction(async (tx) => {
+        const updated = await tx.order.update({
+          where: { id },
+          data: updateData,
+          include: { items: true },
+        });
+
+        for (const item of order.items) {
+          await tx.productVariant.update({
+            where: { id: item.variantId },
+            data: { stockQuantity: { increment: item.quantity } },
+          });
+        }
+
+        return updated;
+      });
+    }
+
     return this.prisma.order.update({
       where: { id },
       data: updateData,

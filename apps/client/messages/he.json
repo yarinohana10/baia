@@ -165,7 +165,16 @@
       "justNow": "עכשיו",
       "minutesAgo": "לפני {count} דקות",
       "hoursAgo": "לפני {count} שעות",
-      "daysAgo": "לפני {count} ימים"
+      "daysAgo": "לפני {count} ימים",
+      "inventory": "התראות מלאי",
+      "totalStock": "מלאי כולל",
+      "outOfStock": "אזל מהמלאי",
+      "lowStock": "מלאי נמוך",
+      "stockUnits": "יחידות",
+      "noAlerts": "כל הפריטים במלאי מלא!",
+      "variantLabel": "{color} / {size}",
+      "unitsLeft": "נותרו {count}",
+      "outOfStockLabel": "אזל מהמלאי"
     },
     "products": {
       "title": "מוצרים",
@@ -177,6 +186,10 @@
       "category": "קטגוריה",
       "price": "מחיר",
       "variants": "גרסאות",
+      "stock": "מלאי",
+      "inStock": "במלאי",
+      "lowStockBadge": "מלאי נמוך",
+      "outOfStockBadge": "אזל",
       "status": "סטטוס",
       "actions": "פעולות",
       "active": "פעיל",

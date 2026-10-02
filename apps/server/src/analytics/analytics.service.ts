@@ -270,6 +270,87 @@ export class AnalyticsService {
     };
   }
 
+  async getInventoryOverview() {
+    const variants = await this.prisma.productVariant.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        color: true,
+        size: true,
+        stockQuantity: true,
+        product: {
+          select: {
+            id: true,
+            nameHe: true,
+            nameEn: true,
+            slug: true,
+            isActive: true,
+            images: { take: 1, orderBy: { sortOrder: 'asc' }, include: { upload: true } },
+          },
+        },
+      },
+    });
+
+    const LOW_STOCK_THRESHOLD = 5;
+
+    let totalStock = 0;
+    let outOfStockCount = 0;
+    let lowStockCount = 0;
+    const lowStockItems: {
+      variantId: string;
+      productId: string;
+      productNameHe: string;
+      productNameEn: string;
+      productSlug: string;
+      color: string;
+      size: string;
+      stockQuantity: number;
+      image: string | null;
+    }[] = [];
+
+    for (const v of variants) {
+      totalStock += v.stockQuantity;
+      if (v.stockQuantity === 0) {
+        outOfStockCount++;
+        lowStockItems.push({
+          variantId: v.id,
+          productId: v.product.id,
+          productNameHe: v.product.nameHe,
+          productNameEn: v.product.nameEn,
+          productSlug: v.product.slug,
+          color: v.color,
+          size: v.size,
+          stockQuantity: v.stockQuantity,
+          image: v.product.images[0]?.url || null,
+        });
+      } else if (v.stockQuantity <= LOW_STOCK_THRESHOLD) {
+        lowStockCount++;
+        lowStockItems.push({
+          variantId: v.id,
+          productId: v.product.id,
+          productNameHe: v.product.nameHe,
+          productNameEn: v.product.nameEn,
+          productSlug: v.product.slug,
+          color: v.color,
+          size: v.size,
+          stockQuantity: v.stockQuantity,
+          image: v.product.images[0]?.url || null,
+        });
+      }
+    }
+
+    lowStockItems.sort((a, b) => a.stockQuantity - b.stockQuantity);
+
+    return {
+      totalVariants: variants.length,
+      totalStock,
+      outOfStockCount,
+      lowStockCount,
+      lowStockThreshold: LOW_STOCK_THRESHOLD,
+      lowStockItems: lowStockItems.slice(0, 20),
+    };
+  }
+
   async getAverageOrderValue(days = 30) {
     const startDate = this.startOfDay();
     startDate.setDate(startDate.getDate() - (days - 1));

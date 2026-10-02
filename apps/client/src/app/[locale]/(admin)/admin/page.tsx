@@ -16,6 +16,7 @@ import {
   BarChart3,
   PieChart,
   Receipt,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -73,6 +74,25 @@ type AOVData = {
   overallAverage: number;
   totalOrders: number;
   days: { date: string; averageOrderValue: number; orderCount: number }[];
+};
+
+type InventoryData = {
+  totalVariants: number;
+  totalStock: number;
+  outOfStockCount: number;
+  lowStockCount: number;
+  lowStockThreshold: number;
+  lowStockItems: {
+    variantId: string;
+    productId: string;
+    productNameHe: string;
+    productNameEn: string;
+    productSlug: string;
+    color: string;
+    size: string;
+    stockQuantity: number;
+    image: string | null;
+  }[];
 };
 
 function formatCurrency(amount: number) {
@@ -316,6 +336,80 @@ function CategoryRevenueChart({ data }: { data: CategoryRevenue[] }) {
   );
 }
 
+function InventoryAlerts({ data }: { data: InventoryData }) {
+  const t = useTranslations('admin.dashboard');
+  const locale = useLocale();
+
+  return (
+    <div className="space-y-3">
+      {/* Summary badges */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
+          <span className="font-body text-xs text-muted-foreground">{t('totalStock')}</span>
+          <span className="font-body text-sm font-semibold text-foreground">{data.totalStock.toLocaleString()} {t('stockUnits')}</span>
+        </div>
+        {data.outOfStockCount > 0 && (
+          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2">
+            <span className="font-body text-xs text-destructive">{t('outOfStock')}</span>
+            <span className="font-body text-sm font-semibold text-destructive">{data.outOfStockCount}</span>
+          </div>
+        )}
+        {data.lowStockCount > 0 && (
+          <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
+            <span className="font-body text-xs text-amber-700">{t('lowStock')}</span>
+            <span className="font-body text-sm font-semibold text-amber-700">{data.lowStockCount}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Items list */}
+      {data.lowStockItems.length === 0 ? (
+        <p className="py-8 text-center font-body text-sm text-muted-foreground">{t('noAlerts')}</p>
+      ) : (
+        data.lowStockItems.map((item) => {
+          const name = locale === 'he' ? item.productNameHe : item.productNameEn;
+          const isOut = item.stockQuantity === 0;
+
+          return (
+            <Link
+              key={item.variantId}
+              href={`/admin/products/${item.productId}`}
+              className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+            >
+              {item.image ? (
+                <Image
+                  src={item.image}
+                  alt={name}
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-lg bg-muted" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-body text-sm font-medium text-foreground">{name}</p>
+                <p className="font-body text-xs text-muted-foreground">
+                  {t('variantLabel', { color: item.color, size: item.size })}
+                </p>
+              </div>
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 font-body text-xs font-medium ${
+                  isOut
+                    ? 'bg-destructive/10 text-destructive'
+                    : 'bg-amber-50 text-amber-700'
+                }`}
+              >
+                {isOut ? t('outOfStockLabel') : t('unitsLeft', { count: item.stockQuantity })}
+              </span>
+            </Link>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const t = useTranslations('admin.dashboard');
   const locale = useLocale();
@@ -325,6 +419,7 @@ export default function AdminDashboard() {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [categoryRevenue, setCategoryRevenue] = useState<CategoryRevenue[]>([]);
   const [aovData, setAovData] = useState<AOVData | null>(null);
+  const [inventoryData, setInventoryData] = useState<InventoryData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -372,16 +467,18 @@ export default function AdminDashboard() {
 
       // Fetch extended analytics (non-blocking)
       try {
-        const [statusRes, topRes, catRes, aovRes] = await Promise.all([
+        const [statusRes, topRes, catRes, aovRes, inventoryRes] = await Promise.all([
           api.get('/admin/analytics/orders-by-status'),
           api.get('/admin/analytics/top-products', { params: { limit: 5 } }),
           api.get('/admin/analytics/revenue-by-category'),
           api.get('/admin/analytics/average-order-value', { params: { days: 30 } }),
+          api.get('/admin/analytics/inventory'),
         ]);
         setOrdersByStatus(statusRes.data);
         setTopProducts(topRes.data);
         setCategoryRevenue(catRes.data);
         setAovData(aovRes.data);
+        setInventoryData(inventoryRes.data);
       } catch {
         // Extended analytics are optional
       }
@@ -550,6 +647,23 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Row 3: Inventory Alerts */}
+      {inventoryData && (inventoryData.outOfStockCount > 0 || inventoryData.lowStockCount > 0) && (
+        <div className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={18} className="text-amber-600" />
+                <CardTitle className="font-serif text-xl">{t('inventory')}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <InventoryAlerts data={inventoryData} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

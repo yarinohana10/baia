@@ -165,7 +165,16 @@
       "justNow": "Just now",
       "minutesAgo": "{count}m ago",
       "hoursAgo": "{count}h ago",
-      "daysAgo": "{count}d ago"
+      "daysAgo": "{count}d ago",
+      "inventory": "Inventory Alerts",
+      "totalStock": "Total Stock",
+      "outOfStock": "Out of Stock",
+      "lowStock": "Low Stock",
+      "stockUnits": "units",
+      "noAlerts": "All items are well stocked!",
+      "variantLabel": "{color} / {size}",
+      "unitsLeft": "{count} left",
+      "outOfStockLabel": "Out of stock"
     },
     "products": {
       "title": "Products",
@@ -177,6 +186,10 @@
       "category": "Category",
       "price": "Price",
       "variants": "Variants",
+      "stock": "Stock",
+      "inStock": "In Stock",
+      "lowStockBadge": "Low Stock",
+      "outOfStockBadge": "Out of Stock",
       "status": "Status",
       "actions": "Actions",
       "active": "Active",

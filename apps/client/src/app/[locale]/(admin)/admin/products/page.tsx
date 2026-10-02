@@ -7,6 +7,12 @@ import { api } from '@/lib/api';
 import { Link } from '@/i18n/navigation';
 import { Plus, Pencil, Trash2, Eye, EyeOff, Star, Search } from 'lucide-react';
 
+type ProductVariant = {
+  id: string;
+  stockQuantity: number;
+  isActive: boolean;
+};
+
 type Product = {
   id: string;
   nameHe: string;
@@ -15,10 +21,26 @@ type Product = {
   basePrice: string;
   isActive: boolean;
   isFeatured: boolean;
-  category: { nameEn: string };
+  category: { nameEn: string; nameHe: string };
   images: { url: string }[];
+  variants: ProductVariant[];
   _count: { variants: number };
 };
+
+const LOW_STOCK_THRESHOLD = 5;
+
+function getStockStatus(variants: ProductVariant[]): 'in_stock' | 'low_stock' | 'out_of_stock' {
+  const activeVariants = variants.filter((v) => v.isActive);
+  if (activeVariants.length === 0) return 'out_of_stock';
+  const totalStock = activeVariants.reduce((sum, v) => sum + v.stockQuantity, 0);
+  if (totalStock === 0) return 'out_of_stock';
+  if (activeVariants.some((v) => v.stockQuantity <= LOW_STOCK_THRESHOLD && v.stockQuantity > 0)) return 'low_stock';
+  return 'in_stock';
+}
+
+function getTotalStock(variants: ProductVariant[]): number {
+  return variants.filter((v) => v.isActive).reduce((sum, v) => sum + v.stockQuantity, 0);
+}
 
 export default function ProductsPage() {
   const t = useTranslations('admin.products');
@@ -114,6 +136,9 @@ export default function ProductsPage() {
                 {t('variants')}
               </th>
               <th className="px-5 py-3.5 text-start font-body text-xs font-semibold uppercase tracking-[0.06em] text-[#3f484c]">
+                {t('stock')}
+              </th>
+              <th className="px-5 py-3.5 text-start font-body text-xs font-semibold uppercase tracking-[0.06em] text-[#3f484c]">
                 {t('status')}
               </th>
               <th className="px-5 py-3.5 text-end font-body text-xs font-semibold uppercase tracking-[0.06em] text-[#3f484c]">
@@ -124,7 +149,7 @@ export default function ProductsPage() {
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-12 text-center font-body text-sm text-[#3f484c]">
+                <td colSpan={8} className="px-5 py-12 text-center font-body text-sm text-[#3f484c]">
                   {t('noProducts')}
                 </td>
               </tr>
@@ -170,6 +195,32 @@ export default function ProductsPage() {
                     ₪{parseFloat(product.basePrice).toFixed(2)}
                   </td>
                   <td className="px-5 py-4 font-body text-[#3f484c]">{product._count.variants}</td>
+                  <td className="px-5 py-4">
+                    {(() => {
+                      const stockStatus = getStockStatus(product.variants);
+                      const total = getTotalStock(product.variants);
+                      return (
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 font-body text-xs font-medium ${
+                              stockStatus === 'out_of_stock'
+                                ? 'bg-red-50 text-red-600'
+                                : stockStatus === 'low_stock'
+                                ? 'bg-amber-50 text-amber-700'
+                                : 'bg-emerald-50 text-emerald-700'
+                            }`}
+                          >
+                            {stockStatus === 'out_of_stock'
+                              ? t('outOfStockBadge')
+                              : stockStatus === 'low_stock'
+                              ? t('lowStockBadge')
+                              : t('inStock')}
+                          </span>
+                          <span className="font-body text-xs text-[#3f484c]">{total}</span>
+                        </div>
+                      );
+                    })()}
+                  </td>
                   <td className="px-5 py-4">
                     <span
                       className={`inline-flex rounded-full px-3 py-1 font-body text-xs font-medium ${

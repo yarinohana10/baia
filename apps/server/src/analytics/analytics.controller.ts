@@ -41,6 +41,11 @@ export class AnalyticsController {
     return this.analyticsService.getCustomerGrowth(Number.isNaN(parsedDays) ? 30 : parsedDays);
   }
 
+  @Get('inventory')
+  getInventoryOverview() {
+    return this.analyticsService.getInventoryOverview();
+  }
+
   @Get('average-order-value')
   getAverageOrderValue(@Query('days') days?: string) {
     const parsedDays = days ? parseInt(days, 10) : 30;

@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { useLocale } from 'next-intl';
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   product: {
@@ -20,6 +21,7 @@ type Props = {
       saleStart?: string | null;
       saleEnd?: string | null;
       priceOverride?: string | null;
+      stockQuantity?: number;
     }[];
   };
 };
@@ -37,13 +39,20 @@ function getActiveSale(variants: Props['product']['variants']) {
   return null;
 }
 
+function isOutOfStock(variants: Props['product']['variants']) {
+  if (variants.length === 0) return true;
+  return variants.every((v) => (v.stockQuantity ?? 0) === 0);
+}
+
 export default function ProductCard({ product }: Props) {
   const locale = useLocale();
+  const t = useTranslations('product');
   const name = locale === 'he' ? product.nameHe : product.nameEn;
   const basePrice = parseFloat(product.basePrice);
   const salePrice = getActiveSale(product.variants);
   const imageUrl = product.images[0]?.url;
   const discountPct = salePrice ? Math.round(((basePrice - salePrice) / basePrice) * 100) : 0;
+  const outOfStock = isOutOfStock(product.variants);
 
   const [wishlisted, setWishlisted] = useState(false);
 
@@ -66,7 +75,15 @@ export default function ProductCard({ product }: Props) {
             </div>
           )}
 
-          {salePrice && (
+          {outOfStock && (
+            <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
+              <span className="bg-gray-900/80 text-white text-xs font-semibold px-4 py-2 rounded-full tracking-wider uppercase">
+                {t('outOfStock')}
+              </span>
+            </div>
+          )}
+
+          {salePrice && !outOfStock && (
             <div className="absolute top-3 start-3 bg-red-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full tracking-wider">
               -{discountPct}%
             </div>
