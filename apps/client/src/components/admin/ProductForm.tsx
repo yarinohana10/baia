@@ -287,11 +287,13 @@ export default function ProductForm({ product }: Props) {
     });
   };
 
-  const focusFirstError = () => {
-    setTimeout(() => {
-      formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
-    }, 0);
-  };
+  // Bumped to move focus to the first invalid field once errors have rendered
+  const [focusRequest, setFocusRequest] = useState(0);
+  const focusFirstError = () => setFocusRequest((n) => n + 1);
+  useEffect(() => {
+    if (focusRequest === 0) return;
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [focusRequest]);
 
   const handleRequestError = (err: unknown, prefix = '') => {
     const { status, data } = responseOf(err);
