@@ -24,7 +24,7 @@ out/
 Thumbs.db
 
 # Uploads (local storage)
-uploads/
+/apps/server/uploads/
 
 # Prisma
 apps/server/src/generated/

@@ -4,6 +4,7 @@ import { seedAdminFromEnv } from '../src/admin-users/seed-admin';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import { backfillSizeSets } from './size-sets';
 
 const prisma = new PrismaClient();
 
@@ -283,7 +284,8 @@ async function main() {
             url: imageUrl,
             uploadId: uploadId || null,
             color: product.color,
-            altText: product.nameEn,
+            altTextEn: product.nameEn,
+            altTextHe: product.nameHe,
             sortOrder: 0,
           }],
         },
@@ -311,5 +313,9 @@ async function main() {
 }
 
 main()
+  .then(async () => {
+    const result = await backfillSizeSets(prisma);
+    console.log('Size sets:', result);
+  })
   .catch((e) => { console.error(e); process.exit(1); })
   .finally(() => prisma.$disconnect());

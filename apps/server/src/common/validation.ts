@@ -1,15 +1,85 @@
-import { ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ValidationError,
+  ValidationPipe,
+  ValidationPipeOptions,
+} from '@nestjs/common';
 
 /**
- * Route/controller-scoped validation pipe for the orders, payment, cart and
- * wishlist controllers. Kept local so these endpoints are protected
- * regardless of whether a global pipe is registered in main.ts.
+ * A single field-level error returned to API clients.
  *
- * whitelist: strips unknown properties, so client-supplied fields such as
- * `amount`, `userId` or `status` can never reach the service layer.
+ * `field` is a dotted path into the request payload (e.g. `variants.2.sku`),
+ * `code` is a stable machine-readable reason the client can translate
+ * (e.g. `isNotEmpty`, `min`, `unique`, `saleBelowPrice`).
  */
-export const strictValidationPipe = new ValidationPipe({
+export type FieldError = {
+  field: string;
+  code: string;
+  message: string;
+};
+
+/** Shape of every 400/409 body produced by validation or uniqueness checks. */
+export type FieldErrorResponse = {
+  statusCode: number;
+  error: string;
+  message: string;
+  errors: FieldError[];
+};
+
+/** Flattens nested class-validator errors into dotted-path field errors. */
+export function flattenValidationErrors(
+  errors: ValidationError[],
+  parentPath = '',
+): FieldError[] {
+  const result: FieldError[] = [];
+  for (const err of errors) {
+    const path = parentPath ? `${parentPath}.${err.property}` : err.property;
+    if (err.constraints) {
+      for (const [code, message] of Object.entries(err.constraints)) {
+        result.push({ field: path, code, message });
+      }
+    }
+    if (err.children && err.children.length > 0) {
+      result.push(...flattenValidationErrors(err.children, path));
+    }
+  }
+  return result;
+}
+
+function body(statusCode: number, error: string, errors: FieldError[]): FieldErrorResponse {
+  return {
+    statusCode,
+    error,
+    message: errors[0]?.message ?? error,
+    errors,
+  };
+}
+
+export function fieldValidationException(errors: FieldError[]): BadRequestException {
+  return new BadRequestException(body(400, 'Bad Request', errors));
+}
+
+export function fieldConflictException(errors: FieldError[]): ConflictException {
+  return new ConflictException(body(409, 'Conflict', errors));
+}
+
+export const VALIDATION_PIPE_OPTIONS: ValidationPipeOptions = {
   whitelist: true,
   transform: true,
-  stopAtFirstError: false,
-});
+  transformOptions: { enableImplicitConversion: false },
+  exceptionFactory: (errors: ValidationError[]) =>
+    fieldValidationException(flattenValidationErrors(errors)),
+};
+
+export function createValidationPipe(): ValidationPipe {
+  return new ValidationPipe(VALIDATION_PIPE_OPTIONS);
+}
+
+/**
+ * Route/controller-scoped pipe used by the orders, payment, cart and wishlist
+ * controllers. Same options as the global pipe, so those endpoints stay
+ * protected (unknown fields such as `amount`, `userId` or `status` are
+ * stripped) even if the global pipe is ever removed.
+ */
+export const strictValidationPipe = createValidationPipe();

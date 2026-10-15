@@ -4,11 +4,11 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import Image from 'next/image';
 import { api } from '@/lib/api';
 import { Minus, Plus, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { WishlistButton } from '@/components/storefront/WishlistButton';
+import ProductGallery, { type GalleryImage } from '@/components/storefront/ProductGallery';
 
 type Variant = {
   id: string;
@@ -23,11 +23,7 @@ type Variant = {
   isActive: boolean;
 };
 
-type ProductImage = {
-  id: string;
-  url: string;
-  color: string | null;
-};
+type ProductImage = GalleryImage;
 
 type Product = {
   id: string;
@@ -61,7 +57,6 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
-  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
@@ -82,12 +77,8 @@ export default function ProductDetailPage() {
 
   const availableSizes = useMemo(() => {
     if (!product) return [];
-    return product.variants
-      .filter((v) => v.color === selectedColor && v.isActive)
-      .sort((a, b) => {
-        const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-        return sizeOrder.indexOf(a.size) - sizeOrder.indexOf(b.size);
-      });
+    // The API returns variants already ordered by the product's size set
+    return product.variants.filter((v) => v.color === selectedColor && v.isActive);
   }, [product, selectedColor]);
 
   useEffect(() => {
@@ -186,37 +177,7 @@ export default function ProductDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
         {/* Images */}
-        <div className="space-y-3">
-          <div className="aspect-square bg-gray-100 overflow-hidden rounded-xl">
-            {filteredImages[selectedImageIdx] ? (
-              <Image
-                src={filteredImages[selectedImageIdx].url}
-                alt={name}
-                width={500}
-                height={500}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-100" />
-            )}
-          </div>
-          {filteredImages.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto">
-              {filteredImages.map((img, i) => (
-                <button
-                  key={img.id}
-                  onClick={() => setSelectedImageIdx(i)}
-                  aria-label={`${t('color')} ${img.color || i + 1}`}
-                  className={`w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
-                    selectedImageIdx === i ? 'border-ocean-700' : 'border-transparent'
-                  }`}
-                >
-                  <Image src={img.url} alt="" width={64} height={64} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductGallery images={filteredImages} productName={name} />
 
         {/* Details */}
         <div>
@@ -248,7 +209,7 @@ export default function ProductDetailPage() {
                 {colors.map((color) => (
                   <button
                     key={color}
-                    onClick={() => { setSelectedColor(color); setSelectedImageIdx(0); }}
+                    onClick={() => setSelectedColor(color)}
                     className={`px-3 py-1.5 text-sm border rounded-lg transition-colors ${
                       selectedColor === color
                         ? 'border-ocean-700 bg-ocean-700 text-white'

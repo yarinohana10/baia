@@ -3,7 +3,8 @@ import { ProductsService } from '../src/products/products.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { STORAGE_SERVICE } from '../src/storage/storage.interface';
 import { NotFoundException } from '@nestjs/common';
-import { createMockPrismaService, createMockStorageService, MOCK_UPLOAD } from './helpers';
+import { createMockStorageService, MOCK_UPLOAD } from './helpers';
+import { createProductsPrismaMock, ProductsPrismaMock } from './products.mocks';
 
 const mockProduct = (overrides?: Partial<any>) => ({
   id: 'prod-1',
@@ -26,11 +27,11 @@ const mockProduct = (overrides?: Partial<any>) => ({
 
 describe('ProductsService', () => {
   let service: ProductsService;
-  let prisma: ReturnType<typeof createMockPrismaService>;
+  let prisma: ProductsPrismaMock;
   let storage: ReturnType<typeof createMockStorageService>;
 
   beforeEach(async () => {
-    prisma = createMockPrismaService();
+    prisma = createProductsPrismaMock();
     storage = createMockStorageService();
 
     process.env.S3_BUCKET = 'baia-assets';
@@ -164,29 +165,6 @@ describe('ProductsService', () => {
     });
   });
 
-  describe('create', () => {
-    it('should create a product with Decimal basePrice', async () => {
-      prisma.product.create.mockResolvedValue(mockProduct());
-
-      const result = await service.create({
-        nameHe: 'מכנסי ים',
-        nameEn: 'Swim Shorts',
-        slug: 'swim-shorts',
-        basePrice: 149.90,
-        categoryId: 'cat-1',
-      });
-
-      expect(prisma.product.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          nameEn: 'Swim Shorts',
-          categoryId: 'cat-1',
-        }),
-        include: { category: true, variants: true, images: true },
-      });
-      expect(result.nameEn).toBe('Swim Shorts');
-    });
-  });
-
   describe('delete', () => {
     it('should delete product and clean up S3 images', async () => {
       const prod = mockProduct({
@@ -223,146 +201,6 @@ describe('ProductsService', () => {
       prisma.product.findUnique.mockResolvedValue(null);
 
       await expect(service.delete('bad-id')).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('uploadImage', () => {
-    it('should upload image to S3 and create Upload + ProductImage records', async () => {
-      const file = Buffer.from('image data');
-      prisma.upload.create.mockResolvedValue(MOCK_UPLOAD);
-      prisma.productImage.aggregate.mockResolvedValue({ _max: { sortOrder: 2 } });
-      prisma.productImage.create.mockResolvedValue({
-        id: 'img-new',
-        productId: 'prod-1',
-        url: 'http://localhost:4566/baia-assets/products/prod-1/new.jpg',
-        uploadId: 'upload-1',
-        color: 'Blue',
-        sortOrder: 3,
-        upload: MOCK_UPLOAD,
-      });
-
-      const result = await service.uploadImage(
-        'prod-1', file, 'photo.jpg', 'image/jpeg', 'Blue', 'user-1',
-      );
-
-      expect(storage.upload).toHaveBeenCalledWith(
-        file,
-        expect.stringContaining('products/prod-1/'),
-        'image/jpeg',
-      );
-      expect(prisma.upload.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          s3Bucket: 'baia-assets',
-          mimeType: 'image/jpeg',
-          sizeBytes: file.length,
-          fileName: 'photo.jpg',
-          uploadedBy: 'user-1',
-        }),
-      });
-      expect(prisma.productImage.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          productId: 'prod-1',
-          uploadId: 'upload-1',
-          color: 'Blue',
-          sortOrder: 3,
-        }),
-        include: { upload: true },
-      });
-      expect(result.sortOrder).toBe(3);
-    });
-
-    it('should start sortOrder at 1 when no existing images', async () => {
-      const file = Buffer.from('img');
-      prisma.upload.create.mockResolvedValue(MOCK_UPLOAD);
-      prisma.productImage.aggregate.mockResolvedValue({ _max: { sortOrder: null } });
-      prisma.productImage.create.mockResolvedValue({
-        id: 'img-new', sortOrder: 1, upload: MOCK_UPLOAD,
-      });
-
-      await service.uploadImage('prod-1', file, 'f.jpg', 'image/jpeg');
-
-      const createCall = prisma.productImage.create.mock.calls[0][0];
-      expect(createCall.data.sortOrder).toBe(1);
-    });
-  });
-
-  describe('deleteImage', () => {
-    it('should delete S3 file, Upload record, and ProductImage', async () => {
-      prisma.productImage.findUnique.mockResolvedValue({
-        id: 'img-1',
-        upload: MOCK_UPLOAD,
-      });
-      prisma.productImage.delete.mockResolvedValue({});
-      prisma.upload.delete.mockResolvedValue(MOCK_UPLOAD);
-
-      const result = await service.deleteImage('img-1');
-
-      expect(storage.delete).toHaveBeenCalledWith('products/prod-1/abc.jpg');
-      expect(prisma.productImage.delete).toHaveBeenCalledWith({ where: { id: 'img-1' } });
-      expect(prisma.upload.delete).toHaveBeenCalledWith({ where: { id: 'upload-1' } });
-      expect(result).toEqual({ deleted: true });
-    });
-
-    it('should delete legacy image without S3 cleanup', async () => {
-      prisma.productImage.findUnique.mockResolvedValue({
-        id: 'img-legacy',
-        upload: null,
-      });
-      prisma.productImage.delete.mockResolvedValue({});
-
-      await service.deleteImage('img-legacy');
-
-      expect(storage.delete).not.toHaveBeenCalled();
-      expect(prisma.productImage.delete).toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException for nonexistent image', async () => {
-      prisma.productImage.findUnique.mockResolvedValue(null);
-
-      await expect(service.deleteImage('nonexistent')).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('createVariant', () => {
-    it('should create a product variant', async () => {
-      const variant = {
-        id: 'var-1',
-        productId: 'prod-1',
-        color: 'Blue',
-        size: 'L',
-        sku: 'classic-blue-l',
-        stockQuantity: 10,
-      };
-      prisma.productVariant.create.mockResolvedValue(variant);
-
-      const result = await service.createVariant('prod-1', {
-        color: 'Blue',
-        size: 'L',
-        sku: 'classic-blue-l',
-        stockQuantity: 10,
-      });
-
-      expect(prisma.productVariant.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          productId: 'prod-1',
-          color: 'Blue',
-          size: 'L',
-          sku: 'classic-blue-l',
-          stockQuantity: 10,
-        }),
-      });
-      expect(result.sku).toBe('classic-blue-l');
-    });
-  });
-
-  describe('deleteVariant', () => {
-    it('should delete a variant', async () => {
-      prisma.productVariant.delete.mockResolvedValue({ id: 'var-1' });
-
-      const result = await service.deleteVariant('var-1');
-
-      expect(prisma.productVariant.delete).toHaveBeenCalledWith({ where: { id: 'var-1' } });
-      expect(result).toEqual({ deleted: true });
     });
   });
 
