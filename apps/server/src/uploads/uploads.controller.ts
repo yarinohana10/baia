@@ -10,6 +10,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { fieldValidationException } from '../common/validation';
 import { UploadsService } from './uploads.service';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { Request } from 'express';
@@ -23,9 +24,12 @@ export class UploadsController {
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   upload(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @Req() req: Request,
   ) {
+    if (!file) {
+      throw fieldValidationException([{ field: 'file', code: 'required', message: 'A file is required' }]);
+    }
     const userId = (req as any).user?.id;
     return this.uploadsService.upload(
       file.buffer,
