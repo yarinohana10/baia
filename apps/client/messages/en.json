@@ -363,5 +363,45 @@
         "categoryRequired": "You must assign the product to a category"
       }
     }
+  },
+  "wishlist": {
+    "add": "Add to wishlist",
+    "remove": "Remove from wishlist",
+    "empty": "Your wishlist is empty.",
+    "browse": "Browse Products",
+    "guestNote": "Saved on this device. Sign in to keep your wishlist across devices."
+  },
+  "checkout": {
+    "paymentFailed": "Payment was not completed. Your order is saved — you can try again.",
+    "failed": "Checkout failed. Please try again.",
+    "retryPayment": "Retry Payment"
+  },
+  "orderConfirmation": {
+    "thankYou": "Thank You!",
+    "placed": "Your order has been placed successfully.",
+    "pending": "Your order is awaiting payment.",
+    "orderNumber": "Order Number",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "free": "Free",
+    "discount": "Discount",
+    "total": "Total",
+    "shippingTo": "Shipping to",
+    "apt": "Apt",
+    "continueShopping": "Continue Shopping",
+    "myOrders": "My Orders",
+    "sentTo": "A confirmation will be sent to {email}",
+    "notFoundTitle": "We couldn't find this order",
+    "notFoundBody": "The link may have expired or is incomplete. Please use the link from this browser, or sign in to view your orders.",
+    "loading": "Loading your order…",
+    "status": {
+      "PENDING_PAYMENT": "Pending payment",
+      "CONFIRMED": "Confirmed",
+      "PROCESSING": "Processing",
+      "SHIPPED": "Shipped",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled",
+      "REFUNDED": "Refunded"
+    }
   }
 }

@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { useLocale } from 'next-intl';
 import Image from 'next/image';
-import { Heart } from 'lucide-react';
+import { WishlistButton } from './WishlistButton';
 import { useTranslations } from 'next-intl';
 
 type Props = {
@@ -54,8 +53,6 @@ export default function ProductCard({ product }: Props) {
   const discountPct = salePrice ? Math.round(((basePrice - salePrice) / basePrice) * 100) : 0;
   const outOfStock = isOutOfStock(product.variants);
 
-  const [wishlisted, setWishlisted] = useState(false);
-
   return (
     <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100">
       <Link href={`/product/${product.slug}`} className="block">
@@ -89,21 +86,12 @@ export default function ProductCard({ product }: Props) {
             </div>
           )}
 
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setWishlisted(!wishlisted);
-            }}
-            className={`absolute top-3 end-3 p-2 rounded-full backdrop-blur-sm transition-all duration-200 ${
-              wishlisted
-                ? 'bg-red-50 text-red-500'
-                : 'bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-white'
-            }`}
-            aria-label="Wishlist"
-          >
-            <Heart size={16} fill={wishlisted ? 'currentColor' : 'none'} />
-          </button>
+          <WishlistButton
+            product={product}
+            className="absolute top-3 end-3 p-2 rounded-full backdrop-blur-sm transition-all duration-200"
+            activeClassName="bg-red-50 text-red-500"
+            inactiveClassName="bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-red-500 hover:bg-white"
+          />
         </div>
 
         {/* Info */}

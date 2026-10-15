@@ -18,8 +18,9 @@ import { createHmac, timingSafeEqual } from 'crypto';
  *        duplicate or reordered deliveries are harmless.
  *
  * main.ts already enables `rawBody: true`, so req.rawBody is available.
- * When no verifier is bound (default, and always for the mock provider) the
- * endpoint answers 404.
+ * The verifier is only bound when PAYMENT_WEBHOOK_SECRET is set; otherwise
+ * (the default, and the expected setup with the mock provider) the endpoint
+ * answers 404.
  */
 export type PaymentWebhookEvent = {
   type: 'payment.succeeded' | 'payment.failed';
