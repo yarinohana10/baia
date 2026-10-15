@@ -116,7 +116,199 @@
     "freeShipping": "Free shipping over ₪249",
     "securePayment": "Secure Payment",
     "easyReturns": "Easy Returns",
-    "copyright": "© 2026 BAIA Swimwear. All rights reserved."
+    "copyright": "© {year} BAIA Swimwear. All rights reserved.",
+    "aboutUs": "About BAIA",
+    "shopTitle": "Shop",
+    "newsletterTitle": "The BAIA club",
+    "newsletterBody": "Early access to new collections and members-only offers."
+  },
+  "seo": {
+    "homeTitle": "BAIA Swimwear — Mediterranean Swimwear for the Whole Family",
+    "homeDescription": "Premium swimwear for women, men and kids, designed for Mediterranean summers. Free shipping in Israel over ₪249 and easy returns.",
+    "categoryDescription": "Shop {name} swimwear at BAIA — premium pieces designed for Mediterranean summers. Free shipping over ₪249.",
+    "newArrivalsTitle": "New Arrivals",
+    "newArrivalsDescription": "The latest BAIA swimwear for women, men and kids — fresh from the summer collection.",
+    "productFallbackDescription": "{name} by BAIA Swimwear. Premium swimwear designed for Mediterranean summers.",
+    "notFoundTitle": "Page not found"
+  },
+  "storefront": {
+    "announcement": "Free shipping in Israel on orders over ₪249 · Easy 14-day returns",
+    "skipToContent": "Skip to content",
+    "menu": "Menu",
+    "closeMenu": "Close menu",
+    "primaryNav": "Main navigation",
+    "breadcrumb": "Breadcrumb",
+    "home": "Home",
+    "hero": {
+      "eyebrow": "Summer 2026",
+      "title": "Made for long Mediterranean days",
+      "subtitle": "Swimwear for the whole family — tailored cuts, quick-dry fabrics and colours borrowed from the coast.",
+      "ctaPrimary": "Shop the collection",
+      "ctaSecondary": "New arrivals"
+    },
+    "categories": {
+      "eyebrow": "Shop by",
+      "title": "Something for everyone on the beach",
+      "explore": "Explore"
+    },
+    "newArrivals": {
+      "eyebrow": "Just landed",
+      "title": "New arrivals",
+      "viewAll": "View all"
+    },
+    "featured": {
+      "eyebrow": "Editor's edit",
+      "title": "Our favourites this season",
+      "viewAll": "Shop all"
+    },
+    "values": {
+      "title": "Why BAIA",
+      "shippingTitle": "Free shipping over ₪249",
+      "shippingBody": "Fast delivery across Israel, straight to your door.",
+      "returnsTitle": "Easy returns",
+      "returnsBody": "Changed your mind? Return or exchange within 14 days.",
+      "familyTitle": "One brand, whole family",
+      "familyBody": "Coordinated styles for women, men and kids."
+    },
+    "newsletter": {
+      "eyebrow": "The BAIA club",
+      "title": "First to know when the tide turns",
+      "body": "Join the club for early access to new collections and members-only offers.",
+      "cta": "Join the club"
+    },
+    "card": {
+      "new": "New",
+      "sale": "Sale",
+      "lowStock": "Only a few left",
+      "outOfStock": "Sold out",
+      "from": "From",
+      "salePrice": "Sale price",
+      "originalPrice": "Original price",
+      "colors": "{count, plural, one {# colour} other {# colours}}",
+      "sizes": "Sizes",
+      "shopNow": "Choose size",
+      "wishlist": "Add to wishlist"
+    },
+    "category": {
+      "count": "{count, plural, =0 {No pieces yet} one {# piece} other {# pieces}}",
+      "all": "All",
+      "sortLabel": "Sort by",
+      "sortNewest": "Newest",
+      "sortPriceAsc": "Price: low to high",
+      "sortPriceDesc": "Price: high to low",
+      "filterLabel": "Filter by type",
+      "pagination": "Pagination",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page}"
+    },
+    "empty": {
+      "eyebrow": "Coming soon",
+      "title": "This collection is still on its way",
+      "body": "We're putting the finishing touches on new {name} pieces. In the meantime, take a look around.",
+      "bodyGeneric": "We're putting the finishing touches on new pieces. In the meantime, take a look around.",
+      "browse": "Browse other collections",
+      "notify": "Get notified when it lands",
+      "notifyBody": "Join the BAIA club and we'll let you know as soon as new styles arrive."
+    },
+    "notFound": {
+      "eyebrow": "404",
+      "title": "This page drifted out to sea",
+      "body": "The page you're looking for doesn't exist or has moved. Let's get you back to the shore.",
+      "home": "Back to homepage",
+      "shop": "Shop new arrivals"
+    }
+  },
+  "pages": {
+    "placeholderNotice": "PLACEHOLDER COPY — the store owner should review and replace this text.",
+    "updated": "Last updated: {date}",
+    "about": {
+      "metaTitle": "About BAIA",
+      "metaDescription": "BAIA is a family swimwear brand inspired by the Mediterranean coast.",
+      "eyebrow": "Our story",
+      "title": "Born on the Mediterranean coast",
+      "intro": "BAIA started with a simple idea: swimwear the whole family can love, designed for long days between the sea and the sand.",
+      "sections": [
+        {
+          "title": "Designed for real summers",
+          "body": "Every piece is cut for movement and made with quick-drying fabrics that keep their shape and colour season after season."
+        },
+        {
+          "title": "For the whole family",
+          "body": "From toddlers to grandparents, our collections are designed to sit together — coordinated colours, never matching for the sake of it."
+        },
+        {
+          "title": "Made with care",
+          "body": "We work with a small number of trusted manufacturers and keep our collections focused, so every piece earns its place."
+        }
+      ]
+    },
+    "shipping": {
+      "metaTitle": "Shipping Policy",
+      "metaDescription": "Shipping times, costs and coverage for BAIA Swimwear orders in Israel.",
+      "eyebrow": "Customer care",
+      "title": "Shipping",
+      "intro": "We ship across Israel. Here's what to expect once you place your order.",
+      "costTitle": "Shipping costs",
+      "costFree": "Free shipping on orders over {threshold}.",
+      "costFlat": "Orders under {threshold} ship for a flat {cost}.",
+      "sections": [
+        {
+          "title": "Delivery times",
+          "body": "Orders are dispatched within 1–2 business days. Delivery usually takes 3–5 business days after dispatch. Remote areas may take longer."
+        },
+        {
+          "title": "Tracking your order",
+          "body": "Once your order ships we'll email you a tracking number. You can also see the status of your orders in your account."
+        },
+        {
+          "title": "International shipping",
+          "body": "At the moment we only ship within Israel."
+        }
+      ]
+    },
+    "returns": {
+      "metaTitle": "Returns & Exchanges",
+      "metaDescription": "How to return or exchange BAIA Swimwear items — easy 14-day returns.",
+      "eyebrow": "Customer care",
+      "title": "Returns & Exchanges",
+      "intro": "Not quite right? You can return or exchange items within 14 days of delivery.",
+      "sections": [
+        {
+          "title": "Conditions",
+          "body": "Items must be unworn, unwashed and returned with original tags and hygiene liners attached. For hygiene reasons, swimwear without its liner cannot be accepted."
+        },
+        {
+          "title": "How to return",
+          "body": "Contact us with your order number and the items you'd like to return. We'll send you instructions and a return address."
+        },
+        {
+          "title": "Exchanges",
+          "body": "Need a different size or colour? Let us know when you contact us and we'll reserve the replacement for you, subject to stock."
+        },
+        {
+          "title": "Refunds",
+          "body": "Refunds are issued to the original payment method within 14 days of receiving your return, in accordance with Israeli consumer protection law."
+        }
+      ]
+    },
+    "contact": {
+      "metaTitle": "Contact Us",
+      "metaDescription": "Get in touch with BAIA Swimwear — questions about sizing, orders and returns.",
+      "eyebrow": "Customer care",
+      "title": "Contact us",
+      "intro": "Questions about sizing, an order or a return? We're happy to help and usually reply within one business day.",
+      "emailLabel": "Email",
+      "hoursLabel": "Hours",
+      "hours": "Sunday–Thursday, 9:00–17:00",
+      "formTitle": "Send us a message",
+      "name": "Your name",
+      "email": "Your email",
+      "orderNumber": "Order number (optional)",
+      "message": "Message",
+      "submit": "Open in email app",
+      "formNote": "This form opens your email app with your message ready to send."
+    }
   },
   "admin": {
     "panelTitle": "Admin Panel",

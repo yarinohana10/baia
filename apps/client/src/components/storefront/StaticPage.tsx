@@ -1,0 +1,60 @@
+import { getTranslations } from 'next-intl/server';
+import { Breadcrumbs } from './Breadcrumbs';
+
+export type StaticSection = { title: string; body: string };
+
+/**
+ * Shared layout for content pages (shipping, returns, contact, about).
+ * Copy lives in messages/{he,en}.json under `pages.*` and is PLACEHOLDER text for the owner to edit;
+ * a notice is shown outside production so it isn't forgotten.
+ */
+export async function StaticPage({
+  locale,
+  eyebrow,
+  title,
+  intro,
+  sections = [],
+  children,
+  aside,
+}: {
+  locale: string;
+  eyebrow: string;
+  title: string;
+  intro: string;
+  sections?: StaticSection[];
+  children?: React.ReactNode;
+  aside?: React.ReactNode;
+}) {
+  const [t, tPages] = await Promise.all([getTranslations('storefront'), getTranslations('pages')]);
+
+  return (
+    <article>
+      <header className="border-b border-sand-200 bg-sand-50">
+        <div className="container-page pb-12 pt-8 sm:pb-16">
+          <Breadcrumbs items={[{ label: t('home'), href: '/' }, { label: title }]} label={t('breadcrumb')} locale={locale} />
+          <p className="eyebrow mt-8 text-ocean-700">{eyebrow}</p>
+          <h1 className="mt-3 font-display text-[40px] leading-none text-ink sm:text-6xl">{title}</h1>
+          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-stone">{intro}</p>
+        </div>
+      </header>
+
+      <div className="container-page grid gap-12 py-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-20">
+        <div className="prose-baia max-w-2xl">
+          {process.env.NODE_ENV !== 'production' && (
+            <p role="note" className="mb-8 border-s-2 border-sun bg-sun/10 px-4 py-3 text-sm text-ink">
+              {tPages('placeholderNotice')}
+            </p>
+          )}
+          {children}
+          {sections.map((s) => (
+            <section key={s.title}>
+              <h2>{s.title}</h2>
+              <p>{s.body}</p>
+            </section>
+          ))}
+        </div>
+        {aside && <aside className="lg:pt-2">{aside}</aside>}
+      </div>
+    </article>
+  );
+}

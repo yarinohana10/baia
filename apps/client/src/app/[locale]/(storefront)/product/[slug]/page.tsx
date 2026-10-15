@@ -55,6 +55,7 @@ export default function ProductDetailPage() {
   const locale = useLocale();
   const t = useTranslations('product');
   const tCart = useTranslations('cart');
+  const tCommon = useTranslations('common');
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,8 +166,8 @@ export default function ProductDetailPage() {
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-8">
-        <Link href="/" className="hover:text-ocean-600 transition-colors">Home</Link>
+      <nav aria-label="breadcrumb" className="flex flex-wrap items-center gap-1.5 text-[13px] text-stone mb-8">
+        <Link href="/" className="hover:text-ink hover:underline underline-offset-4">{tCommon('home')}</Link>
         <ChevronRight size={10} className="rtl:rotate-180" />
         {parentCatName && product.category.parent && (
           <>
@@ -180,7 +181,7 @@ export default function ProductDetailPage() {
           {catName}
         </Link>
         <ChevronRight size={10} className="rtl:rotate-180" />
-        <span className="text-gray-600">{name}</span>
+        <span aria-current="page" className="text-ink">{name}</span>
       </nav>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
@@ -219,19 +220,19 @@ export default function ProductDetailPage() {
 
         {/* Details */}
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-normal mb-3">{name}</h1>
+          <h1 className="font-display text-3xl md:text-[42px] leading-tight text-ink mb-3">{name}</h1>
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mb-6">
             <span
-              className={`text-2xl font-medium ${
-                displayPrice.original ? 'text-red-500' : 'text-charcoal'
+              className={`text-2xl font-semibold ${
+                displayPrice.original ? 'text-coral' : 'text-ink'
               }`}
             >
               ₪{displayPrice.current.toFixed(2)}
             </span>
             {displayPrice.original && (
-              <span className="text-lg text-gray-400 line-through">
+              <span className="text-lg text-stone line-through">
                 ₪{displayPrice.original.toFixed(2)}
               </span>
             )}
@@ -240,18 +241,19 @@ export default function ProductDetailPage() {
           {/* Color */}
           {colors.length > 1 && (
             <div className="mb-5">
-              <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">
-                {t('color')}: {selectedColor}
-              </label>
+              <p className="eyebrow text-stone mb-2">
+                {t('color')}: <span className="text-ink">{selectedColor}</span>
+              </p>
               <div className="flex gap-2">
                 {colors.map((color) => (
                   <button
                     key={color}
                     onClick={() => { setSelectedColor(color); setSelectedImageIdx(0); }}
-                    className={`px-3 py-1.5 text-sm border rounded-lg transition-colors ${
+                    aria-pressed={selectedColor === color}
+                    className={`px-4 py-2 text-sm font-semibold border rounded-full transition-colors ${
                       selectedColor === color
-                        ? 'border-ocean-700 bg-ocean-700 text-white'
-                        : 'border-gray-300 hover:border-ocean-500'
+                        ? 'border-ink bg-ink text-white'
+                        : 'border-sand-300 text-ink hover:border-ink'
                     }`}
                   >
                     {color}
@@ -265,7 +267,7 @@ export default function ProductDetailPage() {
           <div className="mb-6">
             <span
               id="size-label"
-              className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider"
+              className="eyebrow block text-stone mb-2"
             >
               {t('size')}
             </span>
@@ -277,12 +279,12 @@ export default function ProductDetailPage() {
                   disabled={v.stockQuantity === 0}
                   aria-label={`${t('size')} ${v.size}`}
                   aria-pressed={selectedSize === v.size}
-                  className={`w-11 h-11 text-sm border rounded-lg transition-colors ${
+                  className={`min-w-12 h-12 px-3 text-sm font-semibold border rounded-[2px] transition-colors ${
                     selectedSize === v.size
-                      ? 'border-ocean-700 bg-ocean-700 text-white'
+                      ? 'border-ink bg-ink text-white'
                       : v.stockQuantity === 0
-                      ? 'border-gray-200 text-gray-300 cursor-not-allowed line-through'
-                      : 'border-gray-300 hover:border-ocean-500'
+                      ? 'border-sand-200 text-sand-400 cursor-not-allowed line-through'
+                      : 'border-sand-300 text-ink bg-white hover:border-ink'
                   }`}
                 >
                   {v.size}
@@ -293,7 +295,7 @@ export default function ProductDetailPage() {
 
           {/* Quantity + Add to cart */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+            <div className="flex items-center border border-sand-300 bg-white rounded-[2px] overflow-hidden">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 aria-label={tCart('decreaseQuantity')}
@@ -316,10 +318,10 @@ export default function ProductDetailPage() {
             <button
               onClick={handleAddToCart}
               disabled={!selectedVariant || selectedVariant.stockQuantity === 0}
-              className={`flex-1 py-3 text-sm font-medium tracking-wider uppercase rounded-lg transition-colors ${
+              className={`flex-1 py-3.5 text-[15px] font-semibold rounded-[2px] transition-colors ${
                 !selectedVariant || selectedVariant.stockQuantity === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-ocean-700 text-white hover:bg-ocean-800'
+                  ? 'bg-sand-200 text-stone cursor-not-allowed'
+                  : 'bg-ink text-white hover:bg-coral'
               }`}
             >
               {!selectedVariant || selectedVariant.stockQuantity === 0
@@ -337,16 +339,16 @@ export default function ProductDetailPage() {
 
           {/* SKU */}
           {selectedVariant && (
-            <p className="text-xs text-gray-400 mb-6">SKU: {selectedVariant.sku}</p>
+            <p className="text-xs text-stone mb-6">SKU: {selectedVariant.sku}</p>
           )}
 
           {/* Description */}
           {description && (
-            <div className="border-t border-gray-200 pt-6">
-              <h2 className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wider">
+            <div className="border-t border-sand-200 pt-6">
+              <h2 className="eyebrow text-ocean-700 mb-3">
                 {t('description')}
               </h2>
-              <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+              <div className="text-[15px] text-stone leading-relaxed whitespace-pre-line">
                 {description}
               </div>
             </div>
