@@ -1,13 +1,42 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CouponsService } from '../coupons/coupons.service';
 import { Prisma } from '../generated/prisma';
+import { generateSecureToken, sha256Hex } from '../common/secure-token';
+import type { CartOwner } from '../cart/cart-identity';
+import { canAccessOrder, orderTokenTtlMs, type OrderRequester } from './order-access';
 
 function generateOrderNumber(): string {
   const ts = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const rand = randomBytes(3).toString('hex').toUpperCase();
   return `BA-${ts}-${rand}`;
 }
+
+/** Internal fields that must never be serialized to any client (incl. admin). */
+export const ORDER_PRIVATE_FIELDS = {
+  accessTokenHash: true,
+  accessTokenExpiresAt: true,
+  paymentClaimedAt: true,
+} as const;
+
+const ACCESS_SELECT = {
+  id: true,
+  userId: true,
+  accessTokenHash: true,
+  accessTokenExpiresAt: true,
+} as const;
+
+export type CreateOrderInput = {
+  owner: CartOwner;
+  customerEmail: string;
+  couponCode?: string;
+  shippingCity: string;
+  shippingStreet: string;
+  shippingNumber: string;
+  shippingApartment?: string;
+  shippingZip?: string;
+};
 
 @Injectable()
 export class OrdersService {
@@ -16,19 +45,17 @@ export class OrdersService {
     private couponsService: CouponsService,
   ) {}
 
-  async createOrder(data: {
-    userId?: string;
-    customerEmail: string;
-    couponCode?: string;
-    shippingCity: string;
-    shippingStreet: string;
-    shippingNumber: string;
-    shippingApartment?: string;
-    shippingZip?: string;
-    cartId: string;
-  }) {
-    const cart = await this.prisma.cart.findUnique({
-      where: { id: data.cartId },
+  /**
+   * Creates an order from the caller's own cart. Returns the order plus, for
+   * guest orders only, the raw access token (shown exactly once).
+   */
+  async createOrder(data: CreateOrderInput) {
+    const cartWhere: Prisma.CartWhereInput = data.owner.userId
+      ? { userId: data.owner.userId }
+      : { sessionId: data.owner.guestKeyHash, userId: null };
+
+    const cart = await this.prisma.cart.findFirst({
+      where: cartWhere,
       include: {
         items: {
           include: {
@@ -56,6 +83,11 @@ export class OrdersService {
 
     for (const item of cart.items) {
       const variant = item.variant;
+      if (!variant.isActive || !variant.product.isActive) {
+        throw new BadRequestException(
+          `${variant.product.nameEn} (${variant.color}/${variant.size}) is no longer available`,
+        );
+      }
       if (variant.stockQuantity < item.quantity) {
         throw new BadRequestException(
           `Insufficient stock for ${variant.product.nameEn} (${variant.color}/${variant.size})`,
@@ -97,14 +129,19 @@ export class OrdersService {
       couponId = validation.coupon.id;
     }
 
-    const total = subtotal + shippingCost - discountAmount;
+    const total = Math.max(0, subtotal + shippingCost - discountAmount);
+
+    // Guest orders get a one-time-displayed bearer token; logged-in orders
+    // are bound to the user id and need no token.
+    const isGuest = !data.owner.userId;
+    const accessToken = isGuest ? generateSecureToken() : undefined;
 
     // Use a transaction to ensure order creation + stock decrement are atomic
     const order = await this.prisma.$transaction(async (tx) => {
       const created = await tx.order.create({
         data: {
           orderNumber: generateOrderNumber(),
-          userId: data.userId,
+          userId: data.owner.userId,
           customerEmail: data.customerEmail,
           subtotal: new Prisma.Decimal(subtotal),
           shippingCost: new Prisma.Decimal(shippingCost),
@@ -116,9 +153,12 @@ export class OrdersService {
           shippingNumber: data.shippingNumber,
           shippingApartment: data.shippingApartment,
           shippingZip: data.shippingZip,
+          accessTokenHash: accessToken ? sha256Hex(accessToken) : null,
+          accessTokenExpiresAt: accessToken ? new Date(Date.now() + orderTokenTtlMs()) : null,
           items: { create: orderItems },
         },
         include: { items: true },
+        omit: ORDER_PRIVATE_FIELDS,
       });
 
       // Decrement stock atomically
@@ -148,21 +188,57 @@ export class OrdersService {
       return created;
     });
 
-    return order;
+    return { order, accessToken };
+  }
+
+  /**
+   * Rotate (or mint) the guest access token for an order. Intended for the
+   * future confirmation-email sender; invalidates any previous token.
+   */
+  async issueGuestAccessToken(orderId: string): Promise<string> {
+    const token = generateSecureToken();
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        accessTokenHash: sha256Hex(token),
+        accessTokenExpiresAt: new Date(Date.now() + orderTokenTtlMs()),
+      },
+    });
+    return token;
   }
 
   async findByUser(userId: string) {
     return this.prisma.order.findMany({
       where: { userId },
       include: { items: true, coupon: true },
+      omit: ORDER_PRIVATE_FIELDS,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /**
+   * Loads the minimal fields needed for an ownership decision and throws 404
+   * (never 401/403) when the requester has no proof, so the existence of an
+   * order id is not revealed.
+   */
+  async assertAccess(id: string, requester: OrderRequester, opts: { allowAdmin: boolean }) {
+    const access = await this.prisma.order.findUnique({ where: { id }, select: ACCESS_SELECT });
+    if (!access || !canAccessOrder(access, requester, opts)) {
+      throw new NotFoundException('Order not found');
+    }
+    return access;
+  }
+
+  async findForRequester(id: string, requester: OrderRequester) {
+    await this.assertAccess(id, requester, { allowAdmin: true });
+    return this.findById(id);
   }
 
   async findById(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: { items: { include: { variant: true } }, coupon: true },
+      omit: ORDER_PRIVATE_FIELDS,
     });
     if (!order) throw new NotFoundException('Order not found');
     return order;
@@ -170,13 +246,14 @@ export class OrdersService {
 
   async findAll(params?: { status?: string; page?: number; limit?: number }) {
     const { status, page = 1, limit = 20 } = params || {};
-    const where: any = {};
-    if (status) where.status = status;
+    const where: Prisma.OrderWhereInput = {};
+    if (status) where.status = status as Prisma.OrderWhereInput['status'];
 
     const [orders, total] = await Promise.all([
       this.prisma.order.findMany({
         where,
         include: { items: true, coupon: true },
+        omit: ORDER_PRIVATE_FIELDS,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -190,7 +267,7 @@ export class OrdersService {
   async updateStatus(id: string, status: string, trackingNumber?: string) {
     const order = await this.findById(id);
     const previousStatus = order.status;
-    const updateData: any = { status };
+    const updateData: Prisma.OrderUpdateInput = { status: status as Prisma.OrderUpdateInput['status'] };
     if (trackingNumber) updateData.trackingNumber = trackingNumber;
 
     const stockRestoreStatuses = ['CANCELLED', 'REFUNDED'];
@@ -204,6 +281,7 @@ export class OrdersService {
           where: { id },
           data: updateData,
           include: { items: true },
+          omit: ORDER_PRIVATE_FIELDS,
         });
 
         for (const item of order.items) {
@@ -221,6 +299,7 @@ export class OrdersService {
       where: { id },
       data: updateData,
       include: { items: true },
+      omit: ORDER_PRIVATE_FIELDS,
     });
   }
 }

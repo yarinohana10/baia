@@ -16,7 +16,8 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest --config test/e2e/jest-e2e.config.ts --runInBand"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1126.0",
@@ -28,6 +29,8 @@
     "@nestjs/swagger": "^11.2.0",
     "@prisma/client": "6",
     "better-auth": "^1.6.23",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
     "express": "^5.1.0",
     "multer": "^2.2.0",
     "nestjs-zod": "^5.4.0",
@@ -46,7 +49,9 @@
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.15.21",
+    "@types/supertest": "^6",
     "jest": "^30.5.1",
+    "supertest": "^7",
     "ts-jest": "^29.4.12",
     "ts-loader": "^9.5.2",
     "tsconfig-paths": "^4.2.0",
