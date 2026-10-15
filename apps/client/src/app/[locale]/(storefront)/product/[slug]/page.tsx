@@ -6,8 +6,9 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { Heart, Minus, Plus, ChevronRight } from 'lucide-react';
+import { Minus, Plus, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
+import { WishlistButton } from '@/components/storefront/WishlistButton';
 
 type Variant = {
   id: string;
@@ -327,12 +328,13 @@ export default function ProductDetailPage() {
                 : t('addToCart')}
             </button>
 
-            <button
-              className="p-3 border border-gray-300 rounded-lg text-gray-400 hover:text-red-500 hover:border-red-300 transition-colors"
-              aria-label="Add to wishlist"
-            >
-              <Heart size={18} />
-            </button>
+            <WishlistButton
+              product={product}
+              iconSize={18}
+              className="p-3 border rounded-lg transition-colors"
+              activeClassName="border-red-300 text-red-500"
+              inactiveClassName="border-gray-300 text-gray-400 hover:text-red-500 hover:border-red-300"
+            />
           </div>
 
           {/* SKU */}

@@ -1,6 +1,7 @@
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { CartDrawer } from './CartDrawer';
+import { SessionSync } from './SessionSync';
 
 export function StorefrontLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +10,7 @@ export function StorefrontLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 pt-16">{children}</main>
       <Footer />
       <CartDrawer />
+      <SessionSync />
     </div>
   );
 }

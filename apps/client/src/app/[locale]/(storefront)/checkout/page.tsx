@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
+import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
 import { useCartStore } from '@/store/cart';
 import { ShieldCheck, Truck, CreditCard, AlertTriangle } from 'lucide-react';
@@ -11,6 +12,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('cart');
+  const tCheckout = useTranslations('checkout');
   const { items, fetchCart } = useCartStore();
 
   const [email, setEmail] = useState('');
@@ -24,6 +26,9 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  // An order whose payment did not go through: retry charges it instead of
+  // creating a second order (the cart was already converted into it).
+  const [pendingOrder, setPendingOrder] = useState<{ id: string; token?: string } | null>(null);
 
   useEffect(() => { fetchCart(); }, [fetchCart]);
 
@@ -65,38 +70,48 @@ export default function CheckoutPage() {
     setError('');
     setSubmitting(true);
 
+    let order = pendingOrder;
     try {
-      // Get cart ID
-      const cartRes = await api.get('/cart', {
-        headers: { 'x-guest-session': localStorage.getItem('baia_guest_session') || '' },
-      });
+      if (!order) {
+        // The cart is resolved server-side from the session / guest cookie.
+        const res = await api.post('/orders', {
+          customerEmail: email,
+          couponCode: couponCode || undefined,
+          shippingCity: city,
+          shippingStreet: street,
+          shippingNumber: number,
+          shippingApartment: apartment || undefined,
+          shippingZip: zip || undefined,
+        });
+        // Guests get a one-time access token; signed-in users are matched by session.
+        order = { id: res.data.id, token: res.data.accessToken };
+        setPendingOrder(order);
+      }
+    } catch (err) {
+      setError((isAxiosError(err) && err.response?.data?.message) || tCheckout('failed'));
+      setSubmitting(false);
+      return;
+    }
 
-      const order = await api.post('/orders', {
-        customerEmail: email,
-        couponCode: couponCode || undefined,
-        shippingCity: city,
-        shippingStreet: street,
-        shippingNumber: number,
-        shippingApartment: apartment || undefined,
-        shippingZip: zip || undefined,
-        cartId: cartRes.data.id,
-      });
-
-      // Process payment (mock)
-      await api.post('/payment/charge', {
-        orderId: order.data.id,
-        customerEmail: email,
-      });
-
-      router.push(`/order-confirmation/${order.data.id}`);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Checkout failed. Please try again.');
-    } finally {
+    try {
+      // Amount is computed by the server from the order; only the id is sent.
+      await api.post(
+        '/payment/charge',
+        { orderId: order.id },
+        order.token ? { headers: { 'X-Order-Token': order.token } } : undefined,
+      );
+      void fetchCart();
+      // The token travels in the URL fragment, which browsers never send to
+      // servers or in Referer headers; the confirmation page swaps it for an
+      // httpOnly cookie and strips it from the address bar.
+      router.push(`/order-confirmation/${order.id}${order.token ? `#token=${order.token}` : ''}`);
+    } catch {
+      setError(tCheckout('paymentFailed'));
       setSubmitting(false);
     }
   };
 
-  if (items.length === 0) {
+  if (items.length === 0 && !pendingOrder) {
     return (
       <div className="max-w-3xl mx-auto py-20 px-4 text-center text-gray-400">
         <p>Your cart is empty.</p>
@@ -278,7 +293,7 @@ export default function CheckoutPage() {
             className="w-full bg-ocean-700 text-white py-3 text-sm tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <ShieldCheck size={16} />
-            {submitting ? 'Processing...' : 'Place Order'}
+            {submitting ? 'Processing...' : pendingOrder ? tCheckout('retryPayment') : 'Place Order'}
           </button>
 
           <p className="text-xs text-center text-gray-400">
