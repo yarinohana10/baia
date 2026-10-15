@@ -1,44 +1,14 @@
-import { betterAuth } from 'better-auth';
+import '../config/load-env';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { PrismaClient } from '../generated/prisma';
+import { emailService } from '../email/email.service';
+import { createAuth } from './auth.config';
 
 const prisma = new PrismaClient();
 
-export const auth = betterAuth({
+export const auth = createAuth({
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:8000',
-  secret: process.env.BETTER_AUTH_SECRET || 'baia-dev-secret',
-  trustedOrigins: [
-    process.env.CLIENT_URL || 'http://localhost:3000',
-  ],
-  emailAndPassword: {
-    enabled: true,
-  },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      enabled: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
-    },
-  },
-  user: {
-    additionalFields: {
-      role: {
-        type: 'string',
-        defaultValue: 'CUSTOMER',
-        input: false,
-      },
-    },
-  },
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60,
-    },
-  },
-  advanced: {
-    cookiePrefix: process.env.AUTH_COOKIE_PREFIX || 'baia',
-  },
+  email: emailService,
 });
 
-export type Auth = typeof auth;
+export type { Auth } from './auth.config';

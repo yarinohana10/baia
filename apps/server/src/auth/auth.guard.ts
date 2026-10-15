@@ -20,8 +20,17 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    const needsRole = !!requiredRoles && requiredRoles.length > 0;
+
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(request.headers),
+      // Role checks must see the current DB role, not a role cached in the
+      // session cookie (up to 5 min old) - e.g. right after a demotion.
+      query: needsRole ? { disableCookieCache: true } : undefined,
     });
 
     if (!session) {
@@ -31,12 +40,7 @@ export class AuthGuard implements CanActivate {
     request.user = session.user;
     request.session = session.session;
 
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    if (requiredRoles && requiredRoles.length > 0) {
+    if (needsRole) {
       const userRole = (session.user as any).role;
       if (!requiredRoles.includes(userRole)) {
         throw new ForbiddenException('Insufficient permissions');
