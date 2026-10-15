@@ -9,6 +9,13 @@ const meta: Meta<typeof Footer> = {
     nextjs: { appDirectory: true },
     layout: 'fullscreen',
   },
+  args: {
+    categories: [
+      { label: 'Women', href: '/category/women' },
+      { label: 'Men', href: '/category/men' },
+      { label: 'Kids', href: '/category/children' },
+    ],
+  },
 };
 
 export default meta;

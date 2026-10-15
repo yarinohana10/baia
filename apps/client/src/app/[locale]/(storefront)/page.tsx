@@ -1,238 +1,227 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
-import { Link } from '@/i18n/navigation';
-import { api } from '@/lib/api';
+import type { Metadata } from 'next';
 import Image from 'next/image';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { Truck, RotateCcw, Users } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
+import { routing } from '@/i18n/routing';
 import ProductCard from '@/components/storefront/ProductCard';
+import { ProductGrid } from '@/components/storefront/ProductGrid';
+import { SectionHeading } from '@/components/storefront/SectionHeading';
+import { JsonLd } from '@/components/storefront/JsonLd';
+import { getCategories, getProducts, getSiteConfig, toCardProduct } from '@/lib/catalog/server';
+import { SITE_NAME, absoluteUrl, getSiteUrl, pageMetadata } from '@/lib/seo';
 
-type Product = {
-  id: string;
-  nameHe: string;
-  nameEn: string;
-  slug: string;
-  basePrice: string;
-  isFeatured: boolean;
-  images: { url: string; color?: string }[];
-  variants: {
-    salePrice?: string | null;
-    saleStart?: string | null;
-    saleEnd?: string | null;
-    priceOverride?: string | null;
-  }[];
-};
+export const revalidate = 300;
 
-type CategoryData = {
-  id: string;
-  nameHe: string;
-  nameEn: string;
-  slug: string;
-  image: string | null;
-  children?: CategoryData[];
-};
-
-type SiteConfigData = {
-  heroImageUrl: string | null;
-  heroTitleHe: string | null;
-  heroTitleEn: string | null;
-  heroSubtitleHe: string | null;
-  heroSubtitleEn: string | null;
-  heroCtaUrl: string | null;
-};
-
-/* ─── New Arrival Card (horizontal: image left, text right) ─── */
-
-function NewArrivalCard({ product, locale }: { product: Product; locale: string }) {
-  const name = locale === 'he' ? product.nameHe : product.nameEn;
-  const price = parseFloat(product.basePrice);
-  const imageUrl = product.images[0]?.url;
-
-  return (
-    <Link
-      href={`/product/${product.slug}`}
-      className="flex-shrink-0 w-[260px] sm:w-[280px] flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-3 hover:shadow-md hover:border-ocean-200 transition-all duration-250 snap-start"
-    >
-      <div className="relative w-[88px] h-[88px] flex-shrink-0 bg-warm-100 rounded-lg overflow-hidden">
-        {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt={name}
-            fill
-            sizes="88px"
-            className="object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">
-            BAIA
-          </div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0 text-center">
-        <h3 className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-snug mb-1.5">
-          {name}
-        </h3>
-        <p className="text-[15px] font-semibold text-gray-900">₪{price.toFixed(0)}</p>
-      </div>
-    </Link>
-  );
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
 }
 
-/* ─── Homepage ─── */
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'seo' });
+  return pageMetadata({
+    locale,
+    path: '/',
+    title: t('homeTitle'),
+    description: t('homeDescription'),
+    absoluteTitle: true,
+  });
+}
 
-export default function HomePage() {
-  const t = useTranslations('home');
-  const locale = useLocale();
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<CategoryData[]>([]);
-  const [siteConfig, setSiteConfig] = useState<SiteConfigData | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [t, { products }, categories, siteConfig] = await Promise.all([
+    getTranslations('storefront'),
+    getProducts({ limit: 24, sort: 'newest' }),
+    getCategories(),
+    getSiteConfig(),
+  ]);
 
-  useEffect(() => {
-    Promise.all([
-      api.get('/products', { params: { limit: 50 } }),
-      api.get('/categories'),
-      api.get('/site-config'),
-    ])
-      .then(([productsRes, categoriesRes, configRes]) => {
-        setProducts(productsRes.data.products || []);
-        setCategories(categoriesRes.data || []);
-        setSiteConfig(configRes.data || null);
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
-  }, []);
+  const he = locale === 'he';
+  const newArrivals = products.slice(0, 8).map(toCardProduct);
+  const featured = products.filter((p) => p.isFeatured).slice(0, 8).map(toCardProduct);
 
-  const newArrivals = products.slice(0, 12);
+  const heroImage = siteConfig?.heroImageUrl || '/hero/hero-banner.jpg';
+  const heroTitle = (he ? siteConfig?.heroTitleHe : siteConfig?.heroTitleEn) || t('hero.title');
+  const heroSubtitle = (he ? siteConfig?.heroSubtitleHe : siteConfig?.heroSubtitleEn) || t('hero.subtitle');
+  const heroCtaUrl = siteConfig?.heroCtaUrl || (categories[0] ? `/category/${categories[0].slug}` : '/new-arrivals');
 
-  const heroImage = siteConfig?.heroImageUrl || '/hero/hero-banner.png';
-  const heroSubtitle = locale === 'he'
-    ? (siteConfig?.heroSubtitleHe || t('heroSubtitle'))
-    : (siteConfig?.heroSubtitleEn || t('heroSubtitle'));
-  const heroCtaUrl = siteConfig?.heroCtaUrl || '/category/men';
-
-  // Map top-level categories with their images from DB
-  const categoryCards = categories.map((cat) => ({
-    slug: cat.slug,
-    label: locale === 'he' ? cat.nameHe : cat.nameEn,
-    image: cat.image || `/categories/${cat.slug}.jpg`,
-  }));
+  const siteUrl = getSiteUrl().toString();
 
   return (
     <>
-      {/* ─── Hero Banner ──────────────────────────────── */}
-      <section className="relative w-full h-[420px] sm:h-[480px] lg:h-[540px] overflow-hidden">
-        <Image
-          src={heroImage}
-          alt="BAIA Swimwear — Summer Collection"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+      <JsonLd
+        data={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: SITE_NAME,
+            url: siteUrl,
+            logo: new URL('/logo/baia-logo.svg', siteUrl).toString(),
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: SITE_NAME,
+            url: absoluteUrl(locale, '/'),
+            inLanguage: he ? 'he-IL' : 'en-US',
+          },
+        ]}
+      />
 
-        <div className="absolute inset-0 flex items-end">
-          <div className="container-page pb-10 sm:pb-14">
-            <p className="text-lg sm:text-xl text-white font-bold leading-snug max-w-md drop-shadow-lg mb-8">
-              {heroSubtitle}
-            </p>
-            <Link
-              href={heroCtaUrl}
-              className="inline-block bg-white text-gray-900 px-10 py-3.5 text-[14px] font-bold tracking-[0.15em] uppercase rounded-lg hover:bg-ocean-700 hover:text-white transition-all duration-300"
-            >
-              {t('heroCta')}
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Shop by Category ─────────────────────────── */}
-      <section className="bg-warm-50">
-        <div className="container-page py-12 sm:py-16">
-          <h2 className="text-[22px] sm:text-2xl font-semibold text-gray-900 mb-6 sm:mb-8 tracking-tight">
-            {t('shopByCategory')}
-          </h2>
-          <div className="grid grid-cols-3 gap-3 sm:gap-5">
-            {categoryCards.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/category/${cat.slug}`}
-                className="group relative h-[200px] sm:h-[260px] lg:h-[300px] overflow-hidden rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-300"
-              >
-                <Image
-                  src={cat.image}
-                  alt={cat.label}
-                  fill
-                  sizes="(max-width: 640px) 33vw, 33vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-600"
-                />
-                <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 transition-colors duration-300" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-base sm:text-lg lg:text-xl font-bold tracking-[0.1em] uppercase drop-shadow-md">
-                    {cat.label}
-                  </span>
+      {/* ─── Hero ─── */}
+      <section aria-labelledby="hero-title" className="relative isolate overflow-hidden bg-ink">
+        <div className="relative h-[78svh] min-h-[480px] max-h-[820px]">
+          <Image
+            src={heroImage}
+            alt=""
+            fill
+            priority
+            fetchPriority="high"
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-ink/60 via-ink/10 to-transparent rtl:bg-gradient-to-l" />
+          <div className="absolute inset-0 flex items-end">
+            <div className="container-page pb-12 sm:pb-16 lg:pb-20">
+              <div className="max-w-xl text-white [text-shadow:0_1px_24px_rgba(15,42,54,0.35)]">
+                <p className="eyebrow mb-4 text-sun">{t('hero.eyebrow')}</p>
+                <h1 id="hero-title" className="font-display text-[40px] leading-[1.05] sm:text-6xl lg:text-7xl">
+                  {heroTitle}
+                </h1>
+                <p className="mt-5 max-w-md text-[17px] leading-relaxed text-white/85">{heroSubtitle}</p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link
+                    href={heroCtaUrl}
+                    className="inline-flex items-center rounded-[2px] bg-white px-7 py-3.5 text-[15px] font-semibold text-ink transition-colors hover:bg-sun"
+                  >
+                    {t('hero.ctaPrimary')}
+                  </Link>
+                  <Link
+                    href="/new-arrivals"
+                    className="inline-flex items-center rounded-[2px] border border-white/60 px-7 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-white/10"
+                  >
+                    {t('hero.ctaSecondary')}
+                  </Link>
                 </div>
-              </Link>
-            ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── New Arrivals (infinite marquee) ──────────── */}
-      <section className="bg-white">
-        <div className="container-page pt-12 sm:pt-16 pb-4">
-          <h2 className="text-[22px] sm:text-2xl font-semibold text-gray-900 tracking-tight mb-6 sm:mb-8">
-            {t('newArrivalsTitle')}
-          </h2>
-        </div>
-
-        {loaded && newArrivals.length === 0 ? (
-          <p className="text-center text-gray-400 py-12 text-sm tracking-wide">
-            {t('comingSoon')}
-          </p>
-        ) : newArrivals.length > 0 ? (
-          <div className="overflow-hidden pb-12 sm:pb-16 marquee-wrapper">
-            <div
-              className="marquee-track gap-4"
-              style={{ '--marquee-duration': `${newArrivals.length * 4}s` } as React.CSSProperties}
-            >
-              {[...newArrivals, ...newArrivals].map((product, i) => (
-                <NewArrivalCard
-                  key={`${product.id}-${i < newArrivals.length ? 'a' : 'b'}`}
-                  product={product}
-                  locale={locale}
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      {/* ─── Featured Products Grid ────────────────────── */}
-      {products.filter(p => p.isFeatured).length > 0 && (
-        <section className="bg-ocean-50/40">
-          <div className="container-page py-12 sm:py-16">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-[22px] sm:text-2xl font-semibold text-gray-900 tracking-tight">
-                {t('featuredTitle')}
-              </h2>
-              <Link
-                href="/category/men"
-                className="text-sm font-medium text-ocean-700 hover:text-ocean-500 transition-colors"
-              >
-                {t('viewAll')} →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-              {products.filter(p => p.isFeatured).slice(0, 8).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
+      {/* ─── Categories ─── */}
+      {categories.length > 0 && (
+        <section aria-labelledby="categories-title" className="container-page py-16 sm:py-24">
+          <SectionHeading id="categories-title" eyebrow={t('categories.eyebrow')} title={t('categories.title')} locale={locale} />
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-5">
+            {categories.map((cat) => {
+              const label = he ? cat.nameHe : cat.nameEn;
+              return (
+                <li key={cat.id}>
+                  <Link
+                    href={`/category/${cat.slug}`}
+                    className="group relative block aspect-[16/10] overflow-hidden bg-sand-200 sm:aspect-[4/5] lg:aspect-[5/6]"
+                  >
+                    {cat.image && (
+                      <Image
+                        src={cat.image}
+                        alt=""
+                        fill
+                        sizes="(max-width: 640px) 100vw, 33vw"
+                        className="object-cover transition-transform duration-700 ease-[var(--ease-tide)] group-hover:scale-[1.04]"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5 text-white sm:p-6">
+                      <span className="font-display text-3xl sm:text-4xl">{label}</span>
+                      <span className="eyebrow border-b border-white/60 pb-0.5 text-[11px]">{t('categories.explore')}</span>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
+
+      {/* ─── New arrivals (scroll-snap rail) ─── */}
+      {newArrivals.length > 0 && (
+        <section aria-labelledby="new-title" className="bg-foam/50 py-16 sm:py-24">
+          <div className="container-page">
+            <SectionHeading
+              id="new-title"
+              eyebrow={t('newArrivals.eyebrow')}
+              title={t('newArrivals.title')}
+              action={{ label: t('newArrivals.viewAll'), href: '/new-arrivals' }}
+              locale={locale}
+            />
+          </div>
+          <ul className="scrollbar-hide container-page flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 sm:gap-5">
+            {newArrivals.map((product) => (
+              <li key={product.id} className="w-[64vw] shrink-0 snap-start sm:w-[38vw] md:w-[28vw] lg:w-[22vw] xl:w-[300px]">
+                <ProductCard product={product} sizes="(max-width: 640px) 64vw, (max-width: 1024px) 38vw, 300px" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ─── Featured ─── */}
+      {featured.length > 0 && (
+        <section aria-labelledby="featured-title" className="container-page py-16 sm:py-24">
+          <SectionHeading
+            id="featured-title"
+            eyebrow={t('featured.eyebrow')}
+            title={t('featured.title')}
+            action={{ label: t('featured.viewAll'), href: '/new-arrivals' }}
+            locale={locale}
+          />
+          <ProductGrid products={featured} />
+        </section>
+      )}
+
+      {/* ─── Values ─── */}
+      <section aria-labelledby="values-title" className="border-y border-sand-200 bg-sand-50">
+        <h2 id="values-title" className="sr-only">{t('values.title')}</h2>
+        <ul className="container-page grid gap-10 py-14 sm:grid-cols-3 sm:gap-8">
+          {[
+            { icon: Truck, title: t('values.shippingTitle'), body: t('values.shippingBody') },
+            { icon: RotateCcw, title: t('values.returnsTitle'), body: t('values.returnsBody') },
+            { icon: Users, title: t('values.familyTitle'), body: t('values.familyBody') },
+          ].map(({ icon: Icon, title, body }) => (
+            <li key={title} className="flex gap-4">
+              <Icon size={26} strokeWidth={1.3} aria-hidden="true" className="mt-1 shrink-0 text-ocean-700" />
+              <div>
+                <h3 className="font-display text-xl text-ink">{title}</h3>
+                <p className="mt-1 text-[15px] leading-relaxed text-stone">{body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ─── Club CTA ─── */}
+      <section aria-labelledby="club-title" className="container-page py-16 sm:py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="eyebrow mb-3 text-ocean-700">{t('newsletter.eyebrow')}</p>
+          <h2 id="club-title" className="font-display text-[32px] leading-tight text-ink sm:text-5xl">
+            {t('newsletter.title')}
+          </h2>
+          <p className="mx-auto mt-4 max-w-lg text-[17px] leading-relaxed text-stone">{t('newsletter.body')}</p>
+          <Link
+            href="/register"
+            className="mt-8 inline-flex items-center rounded-[2px] bg-ink px-8 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-coral"
+          >
+            {t('newsletter.cta')}
+          </Link>
+        </div>
+      </section>
     </>
   );
 }
+

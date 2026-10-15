@@ -1,65 +1,61 @@
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
-import type { Metadata } from 'next';
-import { Lato, Libre_Caslon_Text, DM_Sans } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Assistant, Frank_Ruhl_Libre } from 'next/font/google';
+import { SITE_NAME, getSiteUrl, ogLocale } from '@/lib/seo';
 import '../globals.css';
 
-const lato = Lato({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['100', '300', '400', '700', '900'],
+const assistant = Assistant({
+  subsets: ['hebrew', 'latin'],
+  weight: ['400', '600', '700'],
   display: 'swap',
-  variable: '--font-lato',
+  variable: '--font-assistant',
 });
 
-const libreCaslon = Libre_Caslon_Text({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  display: 'swap',
-  variable: '--font-libre-caslon',
-});
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
+const frank = Frank_Ruhl_Libre({
+  subsets: ['hebrew', 'latin'],
   weight: ['400', '500', '700'],
   display: 'swap',
-  variable: '--font-dm-sans',
+  variable: '--font-frank',
 });
 
-function getMetadataBase(): URL {
-  try {
-    return new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
-  } catch {
-    return new URL('http://localhost:3000');
-  }
-}
-
-export const metadata: Metadata = {
-  title: {
-    default: 'BAIA Swimwear — Premium Swimwear for the Whole Family',
-    template: '%s | BAIA Swimwear',
-  },
-  description:
-    'Shop premium swimwear for women, men, and children. Free shipping over ₪249. Discover the latest summer collection at BAIA.',
-  keywords: [
-    'swimwear',
-    'bikini',
-    'swimming',
-    'beachwear',
-    'BAIA',
-    'בגדי ים',
-    'ביקיני',
-  ],
-  openGraph: {
-    type: 'website',
-    siteName: 'BAIA Swimwear',
-    locale: 'en_US',
-    alternateLocale: 'he_IL',
-  },
-  robots: { index: true, follow: true },
-  metadataBase: getMetadataBase(),
+export const viewport: Viewport = {
+  themeColor: '#0F2A36',
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'seo' });
+
+  return {
+    metadataBase: getSiteUrl(),
+    title: {
+      default: t('homeTitle'),
+      template: `%s | ${SITE_NAME}`,
+    },
+    description: t('homeDescription'),
+    applicationName: SITE_NAME,
+    openGraph: {
+      type: 'website',
+      siteName: SITE_NAME,
+      locale: ogLocale(locale),
+      alternateLocale: routing.locales.filter((l) => l !== locale).map(ogLocale),
+    },
+    twitter: { card: 'summary_large_image' },
+    robots: { index: true, follow: true },
+    icons: {
+      icon: [
+        { url: '/favicon.svg', type: 'image/svg+xml' },
+      ],
+    },
+  };
+}
 
 export default async function LocaleLayout({
   children,
@@ -73,20 +69,14 @@ export default async function LocaleLayout({
   if (!hasLocale(routing.locales, locale)) {
     notFound();
   }
+  setRequestLocale(locale);
 
   const messages = await getMessages();
   const dir = locale === 'he' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={locale} dir={dir} className={`${lato.variable} ${libreCaslon.variable} ${dmSans.variable}`}>
-      <head>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
-        <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#7BB4D4" />
-      </head>
-      <body className={`min-h-screen bg-white text-charcoal antialiased ${lato.className}`}>
+    <html lang={locale} dir={dir} className={`${assistant.variable} ${frank.variable}`}>
+      <body className="min-h-screen bg-shell font-sans text-ink antialiased">
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>

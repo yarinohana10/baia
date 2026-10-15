@@ -1,255 +1,204 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Link, useRouter } from '@/i18n/navigation';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useSession, signOut } from '@/lib/auth-client';
-import {
-  ShoppingCart,
-  User,
-  Menu,
-  X,
-  Globe,
-  LogOut,
-  Shield,
-} from 'lucide-react';
+import { ShoppingBag, User, Menu, X, LogOut, Shield } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
+import { Wordmark } from './Wordmark';
 
-function Tooltip({ label, children, align = 'center' }: { label: string; children: React.ReactNode; align?: 'center' | 'start' | 'end' }) {
-  const posClass =
-    align === 'start' ? 'start-0' :
-      align === 'end' ? 'end-0' :
-        'start-1/2 -translate-x-1/2';
-
-  return (
-    <div className="relative group/tip flex items-center">
-      {children}
-      <span
-        role="tooltip"
-        className={`pointer-events-none absolute top-full ${posClass} mt-2 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1 text-[11px] font-medium text-white hidden group-hover/tip:block shadow-lg z-50`}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
+export type NavItem = { label: string; href: string };
 
 async function handleSignOut() {
   await signOut();
   window.location.href = '/';
 }
 
-function LocaleSwitcher({
-  label,
-  onAfterSwitch,
-  className,
-  children,
-}: {
-  label: string;
-  onAfterSwitch?: () => void;
-  className?: string;
-  children: React.ReactNode;
-}) {
+function LocaleSwitcher({ className, onAfterSwitch }: { className?: string; onAfterSwitch?: () => void }) {
   const locale = useLocale();
   const router = useRouter();
-
-  const switchLocale = () => {
-    const newLocale = locale === 'he' ? 'en' : 'he';
-    const pathname = window.location.pathname.replace(/^\/(en|he)(?=\/|$)/, '') || '/';
-    router.replace(pathname, { locale: newLocale });
-    onAfterSwitch?.();
-  };
+  const pathname = usePathname();
+  const t = useTranslations('common');
+  const target = locale === 'he' ? 'en' : 'he';
 
   return (
     <button
       type="button"
-      onClick={switchLocale}
+      onClick={() => {
+        router.replace(pathname, { locale: target });
+        onAfterSwitch?.();
+      }}
       className={className}
-      aria-label={label}
+      aria-label={t('switchLang')}
+      lang={target}
     >
-      {children}
+      {target === 'en' ? 'EN' : 'עב'}
     </button>
   );
 }
 
-export function Header() {
+const iconButton =
+  'relative inline-flex size-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-ink/5';
+
+export function Header({ nav }: { nav: NavItem[] }) {
   const t = useTranslations('common');
-  const tNav = useTranslations('nav');
-  const locale = useLocale();
+  const ts = useTranslations('storefront');
+  const pathname = usePathname();
   const { data: session } = useSession();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const cartCount = useCartStore((s) => s.itemCount());
   const openDrawer = useCartStore((s) => s.openDrawer);
+  const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'ADMIN';
 
-  const categories = useMemo(
-    () => [
-      { label: tNav('men'), href: '/category/men' },
-      { label: tNav('women'), href: '/category/women' },
-      { label: tNav('children'), href: '/category/children' },
-      { label: tNav('newArrivals'), href: '/new-arrivals' },
-    ],
-    [tNav],
-  );
+  // Close the mobile menu on navigation and on Escape.
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
-      <div className="container-page">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-50">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-2 focus:z-[60] focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold"
+      >
+        {ts('skipToContent')}
+      </a>
 
-          {/* ── Left: Brand + Navigation ── */}
-          <div className="flex items-center gap-6 lg:gap-10 min-w-0">
-            {/* Mobile hamburger */}
-            <Tooltip label="Menu">
-              <button
-                className="lg:hidden p-1.5 text-gray-700 hover:text-gray-900 transition-colors flex-shrink-0"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label="Menu"
-              >
-                {mobileMenuOpen ? <X size={22} strokeWidth={1.8} /> : <Menu size={22} strokeWidth={1.8} />}
-              </button>
-            </Tooltip>
+      <p className="bg-ink px-4 py-2 text-center text-[12px] font-semibold tracking-wide text-white/90">
+        {ts('announcement')}
+      </p>
 
-            {/* Brand — always LTR so "BAIA SWIMWEAR" reads correctly in both directions */}
-            <Link href="/" dir="ltr" className="flex items-baseline gap-2 flex-shrink-0 group">
-              <span className="text-[22px] font-black tracking-[0.04em] text-black group-hover:text-ocean-700 transition-colors leading-none">
-                BAIA
-              </span>
-              <span className="text-[22px] font-black tracking-[0.04em] text-black uppercase leading-none hidden sm:inline group-hover:text-ocean-700 transition-colors">
-                SWIMWEAR
-              </span>
-            </Link>
+      <div className="border-b border-sand-200 bg-shell/95 backdrop-blur supports-[backdrop-filter]:bg-shell/85">
+        <div className="container-page grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4 lg:h-20">
+          {/* Start: menu (mobile) / nav (desktop) */}
+          <div className="flex items-center">
+            <button
+              type="button"
+              className={`${iconButton} -ms-2 lg:hidden`}
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              aria-label={menuOpen ? ts('closeMenu') : ts('menu')}
+            >
+              {menuOpen ? <X size={22} strokeWidth={1.6} /> : <Menu size={22} strokeWidth={1.6} />}
+            </button>
 
-            {/* Desktop navigation */}
-            <nav className="hidden lg:flex items-center gap-6">
-              {categories.map((cat) => (
-                <Link
-                  key={cat.href}
-                  href={cat.href}
-                  className="text-[15px] font-semibold text-neutral-700 hover:text-black transition-colors whitespace-nowrap relative after:absolute after:bottom-[-2px] after:start-0 after:h-[1.5px] after:w-0 after:bg-ocean-600 after:transition-all after:duration-300 hover:after:w-full"
-                >
-                  {cat.label}
-                </Link>
-              ))}
+            <nav aria-label={ts('primaryNav')} className="hidden lg:block">
+              <ul className="flex items-center gap-7">
+                {nav.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      aria-current={isActive(item.href) ? 'page' : undefined}
+                      className="relative py-2 text-[15px] font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-center after:scale-x-0 after:bg-ink after:transition-transform after:duration-300 hover:after:scale-x-100 aria-[current=page]:after:scale-x-100"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </nav>
           </div>
 
-          {/* ── Right: Action icons ── */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            {/* Language switch */}
-            <Tooltip label={t('switchLang')} align="end">
-              <LocaleSwitcher
-                label={t('switchLang')}
-                className="p-2 text-black hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200"
-              >
-                <Globe size={21} strokeWidth={2} />
-              </LocaleSwitcher>
-            </Tooltip>
+          {/* Center: wordmark */}
+          <Link href="/" aria-label="BAIA Swimwear" className="justify-self-center">
+            <Wordmark />
+          </Link>
 
-            {/* Account */}
+          {/* End: actions */}
+          <div className="flex items-center justify-end gap-0.5 sm:gap-1">
+            <LocaleSwitcher className={`${iconButton} hidden text-[13px] font-bold sm:inline-flex`} />
+
             {session?.user ? (
-              <div className="flex items-center">
-                <Tooltip label={t('myAccount')} align="end">
-                  <Link
-                    href="/account"
-                    className="p-2 text-black hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200"
-                  >
-                    <User size={21} strokeWidth={2} />
-                  </Link>
-                </Tooltip>
-                <Tooltip label={t('signOut')} align="end">
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="p-1.5 text-gray-500 hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200"
-                    aria-label={t('signOut')}
-                  >
-                    <LogOut size={16} strokeWidth={1.8} />
-                  </button>
-                </Tooltip>
-              </div>
+              <>
+                <Link href="/account" className={iconButton} aria-label={t('myAccount')}>
+                  <User size={20} strokeWidth={1.6} />
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className={`${iconButton} hidden sm:inline-flex`}
+                  aria-label={t('signOut')}
+                >
+                  <LogOut size={18} strokeWidth={1.6} />
+                </button>
+              </>
             ) : (
-              <Tooltip label={t('userTooltip')} align="end">
-                <Link
-                  href="/login"
-                  className="p-2 text-black hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200"
-                >
-                  <User size={21} strokeWidth={2} />
-                </Link>
-              </Tooltip>
+              <Link href="/login" className={iconButton} aria-label={t('userTooltip')}>
+                <User size={20} strokeWidth={1.6} />
+              </Link>
             )}
 
-
-            {/* Admin Panel (only for admins) */}
-            {session?.user && (session.user as any).role === 'ADMIN' && (
-              <Tooltip label={t('adminPanel')} align="end">
-                <Link
-                  href="/admin"
-                  className="p-2 text-ocean-700 hover:text-ocean-900 hover:bg-ocean-50 rounded-full transition-all duration-200"
-                  aria-label={t('adminPanel')}
-                >
-                  <Shield size={21} strokeWidth={2} />
-                </Link>
-              </Tooltip>
+            {isAdmin && (
+              <Link href="/admin" className={`${iconButton} hidden sm:inline-flex`} aria-label={t('adminPanel')}>
+                <Shield size={19} strokeWidth={1.6} />
+              </Link>
             )}
-            {/* Cart */}
-            <Tooltip label={t('cartTooltip')} align="end">
-              <button
-                onClick={openDrawer}
-                className="p-2 text-black hover:text-ocean-700 hover:bg-ocean-50 rounded-full transition-all duration-200 relative"
-                aria-label={t('cartTooltip')}
-              >
-                <ShoppingCart size={21} strokeWidth={2} />
-                {cartCount > 0 && (
-                  <span className="absolute bottom-0 end-0 bg-ocean-600 text-white text-[9px] font-bold min-w-[16px] h-[16px] rounded-full flex items-center justify-center px-0.5 ring-2 ring-white">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            </Tooltip>
+
+            <button type="button" onClick={openDrawer} className={`${iconButton} -me-2`} aria-label={t('cartTooltip')}>
+              <ShoppingBag size={20} strokeWidth={1.6} />
+              {cartCount > 0 && (
+                <span className="absolute end-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral px-1 text-[10px] font-bold text-white">
+                  {cartCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* ── Mobile menu ── */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-100 bg-white shadow-lg">
-          <nav className="container-page py-4 space-y-0.5">
-            {categories.map((cat) => (
-              <Link
-                key={cat.href}
-                href={cat.href}
-                className="block text-[15px] text-gray-700 hover:text-ocean-700 hover:bg-ocean-50 py-3 px-3 rounded-lg transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {cat.label}
-              </Link>
-            ))}
-            {session?.user && (session.user as any).role === 'ADMIN' && (
-              <div className="border-t border-gray-100 mt-2 pt-2">
+      {/* Mobile menu */}
+      <div
+        id="mobile-menu"
+        hidden={!menuOpen}
+        className="absolute inset-x-0 top-full border-b border-sand-200 bg-shell shadow-[0_24px_48px_-24px_rgba(15,42,54,0.25)] lg:hidden"
+      >
+        <nav aria-label={ts('primaryNav')} className="container-page py-4">
+          <ul>
+            {nav.map((item) => (
+              <li key={item.href} className="border-b border-sand-200 last:border-0">
                 <Link
-                  href="/admin"
-                  className="flex items-center gap-3 text-[15px] text-ocean-700 font-semibold hover:text-ocean-900 hover:bg-ocean-50 py-3 px-3 rounded-lg transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
+                  href={item.href}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                  className="block py-4 font-display text-2xl text-ink aria-[current=page]:text-ocean-600"
                 >
-                  <Shield size={18} strokeWidth={1.6} />
-                  {t('adminPanel')}
+                  {item.label}
                 </Link>
-              </div>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-sand-200 pt-4 text-sm font-semibold">
+            <LocaleSwitcher
+              onAfterSwitch={() => setMenuOpen(false)}
+              className="rounded-full border border-ink/20 px-4 py-2 text-ink"
+            />
+            {isAdmin && (
+              <Link href="/admin" className="inline-flex items-center gap-2 rounded-full border border-ink/20 px-4 py-2 text-ink">
+                <Shield size={16} strokeWidth={1.6} />
+                {t('adminPanel')}
+              </Link>
             )}
-            <div className="border-t border-gray-100 mt-2 pt-2">
-              <LocaleSwitcher
-                label={locale === 'he' ? 'English' : 'עברית'}
-                onAfterSwitch={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 text-[15px] text-gray-700 hover:text-ocean-700 hover:bg-ocean-50 py-3 px-3 rounded-lg w-full transition-colors"
+            {session?.user && (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="inline-flex items-center gap-2 rounded-full border border-ink/20 px-4 py-2 text-ink"
               >
-                <Globe size={18} strokeWidth={1.6} />
-                {locale === 'he' ? 'English' : 'עברית'}
-              </LocaleSwitcher>
-            </div>
-          </nav>
-        </div>
-      )}
+                <LogOut size={16} strokeWidth={1.6} />
+                {t('signOut')}
+              </button>
+            )}
+          </div>
+        </nav>
+      </div>
     </header>
   );
 }
