@@ -2,7 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrderStatus, Role } from '../generated/prisma';
 
-const EXCLUDED_STATUSES: OrderStatus[] = ['CANCELLED', 'REFUNDED'];
+/** Orders that count as sales: paid and not cancelled/refunded (PENDING_PAYMENT is excluded). */
+export const REVENUE_STATUSES: OrderStatus[] = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+const revenueStatus = { in: REVENUE_STATUSES };
+
+export const MAX_DAYS = 365;
+
+/** Day ranges are clamped to 1–365; non-numbers fall back to 30. */
+export function clampDays(days: number) {
+  if (!Number.isFinite(days)) return 30;
+  return Math.min(MAX_DAYS, Math.max(1, Math.trunc(days)));
+}
 
 @Injectable()
 export class AnalyticsService {
@@ -24,7 +34,7 @@ export class AnalyticsService {
     const todayStart = this.startOfDay();
     const todayEnd = this.endOfDay();
 
-    const revenueWhere = { status: { notIn: EXCLUDED_STATUSES } };
+    const revenueWhere = { status: revenueStatus };
 
     const [
       totalOrders,
@@ -88,14 +98,15 @@ export class AnalyticsService {
     };
   }
 
-  async getSales(days = 30) {
+  async getSales(requestedDays = 30) {
+    const days = clampDays(requestedDays);
     const startDate = this.startOfDay();
     startDate.setDate(startDate.getDate() - (days - 1));
 
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startDate },
-        status: { notIn: EXCLUDED_STATUSES },
+        status: revenueStatus,
       },
       select: { createdAt: true, total: true },
     });
@@ -138,51 +149,82 @@ export class AnalyticsService {
     }));
   }
 
-  async getTopProducts(limit = 10) {
+  /**
+   * Best sellers by product (all sizes/colours of a product combined), over
+   * sales orders only. `orderCount` is the number of order lines.
+   */
+  async getTopProducts(requestedLimit = 10) {
+    const limit = Math.min(50, Math.max(1, Math.trunc(requestedLimit) || 10));
     const items = await this.prisma.orderItem.groupBy({
       by: ['variantId', 'productName'],
+      where: { order: { status: revenueStatus } },
       _sum: { quantity: true },
       _count: { id: true },
-      orderBy: { _sum: { quantity: 'desc' } },
-      take: limit,
     });
 
-    const results = [];
-    for (const item of items) {
-      const variant = await this.prisma.productVariant.findUnique({
-        where: { id: item.variantId },
-        include: {
-          product: {
-            include: {
-              images: { take: 1, orderBy: { sortOrder: 'asc' }, include: { upload: true } },
-            },
-          },
-        },
-      });
+    const variants = items.length
+      ? await this.prisma.productVariant.findMany({
+          where: { id: { in: [...new Set(items.map((i) => i.variantId))] } },
+          select: { id: true, productId: true },
+        })
+      : [];
+    const productOf = new Map(variants.map((v) => [v.id, v.productId]));
 
-      results.push({
-        productName: item.productName,
-        totalQuantity: item._sum.quantity || 0,
-        orderCount: item._count.id,
-        variantId: item.variantId,
-        product: variant?.product
-          ? {
-              id: variant.product.id,
-              nameHe: variant.product.nameHe,
-              nameEn: variant.product.nameEn,
-              image: variant.product.images[0]?.url || null,
-            }
-          : null,
-      });
+    const totals = new Map<
+      string,
+      { productId: string | null; productName: string; totalQuantity: number; orderCount: number }
+    >();
+    for (const item of items) {
+      const productId = productOf.get(item.variantId) ?? null;
+      // Variants that no longer exist are grouped by their snapshot name.
+      const key = productId ?? `name:${item.productName}`;
+      const entry = totals.get(key) ?? { productId, productName: item.productName, totalQuantity: 0, orderCount: 0 };
+      entry.totalQuantity += item._sum.quantity || 0;
+      entry.orderCount += item._count.id;
+      totals.set(key, entry);
     }
 
-    return results;
+    const top = [...totals.values()]
+      .sort((a, b) => b.totalQuantity - a.totalQuantity || b.orderCount - a.orderCount)
+      .slice(0, limit);
+
+    const productIds = top.flatMap((t) => (t.productId ? [t.productId] : []));
+    const products = productIds.length
+      ? await this.prisma.product.findMany({
+          where: { id: { in: productIds } },
+          select: {
+            id: true,
+            nameHe: true,
+            nameEn: true,
+            images: { take: 1, orderBy: { sortOrder: 'asc' }, select: { url: true } },
+          },
+        })
+      : [];
+    const productById = new Map(products.map((p) => [p.id, p]));
+
+    return top.map((t) => {
+      const product = t.productId ? productById.get(t.productId) : undefined;
+      return {
+        productId: t.productId,
+        productName: t.productName,
+        totalQuantity: t.totalQuantity,
+        orderCount: t.orderCount,
+        product: product
+          ? {
+              id: product.id,
+              nameHe: product.nameHe,
+              nameEn: product.nameEn,
+              image: product.images[0]?.url || null,
+            }
+          : null,
+      };
+    });
   }
 
   async getRevenueByCategory() {
     const orders = await this.prisma.orderItem.findMany({
       where: {
-        order: { status: { notIn: EXCLUDED_STATUSES } },
+        order: { status: revenueStatus },
       },
       select: {
         quantity: true,
@@ -234,7 +276,8 @@ export class AnalyticsService {
     }));
   }
 
-  async getCustomerGrowth(days = 30) {
+  async getCustomerGrowth(requestedDays = 30) {
+    const days = clampDays(requestedDays);
     const startDate = this.startOfDay();
     startDate.setDate(startDate.getDate() - (days - 1));
 
@@ -357,14 +400,15 @@ export class AnalyticsService {
     };
   }
 
-  async getAverageOrderValue(days = 30) {
+  async getAverageOrderValue(requestedDays = 30) {
+    const days = clampDays(requestedDays);
     const startDate = this.startOfDay();
     startDate.setDate(startDate.getDate() - (days - 1));
 
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startDate },
-        status: { notIn: EXCLUDED_STATUSES },
+        status: revenueStatus,
       },
       select: { createdAt: true, total: true },
     });
