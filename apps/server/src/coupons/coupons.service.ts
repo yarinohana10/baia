@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../generated/prisma';
+import { shopBadRequest, shopNotFound } from '../common/error-codes';
 
 @Injectable()
 export class CouponsService {
@@ -35,18 +36,18 @@ export class CouponsService {
       where: { code: code.toUpperCase() },
     });
 
-    if (!coupon) throw new NotFoundException('Invalid coupon code');
-    if (!coupon.isActive) throw new BadRequestException('Coupon is no longer active');
+    if (!coupon) throw shopNotFound('COUPON_INVALID', 'Invalid coupon code');
+    if (!coupon.isActive) throw shopBadRequest('COUPON_INACTIVE', 'Coupon is no longer active');
     if (coupon.expiresAt && coupon.expiresAt < new Date()) {
-      throw new BadRequestException('Coupon has expired');
+      throw shopBadRequest('COUPON_EXPIRED', 'Coupon has expired');
     }
     if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) {
-      throw new BadRequestException('Coupon usage limit reached');
+      throw shopBadRequest('COUPON_LIMIT_REACHED', 'Coupon usage limit reached');
     }
     if (coupon.minCartValue && cartTotal < Number(coupon.minCartValue)) {
-      throw new BadRequestException(
-        `Minimum cart value of ₪${coupon.minCartValue} required`,
-      );
+      throw shopBadRequest('COUPON_MIN_TOTAL', `Minimum cart value of ₪${coupon.minCartValue} required`, {
+        minCartValue: Number(coupon.minCartValue),
+      });
     }
 
     const discount =

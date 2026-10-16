@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '../generated/prisma';
 import type { CartOwner } from './cart-identity';
 import { MAX_LINE_QUANTITY } from './dto/cart.dto';
+import { availableStock, hasStock } from '../common/stock';
+import { shopBadRequest } from '../common/error-codes';
 
 const cartInclude = {
   items: {
@@ -69,23 +71,23 @@ export class CartService {
     });
     if (!variant) throw new NotFoundException('Variant not found');
     if (!variant.isActive || !variant.product.isActive) {
-      throw new BadRequestException('Variant is not available');
+      throw shopBadRequest('VARIANT_UNAVAILABLE', 'Variant is not available', { variantId });
     }
     return variant;
   }
 
   async addItem(owner: CartOwner, variantId: string, quantity: number) {
     const variant = await this.loadPurchasableVariant(variantId);
-    if (variant.stockQuantity < quantity) {
-      throw new BadRequestException('Insufficient stock');
+    if (!hasStock(variant, quantity)) {
+      throw shopBadRequest('OUT_OF_STOCK', 'Insufficient stock', { available: Number.isFinite(availableStock(variant)) ? availableStock(variant) : null });
     }
 
     const cart = await this.getOrCreateCart(owner);
     const existing = cart.items.find((item) => item.variantId === variantId);
     if (existing) {
       const newQty = existing.quantity + quantity;
-      if (newQty > variant.stockQuantity || newQty > MAX_LINE_QUANTITY) {
-        throw new BadRequestException('Insufficient stock');
+      if (!hasStock(variant, newQty) || newQty > MAX_LINE_QUANTITY) {
+        throw shopBadRequest('OUT_OF_STOCK', 'Insufficient stock', { available: Number.isFinite(availableStock(variant)) ? availableStock(variant) : null });
       }
       await this.prisma.cartItem.update({
         where: { id: existing.id },
@@ -115,8 +117,8 @@ export class CartService {
       await this.prisma.cartItem.delete({ where: { id: item.id } });
     } else {
       const variant = await this.loadPurchasableVariant(item.variantId);
-      if (quantity > variant.stockQuantity) {
-        throw new BadRequestException('Insufficient stock');
+      if (!hasStock(variant, quantity)) {
+        throw shopBadRequest('OUT_OF_STOCK', 'Insufficient stock', { available: Number.isFinite(availableStock(variant)) ? availableStock(variant) : null });
       }
       await this.prisma.cartItem.update({
         where: { id: item.id },
@@ -167,14 +169,14 @@ export class CartService {
             report.dropped.push({ variantId: variant.id, reason: 'unavailable' });
             continue;
           }
-          if (variant.stockQuantity <= 0) {
+          if (!hasStock(variant, 1)) {
             report.dropped.push({ variantId: variant.id, reason: 'out_of_stock' });
             continue;
           }
 
           const existing = userCart.items.find((i) => i.variantId === variant.id);
           const requested = (existing?.quantity ?? 0) + guestItem.quantity;
-          const quantity = Math.min(requested, variant.stockQuantity, MAX_LINE_QUANTITY);
+          const quantity = Math.min(requested, availableStock(variant), MAX_LINE_QUANTITY);
           if (quantity < requested) {
             report.adjusted.push({ variantId: variant.id, requested, quantity });
           }

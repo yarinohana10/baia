@@ -86,6 +86,11 @@ export class VariantDto {
   @Min(0)
   stockQuantity!: number;
 
+  /** false = unlimited stock (never runs out; quantity is ignored). */
+  @IsOptional()
+  @IsBoolean()
+  trackInventory?: boolean;
+
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()

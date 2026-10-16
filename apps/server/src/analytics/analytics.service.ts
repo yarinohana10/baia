@@ -271,25 +271,30 @@ export class AnalyticsService {
   }
 
   async getInventoryOverview() {
-    const variants = await this.prisma.productVariant.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        color: true,
-        size: true,
-        stockQuantity: true,
-        product: {
-          select: {
-            id: true,
-            nameHe: true,
-            nameEn: true,
-            slug: true,
-            isActive: true,
-            images: { take: 1, orderBy: { sortOrder: 'asc' }, include: { upload: true } },
+    // Unlimited-stock variants never run out, so they are left out of stock reporting.
+    const tracked = { isActive: true, product: { isActive: true } };
+    const [variants, unlimitedVariants] = await Promise.all([
+      this.prisma.productVariant.findMany({
+        where: { ...tracked, trackInventory: true },
+        select: {
+          id: true,
+          color: true,
+          size: true,
+          stockQuantity: true,
+          product: {
+            select: {
+              id: true,
+              nameHe: true,
+              nameEn: true,
+              slug: true,
+              isActive: true,
+              images: { take: 1, orderBy: { sortOrder: 'asc' }, include: { upload: true } },
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.productVariant.count({ where: { ...tracked, trackInventory: false } }),
+    ]);
 
     const LOW_STOCK_THRESHOLD = 5;
 
@@ -342,7 +347,8 @@ export class AnalyticsService {
     lowStockItems.sort((a, b) => a.stockQuantity - b.stockQuantity);
 
     return {
-      totalVariants: variants.length,
+      totalVariants: variants.length + unlimitedVariants,
+      unlimitedVariants,
       totalStock,
       outOfStockCount,
       lowStockCount,

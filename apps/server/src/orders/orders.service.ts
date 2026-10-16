@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CouponsService } from '../coupons/coupons.service';
-import { Prisma } from '../generated/prisma';
+import { OrderStatus, Prisma } from '../generated/prisma';
+import { PAYMENT_CLAIM_TTL_MS } from '../payment/payment-claim';
 import { generateSecureToken, sha256Hex } from '../common/secure-token';
 import type { CartOwner } from '../cart/cart-identity';
 import { canAccessOrder, orderTokenTtlMs, type OrderRequester } from './order-access';
+import { hasStock } from '../common/stock';
+import { shopBadRequest } from '../common/error-codes';
+import { canTransition, RESTOCK_STATUSES } from './order-status';
 
 function generateOrderNumber(): string {
   const ts = Date.now().toString(36).toUpperCase();
@@ -30,6 +34,9 @@ const ACCESS_SELECT = {
 export type CreateOrderInput = {
   owner: CartOwner;
   customerEmail: string;
+  recipientName: string;
+  phone: string;
+  locale?: 'he' | 'en';
   couponCode?: string;
   shippingCity: string;
   shippingStreet: string;
@@ -68,29 +75,35 @@ export class OrdersService {
     });
 
     if (!cart || cart.items.length === 0) {
-      throw new BadRequestException('Cart is empty');
+      throw shopBadRequest('CART_EMPTY', 'Cart is empty');
     }
 
     let subtotal = 0;
     const orderItems: {
       variantId: string;
       productName: string;
+      productNameHe: string;
       color: string;
       size: string;
       quantity: number;
       unitPrice: Prisma.Decimal;
+      stockDeducted: boolean;
     }[] = [];
 
     for (const item of cart.items) {
       const variant = item.variant;
       if (!variant.isActive || !variant.product.isActive) {
-        throw new BadRequestException(
+        throw shopBadRequest(
+          'VARIANT_UNAVAILABLE',
           `${variant.product.nameEn} (${variant.color}/${variant.size}) is no longer available`,
+          { variantId: variant.id, productNameHe: variant.product.nameHe, productNameEn: variant.product.nameEn, size: variant.size },
         );
       }
-      if (variant.stockQuantity < item.quantity) {
-        throw new BadRequestException(
+      if (!hasStock(variant, item.quantity)) {
+        throw shopBadRequest(
+          'OUT_OF_STOCK',
           `Insufficient stock for ${variant.product.nameEn} (${variant.color}/${variant.size})`,
+          { variantId: variant.id, productNameHe: variant.product.nameHe, productNameEn: variant.product.nameEn, size: variant.size },
         );
       }
 
@@ -109,10 +122,12 @@ export class OrdersService {
       orderItems.push({
         variantId: variant.id,
         productName: variant.product.nameEn,
+        productNameHe: variant.product.nameHe,
         color: variant.color,
         size: variant.size,
         quantity: item.quantity,
         unitPrice: new Prisma.Decimal(unitPrice),
+        stockDeducted: variant.trackInventory,
       });
     }
 
@@ -138,11 +153,32 @@ export class OrdersService {
 
     // Use a transaction to ensure order creation + stock decrement are atomic
     const order = await this.prisma.$transaction(async (tx) => {
+      // Reserve stock first. The conditional update never lets stock go below
+      // zero, even with concurrent checkouts. Unlimited variants are skipped.
+      for (const line of orderItems) {
+        if (!line.stockDeducted) continue;
+        const reserved = await tx.productVariant.updateMany({
+          where: { id: line.variantId, trackInventory: true, stockQuantity: { gte: line.quantity } },
+          data: { stockQuantity: { decrement: line.quantity } },
+        });
+        if (reserved.count === 0) {
+          throw shopBadRequest('OUT_OF_STOCK', `Insufficient stock for ${line.productName} (${line.color}/${line.size})`, {
+            variantId: line.variantId,
+            productNameHe: line.productNameHe,
+            productNameEn: line.productName,
+            size: line.size,
+          });
+        }
+      }
+
       const created = await tx.order.create({
         data: {
           orderNumber: generateOrderNumber(),
           userId: data.owner.userId,
           customerEmail: data.customerEmail,
+          recipientName: data.recipientName,
+          phone: data.phone,
+          locale: data.locale ?? 'he',
           subtotal: new Prisma.Decimal(subtotal),
           shippingCost: new Prisma.Decimal(shippingCost),
           discountAmount: new Prisma.Decimal(discountAmount),
@@ -160,19 +196,6 @@ export class OrdersService {
         include: { items: true },
         omit: ORDER_PRIVATE_FIELDS,
       });
-
-      // Decrement stock atomically
-      for (const item of cart.items) {
-        const updated = await tx.productVariant.update({
-          where: { id: item.variant.id },
-          data: { stockQuantity: { decrement: item.quantity } },
-        });
-        if (updated.stockQuantity < 0) {
-          throw new BadRequestException(
-            `Insufficient stock for ${item.variant.product.nameEn} (${item.variant.color}/${item.variant.size})`,
-          );
-        }
-      }
 
       // Increment coupon usage
       if (couponId) {
@@ -264,42 +287,90 @@ export class OrdersService {
     return { orders, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async updateStatus(id: string, status: string, trackingNumber?: string) {
+  async updateStatus(id: string, status: OrderStatus, trackingNumber?: string) {
     const order = await this.findById(id);
     const previousStatus = order.status;
-    const updateData: Prisma.OrderUpdateInput = { status: status as Prisma.OrderUpdateInput['status'] };
-    if (trackingNumber) updateData.trackingNumber = trackingNumber;
+    if (status !== previousStatus && !canTransition(previousStatus, status)) {
+      throw new ConflictException(`Cannot change an order from ${previousStatus} to ${status}`);
+    }
 
-    const stockRestoreStatuses = ['CANCELLED', 'REFUNDED'];
-    const needsStockRestore =
-      stockRestoreStatuses.includes(status) &&
-      !stockRestoreStatuses.includes(previousStatus);
+    const updateData: Prisma.OrderUpdateInput = { status };
+    if (trackingNumber !== undefined) updateData.trackingNumber = trackingNumber.trim() || null;
 
-    if (needsStockRestore) {
-      return this.prisma.$transaction(async (tx) => {
-        const updated = await tx.order.update({
-          where: { id },
-          data: updateData,
-          include: { items: true },
-          omit: ORDER_PRIVATE_FIELDS,
-        });
-
-        for (const item of order.items) {
-          await tx.productVariant.update({
-            where: { id: item.variantId },
-            data: { stockQuantity: { increment: item.quantity } },
-          });
-        }
-
-        return updated;
+    const restock = RESTOCK_STATUSES.includes(status) && !RESTOCK_STATUSES.includes(previousStatus);
+    if (!restock) {
+      return this.prisma.order.update({
+        where: { id },
+        data: updateData,
+        include: { items: true },
+        omit: ORDER_PRIVATE_FIELDS,
       });
     }
 
-    return this.prisma.order.update({
-      where: { id },
-      data: updateData,
-      include: { items: true },
-      omit: ORDER_PRIVATE_FIELDS,
+    return this.prisma.$transaction(async (tx) => {
+      // Conditional on the status we read, so two concurrent cancels restock once.
+      const claimed = await tx.order.updateMany({ where: { id, status: previousStatus }, data: { status } });
+      if (claimed.count === 0) throw new ConflictException('Order status changed, reload and try again');
+      await this.releaseOrderResources(tx, order);
+      return tx.order.update({
+        where: { id },
+        data: updateData,
+        include: { items: true },
+        omit: ORDER_PRIVATE_FIELDS,
+      });
     });
+  }
+
+  /**
+   * Cancels unpaid orders older than `maxAgeMs` and returns their stock and
+   * coupon use, so abandoned checkouts don't hold inventory forever. Orders
+   * with a payment in flight (fresh claim) are left alone.
+   */
+  async releaseExpiredPendingOrders(maxAgeMs: number, now = new Date()) {
+    const cutoff = new Date(now.getTime() - maxAgeMs);
+    const claimCutoff = new Date(now.getTime() - PAYMENT_CLAIM_TTL_MS);
+    const stale = await this.prisma.order.findMany({
+      where: { status: OrderStatus.PENDING_PAYMENT, createdAt: { lt: cutoff } },
+      select: { id: true },
+      take: 100,
+    });
+    let released = 0;
+    for (const { id } of stale) {
+      const done = await this.prisma.$transaction(async (tx) => {
+        const claimed = await tx.order.updateMany({
+          where: {
+            id,
+            status: OrderStatus.PENDING_PAYMENT,
+            OR: [{ paymentClaimedAt: null }, { paymentClaimedAt: { lt: claimCutoff } }],
+          },
+          data: { status: OrderStatus.CANCELLED },
+        });
+        if (claimed.count === 0) return false;
+        const order = await tx.order.findUniqueOrThrow({ where: { id }, include: { items: true } });
+        await this.releaseOrderResources(tx, order);
+        return true;
+      });
+      if (done) released += 1;
+    }
+    return released;
+  }
+
+  private async releaseOrderResources(
+    tx: Prisma.TransactionClient,
+    order: { couponId: string | null; items: { variantId: string; quantity: number; stockDeducted: boolean }[] },
+  ) {
+    for (const item of order.items) {
+      if (!item.stockDeducted) continue;
+      await tx.productVariant.update({
+        where: { id: item.variantId },
+        data: { stockQuantity: { increment: item.quantity } },
+      });
+    }
+    if (order.couponId) {
+      await tx.coupon.updateMany({
+        where: { id: order.couponId, currentUses: { gt: 0 } },
+        data: { currentUses: { decrement: 1 } },
+      });
+    }
   }
 }

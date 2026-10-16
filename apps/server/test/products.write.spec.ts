@@ -91,10 +91,30 @@ describe('ProductsService (writes)', () => {
       expect(result.images[0].url).toContain(keys[0]);
     });
 
-    it('creates a product without images or variants', async () => {
-      await service.create(baseDto({ variants: [] }), []);
+    it('creates a hidden draft without images or sizes', async () => {
+      await service.create(baseDto({ variants: [], isActive: false }), []);
       expect(storage.upload).not.toHaveBeenCalled();
       expect(prisma.product.create.mock.calls[0][0].data.images.create).toEqual([]);
+    });
+
+    it('rejects a visible product with no sizes, before uploading anything', async () => {
+      const { errors } = await fieldErrors(service.create(baseDto({ variants: [] }), [fakeFile()]));
+      expect(errors).toContainEqual(expect.objectContaining({ field: 'variants', code: 'required' }));
+      expect(storage.upload).not.toHaveBeenCalled();
+    });
+
+    it('stores unlimited stock per size and defaults to tracked stock', async () => {
+      await service.create(
+        baseDto({
+          variants: [
+            { color: 'Red', size: 'S', sku: 'R-S', stockQuantity: 3 },
+            { color: 'Red', size: 'M', sku: 'R-M', stockQuantity: 0, trackInventory: false },
+          ],
+        }),
+        [],
+      );
+      const created = prisma.product.create.mock.calls[0][0].data.variants.create;
+      expect(created.map((v: any) => v.trackInventory)).toEqual([true, false]);
     });
 
     it('defaults isActive to true and respects an explicit hidden flag', async () => {

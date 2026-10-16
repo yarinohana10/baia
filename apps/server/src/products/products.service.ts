@@ -356,6 +356,7 @@ export class ProductsService {
     if (v.size !== undefined) data.size = v.size;
     if (v.sku !== undefined) data.sku = v.sku;
     if (v.stockQuantity !== undefined) data.stockQuantity = v.stockQuantity;
+    if (v.trackInventory !== undefined) data.trackInventory = v.trackInventory;
     if (v.priceOverride !== undefined) data.priceOverride = decimalOrNull(v.priceOverride);
     if (v.salePrice !== undefined) data.salePrice = decimalOrNull(v.salePrice);
     if (v.saleStart !== undefined) data.saleStart = dateOrNull(v.saleStart);
@@ -411,6 +412,10 @@ export class ProductsService {
       ...this.variantRuleErrors(variants, dto.basePrice),
       ...(await this.relationErrors({ categoryId: dto.categoryId, sizeSetId: dto.sizeSetId })),
     ];
+    if ((dto.isActive ?? true) && variants.filter((v) => v.isActive ?? true).length === 0) {
+      // A visible product with no sizes would show as "out of stock" in the store.
+      errors.push({ field: 'variants', code: 'required', message: 'Add at least one size with stock, or save the product as hidden' });
+    }
     if (dto.images && dto.images.length > files.length) {
       errors.push({
         field: 'images',
@@ -447,6 +452,7 @@ export class ProductsService {
                 size: v.size,
                 sku: v.sku,
                 stockQuantity: v.stockQuantity,
+                trackInventory: v.trackInventory ?? true,
                 priceOverride: decimalOrNull(v.priceOverride),
                 salePrice: decimalOrNull(v.salePrice),
                 saleStart: dateOrNull(v.saleStart),

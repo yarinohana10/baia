@@ -58,6 +58,9 @@ export class OrdersController {
     const { order, accessToken } = await this.ordersService.createOrder({
       owner,
       customerEmail,
+      recipientName: body.recipientName,
+      phone: body.phone,
+      locale: body.locale,
       couponCode: body.couponCode,
       shippingCity: body.shippingCity,
       shippingStreet: body.shippingStreet,

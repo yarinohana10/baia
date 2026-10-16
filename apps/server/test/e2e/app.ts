@@ -14,12 +14,14 @@ import { PaymentModule } from '../../src/payment/payment.module';
 import { PAYMENT_PROVIDER, type PaymentProvider, type PaymentResult } from '../../src/payment/payment.interface';
 import { authRouter } from '../../src/auth/auth.router';
 import { RateLimitGuard } from '../../src/common/rate-limit.guard';
+import { EmailModule } from '../../src/email/email.module';
 
 /** Only the modules under test (keeps storage/uploads/S3 out of the picture). */
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
     PrismaModule,
+    EmailModule,
     AuthModule,
     CouponsModule,
     CartModule,
@@ -165,6 +167,8 @@ export async function signUp(
 }
 
 export const SHIPPING = {
+  recipientName: 'Dana Levi',
+  phone: '050-1234567',
   shippingCity: 'Tel Aviv',
   shippingStreet: 'Dizengoff',
   shippingNumber: '1',
