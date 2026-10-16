@@ -22,7 +22,9 @@ import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
 import { strictValidationPipe } from '../common/validation';
 import { secureCookieOptions } from '../common/cookies';
 import { readGuestCartKeyHash, type CartOwner } from '../cart/cart-identity';
-import { CreateOrderDto, OrderAccessDto, UpdateOrderStatusDto } from './dto/order.dto';
+import { AdminOrdersQueryDto, CreateOrderDto, OrderAccessDto, UpdateOrderStatusDto } from './dto/order.dto';
+import { allowedTransitions } from './order-status';
+import type { OrderStatus } from '../generated/prisma';
 import {
   ORDER_ACCESS_COOKIE_MAX_AGE_MS,
   extractOrderToken,
@@ -125,13 +127,11 @@ export class OrdersController {
   @Get('admin/orders')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  findAll(
-    @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  findAll(@Query() query: AdminOrdersQueryDto) {
+    const { status, search, page, limit } = query;
     return this.ordersService.findAll({
       status,
+      search: search || undefined,
       page: page ? Math.max(1, parseInt(page) || 1) : 1,
       limit: limit ? Math.min(100, Math.max(1, parseInt(limit) || 20)) : 20,
     });
@@ -140,14 +140,19 @@ export class OrdersController {
   @Get('admin/orders/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  findById(@Param('id') id: string) {
-    return this.ordersService.findById(id);
+  async findById(@Param('id') id: string) {
+    return withTransitions(await this.ordersService.findById(id));
   }
 
   @Put('admin/orders/:id/status')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  updateStatus(@Param('id') id: string, @Body() body: UpdateOrderStatusDto) {
-    return this.ordersService.updateStatus(id, body.status, body.trackingNumber);
+  async updateStatus(@Param('id') id: string, @Body() body: UpdateOrderStatusDto) {
+    return withTransitions(await this.ordersService.updateStatus(id, body.status, body.trackingNumber));
   }
+}
+
+/** Admin responses carry the statuses the order may move to next. */
+function withTransitions<T extends { status: OrderStatus }>(order: T) {
+  return { ...order, allowedTransitions: allowedTransitions(order.status) };
 }

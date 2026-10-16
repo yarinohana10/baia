@@ -195,6 +195,53 @@ describe('Orders: ownership & guest access tokens (e2e)', () => {
       const a = await signUp(t);
       await a.agent.get('/v1/admin/orders').expect(403);
     });
+
+    it('filters the list by search (order number, email, recipient) and status', async () => {
+      const admin = await signUp(t, { admin: true });
+      const { order } = await guestOrder();
+
+      const byNumber = await admin.agent
+        .get('/v1/admin/orders')
+        .query({ search: order.orderNumber.toLowerCase() })
+        .expect(200);
+      expect(byNumber.body.orders.map((o: { id: string }) => o.id)).toEqual([order.id]);
+
+      const byEmail = await admin.agent.get('/v1/admin/orders').query({ search: 'GUEST@EXAMPLE' }).expect(200);
+      expect(byEmail.body.total).toBe(1);
+
+      const byName = await admin.agent.get('/v1/admin/orders').query({ search: 'dana lev' }).expect(200);
+      expect(byName.body.total).toBe(1);
+
+      const none = await admin.agent.get('/v1/admin/orders').query({ search: 'nobody-here' }).expect(200);
+      expect(none.body.total).toBe(0);
+
+      const pending = await admin.agent.get('/v1/admin/orders').query({ status: 'PENDING_PAYMENT' }).expect(200);
+      expect(pending.body.total).toBe(1);
+      const shipped = await admin.agent.get('/v1/admin/orders').query({ status: 'SHIPPED' }).expect(200);
+      expect(shipped.body.total).toBe(0);
+
+      await admin.agent.get('/v1/admin/orders').query({ status: 'FOO' }).expect(400);
+    });
+
+    it('exposes allowedTransitions on admin routes only', async () => {
+      const admin = await signUp(t, { admin: true });
+      const { order } = await guestOrder();
+
+      const list = await admin.agent.get('/v1/admin/orders').expect(200);
+      expect(list.body.orders[0].allowedTransitions.sort()).toEqual(['CANCELLED', 'CONFIRMED']);
+
+      const one = await admin.agent.get(`/v1/admin/orders/${order.id}`).expect(200);
+      expect(one.body.allowedTransitions.sort()).toEqual(['CANCELLED', 'CONFIRMED']);
+
+      const updated = await admin.agent
+        .put(`/v1/admin/orders/${order.id}/status`)
+        .send({ status: 'CANCELLED' })
+        .expect(200);
+      expect(updated.body.allowedTransitions).toEqual([]);
+
+      const customer = await admin.agent.get(`/v1/orders/${order.id}`).expect(200);
+      expect(customer.body.allowedTransitions).toBeUndefined();
+    });
   });
 
   describe('rate limiting', () => {

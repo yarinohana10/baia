@@ -86,3 +86,25 @@ export class UpdateOrderStatusDto {
   @MaxLength(100)
   trackingNumber?: string;
 }
+
+/** Query string for the admin orders list. Unknown statuses are rejected (400). */
+export class AdminOrdersQueryDto {
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+
+  /** Matches order number, customer email or recipient name (case-insensitive). */
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  limit?: string;
+}
