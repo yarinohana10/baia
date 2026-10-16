@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService, STORAGE_SERVICE } from '../storage/storage.interface';
 import { randomUUID } from 'crypto';
+import { FieldError, fieldConflictException, fieldValidationException } from '../common/validation';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 
 type CategoryWithUpload = {
   image: string | null;
@@ -72,32 +74,17 @@ export class CategoriesService {
     return this.resolveCategoryImage(category);
   }
 
-  async create(data: {
-    nameHe: string;
-    nameEn: string;
-    slug: string;
-    parentId?: string;
-    image?: string;
-    sortOrder?: number;
-  }) {
+  async create(data: CreateCategoryDto) {
+    if (data.parentId) await this.assertValidParent(null, data.parentId);
     return this.prisma.category.create({
       data,
       include: { imageUpload: true },
     });
   }
 
-  async update(
-    id: string,
-    data: {
-      nameHe?: string;
-      nameEn?: string;
-      slug?: string;
-      parentId?: string | null;
-      image?: string;
-      sortOrder?: number;
-    },
-  ) {
+  async update(id: string, data: UpdateCategoryDto) {
     await this.findById(id);
+    if (data.parentId) await this.assertValidParent(id, data.parentId);
     return this.prisma.category.update({
       where: { id },
       data,
@@ -105,19 +92,100 @@ export class CategoriesService {
     });
   }
 
+  /**
+   * Hierarchy rules (the storefront shows two levels, e.g. Men › Swim Shorts):
+   * - a category cannot be its own parent or sit under one of its descendants
+   * - the parent must be a top-level category, and a category that has
+   *   subcategories cannot itself be moved under another one
+   * - products live only in leaf categories, so a category that already has
+   *   products cannot receive subcategories (409)
+   */
+  private async assertValidParent(categoryId: string | null, parentId: string) {
+    const invalid = (code: string, message: string) =>
+      fieldValidationException([{ field: 'parentId', code, message }]);
+
+    if (categoryId && parentId === categoryId) {
+      throw invalid('selfParent', 'A category cannot be its own parent');
+    }
+
+    const parent = await this.prisma.category.findUnique({
+      where: { id: parentId },
+      include: { _count: { select: { products: true } } },
+    });
+    if (!parent) throw invalid('notFound', 'Parent category does not exist');
+
+    if (categoryId) {
+      // Walk up from the new parent; reaching the category means a cycle.
+      let cursor: string | null = parent.parentId;
+      for (let depth = 0; cursor && depth < 50; depth++) {
+        if (cursor === categoryId) {
+          throw invalid('descendantParent', 'A category cannot be moved under one of its subcategories');
+        }
+        const next: { parentId: string | null } | null = await this.prisma.category.findUnique({
+          where: { id: cursor },
+          select: { parentId: true },
+        });
+        cursor = next?.parentId ?? null;
+      }
+    }
+
+    if (parent.parentId) {
+      throw invalid('maxDepth', 'Subcategories can only be added under a top-level category');
+    }
+
+    if (categoryId) {
+      const childCount = await this.prisma.category.count({ where: { parentId: categoryId } });
+      if (childCount > 0) {
+        throw invalid('hasSubcategories', 'A category that has subcategories cannot be moved under another category');
+      }
+    }
+
+    if ((parent._count?.products ?? 0) > 0) {
+      throw fieldConflictException([
+        {
+          field: 'parentId',
+          code: 'parentHasProducts',
+          message: 'The parent category has products; move them to a subcategory first',
+        },
+      ]);
+    }
+  }
+
+  /**
+   * Deletes an empty category. Categories with products or subcategories are
+   * refused with 409 (codes `hasProducts` / `hasSubcategories`). The image is
+   * removed from storage only after the database delete succeeds.
+   */
   async delete(id: string) {
     const category = await this.prisma.category.findUnique({
       where: { id },
-      include: { imageUpload: true },
+      include: { imageUpload: true, _count: { select: { products: true, children: true } } },
     });
     if (!category) throw new NotFoundException('Category not found');
 
-    if (category.imageUpload) {
-      await this.storage.delete(category.imageUpload.s3Key);
-      await this.prisma.upload.delete({ where: { id: category.imageUpload.id } });
+    const conflicts: FieldError[] = [];
+    if ((category._count?.children ?? 0) > 0) {
+      conflicts.push({
+        field: 'children',
+        code: 'hasSubcategories',
+        message: 'Delete or move the subcategories first',
+      });
     }
+    if ((category._count?.products ?? 0) > 0) {
+      conflicts.push({
+        field: 'products',
+        code: 'hasProducts',
+        message: 'Move or delete the products in this category first',
+      });
+    }
+    if (conflicts.length) throw fieldConflictException(conflicts);
 
     await this.prisma.category.delete({ where: { id } });
+
+    if (category.imageUpload) {
+      await this.prisma.upload.delete({ where: { id: category.imageUpload.id } }).catch(() => {});
+      await this.storage.delete(category.imageUpload.s3Key).catch(() => {});
+    }
     return { deleted: true };
   }
 

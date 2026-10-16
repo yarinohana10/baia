@@ -10,13 +10,17 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  UsePipes,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CategoriesService } from './categories.service';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { Request } from 'express';
+import { strictValidationPipe } from '../common/validation';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 
 @Controller()
+@UsePipes(strictValidationPipe)
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
@@ -33,38 +37,18 @@ export class CategoriesController {
   @Post('admin/categories')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  create(
-    @Body()
-    body: {
-      nameHe: string;
-      nameEn: string;
-      slug: string;
-      parentId?: string;
-      image?: string;
-      sortOrder?: number;
-    },
-  ) {
+  create(@Body() body: CreateCategoryDto) {
     return this.categoriesService.create(body);
   }
 
   @Put('admin/categories/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  update(
-    @Param('id') id: string,
-    @Body()
-    body: {
-      nameHe?: string;
-      nameEn?: string;
-      slug?: string;
-      parentId?: string | null;
-      image?: string;
-      sortOrder?: number;
-    },
-  ) {
+  update(@Param('id') id: string, @Body() body: UpdateCategoryDto) {
     return this.categoriesService.update(id, body);
   }
 
+  /** 409 with code `hasProducts` / `hasSubcategories` when the category is not empty. */
   @Delete('admin/categories/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')

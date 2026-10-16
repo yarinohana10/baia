@@ -432,7 +432,9 @@
       "noAlerts": "כל הפריטים במלאי מלא!",
       "variantLabel": "{color} / {size}",
       "unitsLeft": "נותרו {count}",
-      "outOfStockLabel": "אזל מהמלאי"
+      "outOfStockLabel": "אזל מהמלאי",
+      "unlimitedStock": "מלאי ללא הגבלה",
+      "sizesCount": "{count} מידות"
     },
     "products": {
       "title": "מוצרים",
@@ -489,7 +491,23 @@
       "collapse": "כווץ קטגוריה",
       "expand": "הרחב קטגוריה",
       "editAction": "ערוך קטגוריה",
-      "deleteAction": "מחק קטגוריה"
+      "deleteAction": "מחק קטגוריה",
+      "loadFailed": "טעינת הקטגוריות נכשלה",
+      "createdSuccess": "הקטגוריה נוצרה",
+      "updatedSuccess": "הקטגוריה עודכנה",
+      "deletedSuccess": "הקטגוריה נמחקה",
+      "saveFailed": "שמירת הקטגוריה נכשלה",
+      "deleteFailed": "מחיקת הקטגוריה נכשלה",
+      "parentHasProducts": "בקטגוריית האב יש מוצרים. יש להעביר אותם קודם לתת-קטגוריה, כי מוצרים יכולים להיות רק בקטגוריות ללא תת-קטגוריות.",
+      "duplicateSlug": "כבר קיימת קטגוריה עם כתובת ה-URL הזו",
+      "invalidSlug": "כתובת ה-URL יכולה להכיל רק אותיות קטנות באנגלית, ספרות ומקפים",
+      "invalidParent": "קטגוריה לא יכולה להיות קטגוריית האב של עצמה או להיות תחת אחת מתת-הקטגוריות שלה",
+      "parentNotTopLevel": "יש לבחור קטגוריית אב ברמה העליונה",
+      "cannotNestWithChildren": "קטגוריה שיש לה תת-קטגוריות לא יכולה לעבור תחת קטגוריה אחרת",
+      "deleteHasProducts": "בקטגוריה הזו יש מוצרים. יש להעביר או למחוק אותם לפני מחיקת הקטגוריה.",
+      "deleteHasChildren": "לקטגוריה הזו יש תת-קטגוריות. יש למחוק או להעביר אותן קודם.",
+      "hasChildrenHint": "לקטגוריה הזו יש תת-קטגוריות, ולכן היא נשארת ברמה העליונה",
+      "parentHint": "אפשר להוסיף מוצרים רק לקטגוריות שאין להן תת-קטגוריות"
     },
     "orders": {
       "title": "הזמנות",
@@ -575,7 +593,21 @@
       "deactivate": "השבת קופון",
       "activateCoupon": "הפעל קופון",
       "editAction": "ערוך קופון",
-      "deleteAction": "מחק קופון"
+      "deleteAction": "מחק קופון",
+      "loadFailed": "טעינת הקופונים נכשלה",
+      "createdSuccess": "הקופון נוצר",
+      "updatedSuccess": "הקופון עודכן",
+      "deletedSuccess": "הקופון נמחק",
+      "deactivatedInstead": "הקופון שימש בהזמנות, ולכן הוא הושבת במקום להימחק",
+      "deleteFailed": "מחיקת הקופון נכשלה",
+      "saveFailed": "שמירת הקופון נכשלה",
+      "duplicateCode": "כבר קיים קופון עם הקוד הזה",
+      "invalidCode": "הקוד חייב להכיל 3–30 תווים: אותיות באנגלית, ספרות, \"-\" או \"_\"",
+      "invalidPercentage": "הנחה באחוזים חייבת להיות בין 1 ל-100",
+      "invalidFixedValue": "הנחה בסכום קבוע חייבת להיות גדולה מ-0",
+      "invalidMinCart": "סכום העגלה המינימלי חייב להיות 0 ומעלה",
+      "invalidMaxUses": "מספר השימושים המקסימלי חייב להיות מספר שלם, 1 לפחות",
+      "invalidExpiry": "תאריך התפוגה אינו תקין"
     },
     "settings": {
       "title": "הגדרות",
@@ -602,7 +634,10 @@
       "titleEn": "כותרת (אנגלית)",
       "subtitleEn": "כותרת משנה (אנגלית)",
       "ctaLinkUrl": "קישור CTA",
-      "loading": "טוען הגדרות..."
+      "loading": "טוען הגדרות...",
+      "invalidCtaUrl": "הקישור חייב להתחיל ב-/ (למשל /category/men) או להיות כתובת http(s) מלאה",
+      "invalidAmount": "סכומי המשלוח חייבים להיות מספרים, 0 ומעלה",
+      "textTooLong": "אחד הטקסטים ארוך מדי"
     },
     "productForm": {
       "newProduct": "מוצר חדש",

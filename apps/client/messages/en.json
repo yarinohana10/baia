@@ -432,7 +432,9 @@
       "noAlerts": "All items are well stocked!",
       "variantLabel": "{color} / {size}",
       "unitsLeft": "{count} left",
-      "outOfStockLabel": "Out of stock"
+      "outOfStockLabel": "Out of stock",
+      "unlimitedStock": "Unlimited stock",
+      "sizesCount": "{count} sizes"
     },
     "products": {
       "title": "Products",
@@ -489,7 +491,23 @@
       "collapse": "Collapse category",
       "expand": "Expand category",
       "editAction": "Edit category",
-      "deleteAction": "Delete category"
+      "deleteAction": "Delete category",
+      "loadFailed": "Failed to load categories",
+      "createdSuccess": "Category created",
+      "updatedSuccess": "Category updated",
+      "deletedSuccess": "Category deleted",
+      "saveFailed": "Failed to save the category",
+      "deleteFailed": "Failed to delete the category",
+      "parentHasProducts": "The parent category has products. Move them to a subcategory first, since products can only be in categories without subcategories.",
+      "duplicateSlug": "A category with this slug already exists",
+      "invalidSlug": "The slug may contain only lowercase English letters, digits and dashes",
+      "invalidParent": "A category cannot be its own parent or sit under one of its subcategories",
+      "parentNotTopLevel": "Choose a top-level parent category",
+      "cannotNestWithChildren": "A category that has subcategories cannot be moved under another category",
+      "deleteHasProducts": "This category has products. Move or delete them before deleting the category.",
+      "deleteHasChildren": "This category has subcategories. Delete or move them first.",
+      "hasChildrenHint": "This category has subcategories, so it stays at the top level",
+      "parentHint": "Products can only be added to categories without subcategories"
     },
     "orders": {
       "title": "Orders",
@@ -575,7 +593,21 @@
       "deactivate": "Deactivate coupon",
       "activateCoupon": "Activate coupon",
       "editAction": "Edit coupon",
-      "deleteAction": "Delete coupon"
+      "deleteAction": "Delete coupon",
+      "loadFailed": "Failed to load coupons",
+      "createdSuccess": "Coupon created",
+      "updatedSuccess": "Coupon updated",
+      "deletedSuccess": "Coupon deleted",
+      "deactivatedInstead": "This coupon was used in orders, so it was deactivated instead of deleted",
+      "deleteFailed": "Failed to delete the coupon",
+      "saveFailed": "Failed to save the coupon",
+      "duplicateCode": "A coupon with this code already exists",
+      "invalidCode": "The code must be 3–30 characters: English letters, digits, \"-\" or \"_\"",
+      "invalidPercentage": "A percentage discount must be between 1 and 100",
+      "invalidFixedValue": "A fixed discount must be greater than 0",
+      "invalidMinCart": "The minimum cart value must be 0 or more",
+      "invalidMaxUses": "Max uses must be a whole number of at least 1",
+      "invalidExpiry": "The expiry date is not valid"
     },
     "settings": {
       "title": "Settings",
@@ -602,7 +634,10 @@
       "titleEn": "Title (English)",
       "subtitleEn": "Subtitle (English)",
       "ctaLinkUrl": "CTA Link URL",
-      "loading": "Loading settings..."
+      "loading": "Loading settings...",
+      "invalidCtaUrl": "The link must start with / (e.g. /category/men) or be a full http(s) address",
+      "invalidAmount": "Shipping amounts must be numbers of 0 or more",
+      "textTooLong": "One of the texts is too long"
     },
     "productForm": {
       "newProduct": "New Product",

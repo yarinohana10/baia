@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AnalyticsService } from '../src/analytics/analytics.service';
+import { AnalyticsService, REVENUE_STATUSES } from '../src/analytics/analytics.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createMockPrismaService } from './helpers';
 
@@ -180,66 +180,132 @@ describe('AnalyticsService', () => {
   });
 
   describe('getTopProducts', () => {
-    it('should return top selling products with details', async () => {
+    let variantFindMany: jest.Mock;
+
+    beforeEach(() => {
+      variantFindMany = jest.fn().mockResolvedValue([]);
+      (prisma.productVariant as any).findMany = variantFindMany;
+      prisma.product.findMany.mockResolvedValue([]);
+    });
+
+    it('combines the sizes/colours of one product into a single entry', async () => {
       prisma.orderItem.groupBy.mockResolvedValue([
-        {
-          variantId: 'var-1',
-          productName: 'Classic Shorts',
-          _sum: { quantity: 50 },
-          _count: { id: 20 },
-        },
+        { variantId: 'var-m', productName: 'Classic Shorts', _sum: { quantity: 30 }, _count: { id: 12 } },
+        { variantId: 'var-l', productName: 'Classic Shorts', _sum: { quantity: 20 }, _count: { id: 8 } },
+        { variantId: 'var-x', productName: 'Bikini', _sum: { quantity: 40 }, _count: { id: 10 } },
       ]);
-      prisma.productVariant.findUnique.mockResolvedValue({
-        id: 'var-1',
-        product: {
-          id: 'prod-1',
-          nameHe: 'מכנסי ים',
-          nameEn: 'Classic Shorts',
-          images: [{ url: '/img.jpg', upload: null }],
-        },
-      });
+      variantFindMany.mockResolvedValue([
+        { id: 'var-m', productId: 'prod-1' },
+        { id: 'var-l', productId: 'prod-1' },
+        { id: 'var-x', productId: 'prod-2' },
+      ]);
+      prisma.product.findMany.mockResolvedValue([
+        { id: 'prod-1', nameHe: 'מכנסי ים', nameEn: 'Classic Shorts', images: [{ url: '/img.jpg' }] },
+        { id: 'prod-2', nameHe: 'ביקיני', nameEn: 'Bikini', images: [] },
+      ]);
 
       const result = await service.getTopProducts(5);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].productName).toBe('Classic Shorts');
-      expect(result[0].totalQuantity).toBe(50);
-      expect(result[0].orderCount).toBe(20);
-      expect(result[0].product).toBeDefined();
-      expect(result[0].product!.nameEn).toBe('Classic Shorts');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({ productId: 'prod-1', totalQuantity: 50, orderCount: 20 });
+      expect(result[0].product).toEqual({ id: 'prod-1', nameHe: 'מכנסי ים', nameEn: 'Classic Shorts', image: '/img.jpg' });
+      expect(result[1]).toMatchObject({ productId: 'prod-2', totalQuantity: 40 });
+    });
+
+    it('only counts sales orders (not pending, cancelled or refunded)', async () => {
+      prisma.orderItem.groupBy.mockResolvedValue([]);
+
+      await service.getTopProducts(5);
+
+      expect(prisma.orderItem.groupBy.mock.calls[0][0].where).toEqual({
+        order: { status: { in: REVENUE_STATUSES } },
+      });
+    });
+
+    it('applies the limit after grouping by product', async () => {
+      prisma.orderItem.groupBy.mockResolvedValue([
+        { variantId: 'a', productName: 'A', _sum: { quantity: 1 }, _count: { id: 1 } },
+        { variantId: 'b', productName: 'B', _sum: { quantity: 3 }, _count: { id: 1 } },
+        { variantId: 'c', productName: 'C', _sum: { quantity: 2 }, _count: { id: 1 } },
+      ]);
+
+      const result = await service.getTopProducts(2);
+
+      expect(result.map((r) => r.productName)).toEqual(['B', 'C']);
     });
 
     it('should handle missing variant (deleted product)', async () => {
       prisma.orderItem.groupBy.mockResolvedValue([
-        {
-          variantId: 'deleted-var',
-          productName: 'Deleted Product',
-          _sum: { quantity: 5 },
-          _count: { id: 2 },
-        },
+        { variantId: 'deleted-var', productName: 'Deleted Product', _sum: { quantity: 5 }, _count: { id: 2 } },
       ]);
-      prisma.productVariant.findUnique.mockResolvedValue(null);
 
       const result = await service.getTopProducts(5);
 
       expect(result).toHaveLength(1);
       expect(result[0].product).toBeNull();
+      expect(result[0].productId).toBeNull();
     });
 
     it('should default to quantity 0 if sum is null', async () => {
       prisma.orderItem.groupBy.mockResolvedValue([
-        {
-          variantId: 'var-1',
-          productName: 'Product',
-          _sum: { quantity: null },
-          _count: { id: 1 },
-        },
+        { variantId: 'var-1', productName: 'Product', _sum: { quantity: null }, _count: { id: 1 } },
       ]);
-      prisma.productVariant.findUnique.mockResolvedValue(null);
 
       const result = await service.getTopProducts(5);
 
       expect(result[0].totalQuantity).toBe(0);
+    });
+  });
+
+  describe('revenue statuses and day ranges', () => {
+    it('counts only CONFIRMED/PROCESSING/SHIPPED/DELIVERED orders as revenue', async () => {
+      prisma.order.count.mockResolvedValue(0);
+      prisma.order.aggregate.mockResolvedValue({ _sum: { total: null } });
+      prisma.user.count.mockResolvedValue(0);
+      prisma.product.count.mockResolvedValue(0);
+      prisma.order.findMany.mockResolvedValue([]);
+
+      await service.getOverview();
+
+      for (const [args] of prisma.order.aggregate.mock.calls) {
+        expect(args.where.status).toEqual({ in: ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'] });
+      }
+      expect(REVENUE_STATUSES).not.toContain('PENDING_PAYMENT');
+    });
+
+    it('excludes pending orders from daily sales', async () => {
+      prisma.order.findMany.mockResolvedValue([]);
+      await service.getSales(7);
+      expect(prisma.order.findMany.mock.calls[0][0].where.status).toEqual({ in: REVENUE_STATUSES });
+    });
+
+    it.each([
+      [0, 1],
+      [-10, 1],
+      [5000, 365],
+      [NaN, 30],
+    ])('clamps days=%p to %p', async (input, expected) => {
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.user.findMany.mockResolvedValue([]);
+      expect((await service.getSales(input)).days).toHaveLength(expected);
+      expect((await service.getCustomerGrowth(input)).days).toHaveLength(expected);
+      expect((await service.getAverageOrderValue(input)).days).toHaveLength(expected);
+    });
+  });
+
+  describe('getInventoryOverview', () => {
+    it('reports unlimited-stock variants separately and skips hidden products', async () => {
+      (prisma.productVariant as any).findMany = jest.fn().mockResolvedValue([
+        { id: 'v1', color: 'Black', size: 'M', stockQuantity: 0, product: { id: 'p', nameHe: 'א', nameEn: 'A', slug: 'a', isActive: true, images: [] } },
+        { id: 'v2', color: 'Black', size: 'L', stockQuantity: 10, product: { id: 'p', nameHe: 'א', nameEn: 'A', slug: 'a', isActive: true, images: [] } },
+      ]);
+      (prisma.productVariant as any).count = jest.fn().mockResolvedValue(4);
+
+      const result = await service.getInventoryOverview();
+
+      const where = (prisma.productVariant as any).findMany.mock.calls[0][0].where;
+      expect(where).toMatchObject({ isActive: true, trackInventory: true, product: { isActive: true } });
+      expect(result).toMatchObject({ totalVariants: 6, unlimitedVariants: 4, outOfStockCount: 1, totalStock: 10 });
     });
   });
 
