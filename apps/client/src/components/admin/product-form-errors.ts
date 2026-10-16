@@ -44,6 +44,8 @@ function keyFor(err: ServerFieldError): string {
       return leaf === 'slug' ? 'slugInvalid' : 'invalidValue';
     case 'maxLength':
       return 'tooLong';
+    case 'hasSubcategories':
+      return 'categoryHasSubcategories';
     case 'notFound':
       return leaf === 'categoryId' ? 'categoryNotFound' : 'notFound';
     default:

@@ -289,9 +289,20 @@ export class ProductsService {
   private async relationErrors(data: { categoryId?: string; sizeSetId?: string | null }) {
     const errors: FieldError[] = [];
     if (data.categoryId !== undefined) {
-      const category = await this.prisma.category.findUnique({ where: { id: data.categoryId } });
+      const category = await this.prisma.category.findUnique({
+        where: { id: data.categoryId },
+        include: { _count: { select: { children: true } } },
+      });
       if (!category) {
         errors.push({ field: 'categoryId', code: 'notFound', message: 'Category does not exist' });
+      } else if ((category._count?.children ?? 0) > 0) {
+        // Products live in leaf categories (e.g. Men › Swim Shorts); the parent
+        // listing already includes its subcategories' products.
+        errors.push({
+          field: 'categoryId',
+          code: 'hasSubcategories',
+          message: 'Choose a subcategory; this category has subcategories',
+        });
       }
     }
     if (data.sizeSetId) {

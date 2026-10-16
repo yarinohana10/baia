@@ -651,7 +651,8 @@
         "tooLong": "ארוך מדי",
         "categoryNotFound": "הקטגוריה כבר לא קיימת",
         "notFound": "לא נמצא",
-        "invalidValue": "ערך לא תקין"
+        "invalidValue": "ערך לא תקין",
+        "categoryHasSubcategories": "יש לבחור תת-קטגוריה (למשל גברים › מכנסי ים)"
       }
     }
   },
