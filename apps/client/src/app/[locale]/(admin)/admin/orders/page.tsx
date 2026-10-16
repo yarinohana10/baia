@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Eye, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { ORDER_STATUS_COLORS as statusColors, formatShekels as money } from '@/components/admin/order-status';
 
 const ORDER_STATUSES = [
   'PENDING_PAYMENT',
@@ -23,16 +24,6 @@ const ORDER_STATUSES = [
 
 /** Statuses that return stock to inventory, so they ask for confirmation first. */
 const RESTOCK_STATUSES = ['CANCELLED', 'REFUNDED'];
-
-const statusColors: Record<string, string> = {
-  PENDING_PAYMENT: 'bg-yellow-50 text-yellow-600',
-  CONFIRMED: 'bg-blue-50 text-blue-600',
-  PROCESSING: 'bg-indigo-50 text-indigo-600',
-  SHIPPED: 'bg-purple-50 text-purple-600',
-  DELIVERED: 'bg-green-50 text-green-600',
-  CANCELLED: 'bg-muted text-muted-foreground',
-  REFUNDED: 'bg-red-50 text-destructive',
-};
 
 type OrderItem = {
   id: string;
@@ -74,10 +65,6 @@ function selectClassName() {
   return cn(
     'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
   );
-}
-
-function money(value: string | number) {
-  return `₪${(typeof value === 'number' ? value : parseFloat(value)).toFixed(2)}`;
 }
 
 function useDebounced<T>(value: T, delayMs: number): T {
@@ -159,6 +146,12 @@ export default function AdminOrdersPage() {
       cancelled = true;
     };
   }, [fetchOrders]);
+
+  // Deep link from the customer page: /admin/orders?q=<order number>.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) setSearch(q);
+  }, []);
 
   // New search terms start from the first page.
   useEffect(() => {
