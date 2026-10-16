@@ -651,7 +651,8 @@
         "tooLong": "Too long",
         "categoryNotFound": "This category no longer exists",
         "notFound": "Not found",
-        "invalidValue": "Invalid value"
+        "invalidValue": "Invalid value",
+        "categoryHasSubcategories": "Choose a subcategory (for example Men › Swim Shorts)"
       }
     }
   },

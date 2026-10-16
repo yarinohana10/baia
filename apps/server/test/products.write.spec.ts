@@ -166,6 +166,19 @@ describe('ProductsService (writes)', () => {
       expect(errors[0]).toMatchObject({ field: 'categoryId', code: 'notFound' });
     });
 
+    it('rejects a category that has subcategories, before uploading anything', async () => {
+      prisma.category.findUnique.mockResolvedValue({ id: 'cat-men', _count: { children: 2 } });
+      const { err, errors } = await fieldErrors(service.create(baseDto(), [fakeFile()]));
+      expect(err).toBeInstanceOf(BadRequestException);
+      expect(errors[0]).toMatchObject({ field: 'categoryId', code: 'hasSubcategories' });
+      expect(storage.upload).not.toHaveBeenCalled();
+    });
+
+    it('accepts a leaf subcategory', async () => {
+      prisma.category.findUnique.mockResolvedValue({ id: 'cat-1', _count: { children: 0 } });
+      await expect(service.create(baseDto(), [])).resolves.toBeDefined();
+    });
+
     it('returns 409 with the field for a taken slug, before uploading anything', async () => {
       prisma.product.findUnique.mockResolvedValue({ id: 'other' });
       const { err, errors } = await fieldErrors(service.create(baseDto(), [fakeFile()]));
@@ -189,6 +202,13 @@ describe('ProductsService (writes)', () => {
           ? { id: 'prod-1', basePrice: { toNumber: () => 200 }, variants: [{ id: 'v1' }], images: [], sizeSet: null }
           : null,
       );
+    });
+
+    it('refuses to move a product into a category that has subcategories', async () => {
+      prisma.category.findUnique.mockResolvedValue({ id: 'cat-men', _count: { children: 3 } });
+      const { errors } = await fieldErrors(service.update('prod-1', { categoryId: 'cat-men' }));
+      expect(errors[0]).toMatchObject({ field: 'categoryId', code: 'hasSubcategories' });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('updates the product and upserts variants inside one transaction', async () => {

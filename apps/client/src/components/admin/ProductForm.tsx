@@ -591,16 +591,22 @@ export default function ProductForm({ product }: Props) {
                 aria-invalid={!!fieldErrors.categoryId}
               >
                 <option value="">{t('selectCategory')}</option>
-                {categories.map((cat) => (
-                  <optgroup key={cat.id} label={catName(cat)}>
-                    <option value={cat.id}>{catName(cat)}</option>
-                    {cat.children?.map((child) => (
-                      <option key={child.id} value={child.id}>
-                        &nbsp;&nbsp;{catName(child)}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
+                {/* Products go in a leaf category: a parent with subcategories is only a group heading. */}
+                {categories.map((cat) =>
+                  cat.children && cat.children.length > 0 ? (
+                    <optgroup key={cat.id} label={catName(cat)}>
+                      {cat.children.map((child) => (
+                        <option key={child.id} value={child.id}>
+                          {catName(cat)} › {catName(child)}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : (
+                    <option key={cat.id} value={cat.id}>
+                      {catName(cat)}
+                    </option>
+                  ),
+                )}
               </select>
               <FieldError message={fieldErrors.categoryId} />
             </div>
