@@ -259,7 +259,7 @@ export default function RegisterPage() {
                 ) : (
                   <>
                     <span>{t('createAccount')}</span>
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform duration-300" />
+                    <ArrowRight size={16} className="rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform duration-300" />
                   </>
                 )}
               </button>

@@ -9,7 +9,7 @@ import type { CartOwner } from '../cart/cart-identity';
 import { canAccessOrder, orderTokenTtlMs, type OrderRequester } from './order-access';
 import { hasStock } from '../common/stock';
 import { shopBadRequest } from '../common/error-codes';
-import { canTransition, RESTOCK_STATUSES } from './order-status';
+import { allowedTransitions, canTransition, RESTOCK_STATUSES } from './order-status';
 
 function generateOrderNumber(): string {
   const ts = Date.now().toString(36).toUpperCase();
@@ -267,10 +267,19 @@ export class OrdersService {
     return order;
   }
 
-  async findAll(params?: { status?: string; page?: number; limit?: number }) {
-    const { status, page = 1, limit = 20 } = params || {};
+  /** Admin list. Each order carries `allowedTransitions` for the status picker. */
+  async findAll(params?: { status?: OrderStatus; search?: string; page?: number; limit?: number }) {
+    const { status, search, page = 1, limit = 20 } = params || {};
     const where: Prisma.OrderWhereInput = {};
-    if (status) where.status = status as Prisma.OrderWhereInput['status'];
+    if (status) where.status = status;
+    const term = search?.trim();
+    if (term) {
+      where.OR = [
+        { orderNumber: { contains: term, mode: 'insensitive' } },
+        { customerEmail: { contains: term, mode: 'insensitive' } },
+        { recipientName: { contains: term, mode: 'insensitive' } },
+      ];
+    }
 
     const [orders, total] = await Promise.all([
       this.prisma.order.findMany({
@@ -284,7 +293,13 @@ export class OrdersService {
       this.prisma.order.count({ where }),
     ]);
 
-    return { orders, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+      orders: orders.map((o) => ({ ...o, allowedTransitions: allowedTransitions(o.status) })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async updateStatus(id: string, status: OrderStatus, trackingNumber?: string) {

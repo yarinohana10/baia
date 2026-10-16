@@ -1,16 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
+import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
+import { revalidateCatalog } from '@/lib/catalog/revalidate';
 import { Link } from '@/i18n/navigation';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Star, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Star, Search, X } from 'lucide-react';
 
 type ProductVariant = {
   id: string;
   stockQuantity: number;
   isActive: boolean;
+  /** false = unlimited stock; stockQuantity is ignored. */
+  trackInventory?: boolean;
 };
 
 type Product = {
@@ -29,59 +33,102 @@ type Product = {
 
 const LOW_STOCK_THRESHOLD = 5;
 
-function getStockStatus(variants: ProductVariant[]): 'in_stock' | 'low_stock' | 'out_of_stock' {
-  const activeVariants = variants.filter((v) => v.isActive);
-  if (activeVariants.length === 0) return 'out_of_stock';
-  const totalStock = activeVariants.reduce((sum, v) => sum + v.stockQuantity, 0);
-  if (totalStock === 0) return 'out_of_stock';
-  if (activeVariants.some((v) => v.stockQuantity <= LOW_STOCK_THRESHOLD && v.stockQuantity > 0)) return 'low_stock';
-  return 'in_stock';
+type StockSummary = {
+  status: 'no_sizes' | 'in_stock' | 'low_stock' | 'out_of_stock';
+  /** Active sizes. */
+  sizes: number;
+  /** Total of tracked active sizes. */
+  tracked: number;
+  /** Active sizes that are tracked. */
+  trackedCount: number;
+  /** Active sizes with unlimited stock. */
+  unlimitedCount: number;
+};
+
+function getStockSummary(variants: ProductVariant[]): StockSummary {
+  const active = variants.filter((v) => v.isActive);
+  const trackedVariants = active.filter((v) => v.trackInventory !== false);
+  const unlimitedCount = active.length - trackedVariants.length;
+  const tracked = trackedVariants.reduce((sum, v) => sum + v.stockQuantity, 0);
+  const base = { sizes: active.length, tracked, trackedCount: trackedVariants.length, unlimitedCount };
+
+  if (active.length === 0) return { ...base, status: 'no_sizes' };
+  // Any unlimited size means the product can always be bought.
+  if (unlimitedCount === 0 && tracked === 0) return { ...base, status: 'out_of_stock' };
+  if (trackedVariants.some((v) => v.stockQuantity <= LOW_STOCK_THRESHOLD && v.stockQuantity > 0)) {
+    return { ...base, status: 'low_stock' };
+  }
+  return { ...base, status: 'in_stock' };
 }
 
-function getTotalStock(variants: ProductVariant[]): number {
-  return variants.filter((v) => v.isActive).reduce((sum, v) => sum + v.stockQuantity, 0);
-}
+type Notice = { kind: 'success' | 'info' | 'error'; text: string } | null;
 
 export default function ProductsPage() {
   const t = useTranslations('admin.products');
   const locale = useLocale();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [notice, setNotice] = useState<Notice>(null);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  const fetchProducts = useCallback(
+    async (isCancelled: () => boolean = () => false) => {
+      try {
+        const res = await api.get('/admin/products', { params: { search: debouncedSearch || undefined } });
+        if (!isCancelled()) setProducts(res.data);
+      } catch {
+        if (!isCancelled()) setNotice({ kind: 'error', text: t('loadFailed') });
+      }
+    },
+    [debouncedSearch, t],
+  );
 
   useEffect(() => {
     let cancelled = false;
-
-    async function fetchProducts() {
-      const res = await api.get('/admin/products', { params: { search: search || undefined } });
-      if (!cancelled) setProducts(res.data);
-    }
-
-    fetchProducts();
+    fetchProducts(() => cancelled);
     return () => {
       cancelled = true;
     };
-  }, [search]);
+  }, [fetchProducts]);
 
-  const fetchProducts = async () => {
-    const res = await api.get('/admin/products', { params: { search: search || undefined } });
-    setProducts(res.data);
+  const serverMessage = (err: unknown) => {
+    const message: unknown = isAxiosError(err) ? err.response?.data?.message : undefined;
+    return typeof message === 'string' && message ? ` (${message})` : '';
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm(t('deleteConfirm'))) return;
-    await api.delete(`/admin/products/${id}`);
+    try {
+      const res = await api.delete(`/admin/products/${id}`);
+      setNotice(
+        res.data?.archived
+          ? { kind: 'info', text: t('archivedNotice') }
+          : { kind: 'success', text: t('deleted') },
+      );
+      await revalidateCatalog();
+    } catch (err) {
+      setNotice({ kind: 'error', text: t('deleteFailed') + serverMessage(err) });
+    }
     fetchProducts();
   };
 
-  const toggleActive = async (product: Product) => {
-    await api.put(`/admin/products/${product.id}`, { isActive: !product.isActive });
+  const updateProduct = async (product: Product, data: Partial<Pick<Product, 'isActive' | 'isFeatured'>>) => {
+    try {
+      await api.put(`/admin/products/${product.id}`, data);
+      await revalidateCatalog();
+    } catch (err) {
+      setNotice({ kind: 'error', text: t('updateFailed') + serverMessage(err) });
+    }
     fetchProducts();
   };
 
-  const toggleFeatured = async (product: Product) => {
-    await api.put(`/admin/products/${product.id}`, { isFeatured: !product.isFeatured });
-    fetchProducts();
-  };
+  const toggleActive = (product: Product) => updateProduct(product, { isActive: !product.isActive });
+  const toggleFeatured = (product: Product) => updateProduct(product, { isFeatured: !product.isFeatured });
 
   return (
     <div>
@@ -97,6 +144,29 @@ export default function ProductsPage() {
           <Plus size={16} /> {t('addProduct')}
         </Link>
       </div>
+
+      {notice && (
+        <div
+          role={notice.kind === 'error' ? 'alert' : 'status'}
+          className={`mb-6 flex items-center justify-between gap-3 rounded-xl px-4 py-3 font-body text-sm ${
+            notice.kind === 'error'
+              ? 'bg-red-50 text-red-700'
+              : notice.kind === 'info'
+              ? 'bg-amber-50 text-amber-800'
+              : 'bg-emerald-50 text-emerald-700'
+          }`}
+        >
+          <span>{notice.text}</span>
+          <button
+            type="button"
+            onClick={() => setNotice(null)}
+            className="rounded p-1 opacity-70 hover:opacity-100"
+            aria-label={t('dismiss')}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative mb-6 max-w-md">
@@ -116,8 +186,8 @@ export default function ProductsPage() {
       </div>
 
       {/* Product table */}
-      <div className="overflow-hidden rounded-xl border border-[#eeeeee] bg-white shadow-sm">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-[#eeeeee] bg-white shadow-sm">
+        <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="border-b border-[#eeeeee] bg-[#f3f3f4]">
               <th className="px-5 py-3.5 text-start font-body text-xs font-semibold uppercase tracking-[0.06em] text-[#3f484c]">
@@ -157,6 +227,7 @@ export default function ProductsPage() {
               products.map((product) => {
                 const productName = locale === 'he' ? product.nameHe : product.nameEn;
                 const secondaryName = locale === 'he' ? product.nameEn : product.nameHe;
+                const stock = getStockSummary(product.variants);
 
                 return (
                 <tr
@@ -190,36 +261,47 @@ export default function ProductsPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-body text-[#3f484c]">{product.category.nameEn}</td>
+                  <td className="px-5 py-4 font-body text-[#3f484c]">{locale === 'he' ? product.category.nameHe : product.category.nameEn}</td>
                   <td className="px-5 py-4 font-body font-medium text-[#1a1c1c]">
                     ₪{parseFloat(product.basePrice).toFixed(2)}
                   </td>
-                  <td className="px-5 py-4 font-body text-[#3f484c]">{product._count.variants}</td>
+                  <td className="px-5 py-4 font-body text-[#3f484c]">{stock.sizes}</td>
                   <td className="px-5 py-4">
-                    {(() => {
-                      const stockStatus = getStockStatus(product.variants);
-                      const total = getTotalStock(product.variants);
-                      return (
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 font-body text-xs font-medium ${
-                              stockStatus === 'out_of_stock'
-                                ? 'bg-red-50 text-red-600'
-                                : stockStatus === 'low_stock'
-                                ? 'bg-amber-50 text-amber-700'
-                                : 'bg-emerald-50 text-emerald-700'
-                            }`}
-                          >
-                            {stockStatus === 'out_of_stock'
-                              ? t('outOfStockBadge')
-                              : stockStatus === 'low_stock'
-                              ? t('lowStockBadge')
-                              : t('inStock')}
-                          </span>
-                          <span className="font-body text-xs text-[#3f484c]">{total}</span>
-                        </div>
-                      );
-                    })()}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 font-body text-xs font-medium ${
+                          stock.status === 'no_sizes'
+                            ? 'bg-[#f3f3f4] text-[#3f484c]'
+                            : stock.status === 'out_of_stock'
+                            ? 'bg-red-50 text-red-600'
+                            : stock.status === 'low_stock'
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-emerald-50 text-emerald-700'
+                        }`}
+                      >
+                        {stock.status === 'no_sizes'
+                          ? t('noSizes')
+                          : stock.status === 'out_of_stock'
+                          ? t('outOfStockBadge')
+                          : stock.status === 'low_stock'
+                          ? t('lowStockBadge')
+                          : t('inStock')}
+                      </span>
+                      {stock.sizes > 0 && (
+                        <span className="whitespace-nowrap font-body text-xs text-[#3f484c]">
+                          {stock.trackedCount === 0 ? (
+                            t('unlimited')
+                          ) : (
+                            <>
+                              {stock.tracked}
+                              {stock.unlimitedCount > 0 && (
+                                <span className="ms-1 text-[11px] text-[#3f484c]/70">{t('plusUnlimited')}</span>
+                              )}
+                            </>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <span
@@ -257,7 +339,7 @@ export default function ProductsPage() {
                       <Link
                         href={`/admin/products/${product.id}`}
                         className="rounded-lg p-2 text-[#3f484c] transition-colors hover:bg-[#f3f3f4] hover:text-[#005d72]"
-                        aria-label={`Edit ${productName}`}
+                        aria-label={t('editProduct', { name: productName })}
                       >
                         <Pencil size={16} />
                       </Link>
@@ -265,7 +347,7 @@ export default function ProductsPage() {
                         type="button"
                         onClick={() => handleDelete(product.id)}
                         className="rounded-lg p-2 text-[#3f484c] transition-colors hover:bg-red-50 hover:text-[#ba1a1a]"
-                        aria-label={`Delete ${productName}`}
+                        aria-label={t('deleteProduct', { name: productName })}
                       >
                         <Trash2 size={16} />
                       </button>

@@ -374,7 +374,9 @@
       "coupons": "Coupons",
       "settings": "Settings",
       "customers": "Customers",
-      "soon": "Soon"
+      "soon": "Soon",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -426,7 +428,7 @@
       "name": "Name",
       "category": "Category",
       "price": "Price",
-      "variants": "Variants",
+      "variants": "Sizes",
       "stock": "Stock",
       "inStock": "In Stock",
       "lowStockBadge": "Low Stock",
@@ -440,7 +442,18 @@
       "removeFeatured": "Remove from featured",
       "markFeatured": "Mark as featured",
       "deactivate": "Deactivate product",
-      "activate": "Activate product"
+      "activate": "Activate product",
+      "unlimited": "Unlimited",
+      "plusUnlimited": "+ unlimited",
+      "noSizes": "No sizes",
+      "editProduct": "Edit {name}",
+      "deleteProduct": "Delete {name}",
+      "deleted": "Product deleted",
+      "archivedNotice": "Product has orders, so it was hidden instead of deleted",
+      "deleteFailed": "Couldn't delete the product. Try again.",
+      "updateFailed": "Couldn't update the product. Try again.",
+      "loadFailed": "Couldn't load products. Try again.",
+      "dismiss": "Dismiss"
     },
     "categories": {
       "title": "Categories",
@@ -492,7 +505,26 @@
       "shipped": "Shipped",
       "delivered": "Delivered",
       "cancelled": "Cancelled",
-      "refunded": "Refunded"
+      "refunded": "Refunded",
+      "searchPlaceholder": "Search by order number, email or name",
+      "recipient": "Recipient",
+      "phone": "Phone",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "discount": "Discount",
+      "coupon": "Coupon",
+      "current": "current",
+      "finalStatus": "This order's status is final and can't be changed.",
+      "confirmCancel": "Cancel this order? Its stock will be returned to inventory.",
+      "confirmRefund": "Mark this order as refunded? Its stock will be returned to inventory.",
+      "updated": "Order updated",
+      "transitionNotAllowed": "This status change isn't allowed. Reload the order and try again.",
+      "statusChangedMeanwhile": "The order was changed in the meantime. Reload it and try again.",
+      "orderNotFound": "Order not found.",
+      "updateFailed": "Couldn't update the order. Try again.",
+      "loadFailed": "Couldn't load orders. Try again.",
+      "detailFailed": "Couldn't load the order. Try again.",
+      "dismiss": "Dismiss"
     },
     "coupons": {
       "title": "Coupons",

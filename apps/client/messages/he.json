@@ -374,7 +374,9 @@
       "coupons": "קופונים",
       "settings": "הגדרות",
       "customers": "לקוחות",
-      "soon": "בקרוב"
+      "soon": "בקרוב",
+      "openMenu": "פתיחת תפריט",
+      "closeMenu": "סגירת תפריט"
     },
     "dashboard": {
       "title": "לוח בקרה",
@@ -426,7 +428,7 @@
       "name": "שם",
       "category": "קטגוריה",
       "price": "מחיר",
-      "variants": "גרסאות",
+      "variants": "מידות",
       "stock": "מלאי",
       "inStock": "במלאי",
       "lowStockBadge": "מלאי נמוך",
@@ -440,7 +442,18 @@
       "removeFeatured": "הסר מהמובחרים",
       "markFeatured": "סמן כמובחר",
       "deactivate": "השבת מוצר",
-      "activate": "הפעל מוצר"
+      "activate": "הפעל מוצר",
+      "unlimited": "ללא הגבלה",
+      "plusUnlimited": "+ ללא הגבלה",
+      "noSizes": "אין מידות",
+      "editProduct": "עריכת {name}",
+      "deleteProduct": "מחיקת {name}",
+      "deleted": "המוצר נמחק",
+      "archivedNotice": "למוצר יש הזמנות, ולכן הוא הוסתר במקום להימחק",
+      "deleteFailed": "לא הצלחנו למחוק את המוצר. נסו שוב.",
+      "updateFailed": "לא הצלחנו לעדכן את המוצר. נסו שוב.",
+      "loadFailed": "לא הצלחנו לטעון את המוצרים. נסו שוב.",
+      "dismiss": "סגירה"
     },
     "categories": {
       "title": "קטגוריות",
@@ -492,7 +505,26 @@
       "shipped": "נשלח",
       "delivered": "נמסר",
       "cancelled": "בוטל",
-      "refunded": "הוחזר"
+      "refunded": "הוחזר",
+      "searchPlaceholder": "חיפוש לפי מספר הזמנה, אימייל או שם",
+      "recipient": "נמען",
+      "phone": "טלפון",
+      "subtotal": "סכום ביניים",
+      "shipping": "משלוח",
+      "discount": "הנחה",
+      "coupon": "קופון",
+      "current": "נוכחי",
+      "finalStatus": "סטטוס ההזמנה סופי ולא ניתן לשנות אותו.",
+      "confirmCancel": "לבטל את ההזמנה? הפריטים שבה יוחזרו למלאי.",
+      "confirmRefund": "לסמן את ההזמנה כמוחזרת? הפריטים שבה יוחזרו למלאי.",
+      "updated": "ההזמנה עודכנה",
+      "transitionNotAllowed": "אי אפשר לשנות לסטטוס הזה. טענו את ההזמנה מחדש ונסו שוב.",
+      "statusChangedMeanwhile": "ההזמנה השתנתה בינתיים. טענו אותה מחדש ונסו שוב.",
+      "orderNotFound": "ההזמנה לא נמצאה.",
+      "updateFailed": "לא הצלחנו לעדכן את ההזמנה. נסו שוב.",
+      "loadFailed": "לא הצלחנו לטעון את ההזמנות. נסו שוב.",
+      "detailFailed": "לא הצלחנו לטעון את ההזמנה. נסו שוב.",
+      "dismiss": "סגירה"
     },
     "coupons": {
       "title": "קופונים",
