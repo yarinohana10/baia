@@ -1,17 +1,15 @@
 'use client';
 
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import { useSession } from '@/lib/auth-client';
+import { addressesApi, PHONE_PATTERN, sameAddress, streetLine, type Address, type AddressInput } from '@/lib/addresses';
 import { formatPrice } from '@/lib/catalog/pricing';
 import { errorCode, shopErrorMessage, type ErrorMessage } from '@/lib/shop-errors';
 import { cartSubtotal, lineIssue, shippingFor, useCartStore } from '@/store/cart';
 import { ShieldCheck, Truck, CreditCard, AlertTriangle, X } from 'lucide-react';
-
-/** Same rule as the API's CreateOrderDto (HTML patterns are implicitly anchored). */
-const PHONE_PATTERN = '\\+?[0-9][0-9\\s\\-]{7,18}';
 
 const inputClass =
   'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none';
@@ -36,6 +34,9 @@ export default function CheckoutPage() {
   const [number, setNumber] = useState('');
   const [apartment, setApartment] = useState('');
   const [zip, setZip] = useState('');
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [saveAddress, setSaveAddress] = useState(true);
+  const prefilledFromAddress = useRef(false);
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [couponError, setCouponError] = useState<ErrorMessage | null>(null);
@@ -58,6 +59,60 @@ export default function CheckoutPage() {
     if (sessionEmail) setEmail((current) => current || sessionEmail);
     if (sessionName) setRecipientName((current) => current || sessionName);
   }, [sessionEmail, sessionName]);
+
+  const applyAddress = (address: Address) => {
+    setRecipientName(address.recipientName);
+    setPhone(address.phone);
+    setCity(address.city);
+    setStreet(address.street);
+    setNumber(address.number);
+    setApartment(address.apartment ?? '');
+    setZip(address.zip ?? '');
+  };
+
+  // Signed-in shoppers: load the address book and start from the default address.
+  const sessionUserId = session?.user?.id;
+  useEffect(() => {
+    if (!sessionUserId) {
+      setSavedAddresses([]);
+      return;
+    }
+    let cancelled = false;
+    addressesApi
+      .list()
+      .then((list) => {
+        if (cancelled) return;
+        setSavedAddresses(list);
+        const preferred = list.find((a) => a.isDefault) ?? list[0];
+        if (preferred && !prefilledFromAddress.current) {
+          prefilledFromAddress.current = true;
+          applyAddress(preferred);
+        }
+      })
+      // The address book is a convenience: checkout works without it.
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionUserId]);
+
+  const addressInput: AddressInput = { recipientName, phone, city, street, number, apartment, zip };
+  const matchedAddress = savedAddresses.find((a) => sameAddress(a, addressInput)) ?? null;
+  const offerSaveAddress = !!sessionUserId && !matchedAddress;
+
+  const chooseSavedAddress = (id: string) => {
+    const address = savedAddresses.find((a) => a.id === id);
+    if (address) {
+      applyAddress(address);
+    } else {
+      // "A new address": keep the contact details, clear the address itself.
+      setCity('');
+      setStreet('');
+      setNumber('');
+      setApartment('');
+      setZip('');
+    }
+  };
 
   const subtotal = cartSubtotal(items);
   const shippingCost = shippingFor(subtotal, shipping);
@@ -140,6 +195,13 @@ export default function CheckoutPage() {
         // Guests get a one-time access token; signed-in users are matched by session.
         order = { id: res.data.id, token: res.data.accessToken };
         setPendingOrder(order);
+        if (offerSaveAddress && saveAddress) {
+          // Best effort: a failure here must never get in the way of paying.
+          addressesApi
+            .create(addressInput)
+            .then((created) => setSavedAddresses((list) => [...list, created]))
+            .catch(() => undefined);
+        }
       }
     } catch (err) {
       const code = errorCode(err);
@@ -280,6 +342,33 @@ export default function CheckoutPage() {
             <h2 className="font-medium text-gray-800 flex items-center gap-2">
               <Truck size={16} /> {tCheckout('shippingAddress')}
             </h2>
+            {savedAddresses.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <label htmlFor="checkout-saved-address" className="block text-xs font-medium text-gray-500">
+                    {tCheckout('shipTo')}
+                  </label>
+                  <Link href="/account/addresses" className="text-xs text-ocean-700 hover:underline">
+                    {tCheckout('manageAddresses')}
+                  </Link>
+                </div>
+                <select
+                  id="checkout-saved-address"
+                  value={matchedAddress?.id ?? 'new'}
+                  onChange={(e) => chooseSavedAddress(e.target.value)}
+                  disabled={pendingOrder !== null}
+                  className={`${inputClass} bg-white`}
+                >
+                  {savedAddresses.map((address) => (
+                    <option key={address.id} value={address.id}>
+                      {address.recipientName} · {streetLine(address)}, {address.city}
+                      {address.isDefault ? ` ${tCheckout('defaultAddressTag')}` : ''}
+                    </option>
+                  ))}
+                  <option value="new">{tCheckout('newAddressOption')}</option>
+                </select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="checkout-city" className={labelClass}>{tCheckout('city')}</label>
@@ -345,6 +434,17 @@ export default function CheckoutPage() {
                 />
               </div>
             </div>
+            {offerSaveAddress && !pendingOrder && (
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={saveAddress}
+                  onChange={(e) => setSaveAddress(e.target.checked)}
+                  className="accent-ocean-700"
+                />
+                {tCheckout('saveAddress')}
+              </label>
+            )}
           </section>
 
           {/* Coupon */}

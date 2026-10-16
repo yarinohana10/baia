@@ -15,6 +15,7 @@ import { PAYMENT_PROVIDER, type PaymentProvider, type PaymentResult } from '../.
 import { authRouter } from '../../src/auth/auth.router';
 import { RateLimitGuard } from '../../src/common/rate-limit.guard';
 import { EmailModule } from '../../src/email/email.module';
+import { AddressesModule } from '../../src/addresses/addresses.module';
 
 /** Only the modules under test (keeps storage/uploads/S3 out of the picture). */
 @Module({
@@ -28,6 +29,7 @@ import { EmailModule } from '../../src/email/email.module';
     WishlistModule,
     OrdersModule,
     PaymentModule,
+    AddressesModule,
   ],
 })
 class E2eModule {}
@@ -100,7 +102,7 @@ export async function createTestApp(): Promise<TestApp> {
 export async function resetDb(prisma: PrismaService) {
   RateLimitGuard.reset();
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE payment_attempts, order_items, orders, cart_items, carts, wishlists, product_images, product_variants, products, categories, coupons, sessions, accounts, verifications, users RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE addresses, payment_attempts, order_items, orders, cart_items, carts, wishlists, product_images, product_variants, products, categories, coupons, sessions, accounts, verifications, users RESTART IDENTITY CASCADE',
   );
 }
 

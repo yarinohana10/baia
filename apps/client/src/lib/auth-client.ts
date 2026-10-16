@@ -36,6 +36,9 @@ export const {
   resetPassword,
   verifyEmail,
   sendVerificationEmail,
+  updateUser,
+  changePassword,
+  listAccounts,
 } = authClient;
 
 /** Map a better-auth error to a translation key in the `auth` namespace. */
@@ -50,6 +53,8 @@ export function authErrorKey(error: { status?: number; code?: string } | null | 
       return 'emailTaken';
     case 'PASSWORD_TOO_SHORT':
       return 'passwordTooShort';
+    case 'INVALID_PASSWORD':
+      return 'wrongCurrentPassword';
     case 'INVALID_TOKEN':
     case 'TOKEN_EXPIRED':
       return 'invalidResetLink';
