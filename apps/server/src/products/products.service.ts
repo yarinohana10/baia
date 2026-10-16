@@ -105,9 +105,12 @@ export class ProductsService {
     limit?: number;
     sort?: string;
   }) {
-    const { categoryId, search, page = 1, limit = 20, sort = 'newest' } = params || {};
+    const { categoryId, search, sort = 'newest' } = params || {};
+    const page = Math.max(1, Math.trunc(params?.page ?? 1) || 1);
+    const limit = Math.min(100, Math.max(1, Math.trunc(params?.limit ?? 20) || 20));
 
     const where: Prisma.ProductWhereInput = { isActive: true };
+    let categoryIds: string[] | null = null;
 
     if (categoryId) {
       const childCategories = await this.prisma.category.findMany({
@@ -115,11 +118,8 @@ export class ProductsService {
         select: { id: true },
       });
 
-      if (childCategories.length > 0) {
-        where.categoryId = { in: [categoryId, ...childCategories.map((c) => c.id)] };
-      } else {
-        where.categoryId = categoryId;
-      }
+      categoryIds = [categoryId, ...childCategories.map((c) => c.id)];
+      where.categoryId = childCategories.length > 0 ? { in: categoryIds } : categoryId;
     }
 
     if (search) {
@@ -129,25 +129,39 @@ export class ProductsService {
       ];
     }
 
-    const orderBy: Prisma.ProductOrderByWithRelationInput =
-      sort === 'price-asc' ? { basePrice: 'asc' } :
-      sort === 'price-desc' ? { basePrice: 'desc' } :
-      { createdAt: 'desc' };
+    const include = {
+      category: true,
+      variants: { where: { isActive: true } },
+      images: IMAGE_INCLUDE,
+    } as const;
+    const skip = (page - 1) * limit;
 
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
+    let products;
+    if (sort === 'price-asc' || sort === 'price-desc') {
+      // Sort by what the shopper actually pays: the lowest effective price
+      // across active variants (live sale price, else override, else base).
+      const ids = await this.idsByEffectivePrice({
+        categoryIds,
+        search,
+        direction: sort === 'price-asc' ? 'ASC' : 'DESC',
+        skip,
+        limit,
+      });
+      const rows = ids.length
+        ? await this.prisma.product.findMany({ where: { id: { in: ids } }, include })
+        : [];
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      products = ids.map((id) => byId.get(id)).filter((p): p is (typeof rows)[number] => !!p);
+    } else {
+      products = await this.prisma.product.findMany({
         where,
-        include: {
-          category: true,
-          variants: { where: { isActive: true } },
-          images: IMAGE_INCLUDE,
-        },
-        orderBy,
-        skip: (page - 1) * limit,
+        include,
+        orderBy: { createdAt: 'desc' },
+        skip,
         take: limit,
-      }),
-      this.prisma.product.count({ where }),
-    ]);
+      });
+    }
+    const total = await this.prisma.product.count({ where });
 
     return {
       products: products.map((p) => this.resolveProductImages(p)),
@@ -158,7 +172,47 @@ export class ProductsService {
     };
   }
 
-  async findAllAdmin(params?: { search?: string; categoryId?: string }) {
+  /** Active product ids ordered by minimum effective price (same filters as findAll). */
+  private async idsByEffectivePrice(params: {
+    categoryIds: string[] | null;
+    search?: string;
+    direction: 'ASC' | 'DESC';
+    skip: number;
+    limit: number;
+  }): Promise<string[]> {
+    const conditions = [Prisma.sql`p."isActive" = true`];
+    if (params.categoryIds) {
+      conditions.push(Prisma.sql`p."categoryId" IN (${Prisma.join(params.categoryIds)})`);
+    }
+    if (params.search) {
+      const pattern = `%${params.search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+      conditions.push(Prisma.sql`(p."nameEn" ILIKE ${pattern} OR p."nameHe" ILIKE ${pattern})`);
+    }
+    const direction = Prisma.raw(params.direction);
+    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+      SELECT p.id
+      FROM products p
+      LEFT JOIN LATERAL (
+        SELECT MIN(
+          CASE
+            WHEN v."salePrice" IS NOT NULL
+              AND (v."saleStart" IS NULL OR v."saleStart" <= NOW())
+              AND (v."saleEnd" IS NULL OR v."saleEnd" >= NOW())
+            THEN v."salePrice"
+            ELSE COALESCE(v."priceOverride", p."basePrice")
+          END
+        ) AS min_price
+        FROM product_variants v
+        WHERE v."productId" = p.id AND v."isActive" = true
+      ) ep ON true
+      WHERE ${Prisma.join(conditions, ' AND ')}
+      ORDER BY COALESCE(ep.min_price, p."basePrice") ${direction}, p."createdAt" DESC, p.id
+      LIMIT ${params.limit} OFFSET ${params.skip}
+    `;
+    return rows.map((r) => r.id);
+  }
+
+  private adminWhere(params?: { search?: string; categoryId?: string }) {
     const where: Prisma.ProductWhereInput = {};
     if (params?.categoryId) where.categoryId = params.categoryId;
     if (params?.search) {
@@ -168,19 +222,48 @@ export class ProductsService {
         { variants: { some: { sku: { contains: params.search, mode: 'insensitive' } } } },
       ];
     }
+    return where;
+  }
 
+  private readonly adminInclude = {
+    category: true,
+    variants: true,
+    images: IMAGE_INCLUDE,
+    _count: { select: { variants: true } },
+  } as const;
+
+  /** Every product as a plain array (legacy shape used by the admin products page). */
+  async findAllAdmin(params?: { search?: string; categoryId?: string }) {
     const products = await this.prisma.product.findMany({
-      where,
-      include: {
-        category: true,
-        variants: true,
-        images: IMAGE_INCLUDE,
-        _count: { select: { variants: true } },
-      },
+      where: this.adminWhere(params),
+      include: this.adminInclude,
       orderBy: { createdAt: 'desc' },
     });
 
     return products.map((p) => this.resolveProductImages(p));
+  }
+
+  /** Paginated admin list: `{ products, total, page, limit, totalPages }`. */
+  async findAllAdminPage(params: { search?: string; categoryId?: string; page: number; limit: number }) {
+    const where = this.adminWhere(params);
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        include: this.adminInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: (params.page - 1) * params.limit,
+        take: params.limit,
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return {
+      products: products.map((p) => this.resolveProductImages(p)),
+      total,
+      page: params.page,
+      limit: params.limit,
+      totalPages: Math.ceil(total / params.limit),
+    };
   }
 
   /** Public product page lookup — hidden (inactive) products are not exposed. */
@@ -546,21 +629,39 @@ export class ProductsService {
     return this.findById(id);
   }
 
-  async delete(id: string) {
+  /**
+   * Deletes a product, or archives it when any of its variants has been
+   * ordered (order_items reference variants, so the rows must stay):
+   * - ordered   -> product and variants set `isActive=false`, returns `{ archived: true }`
+   * - otherwise -> DB rows deleted first, then storage objects, returns `{ deleted: true }`
+   */
+  async delete(id: string): Promise<{ deleted: true } | { archived: true }> {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: { images: { include: { upload: true } } },
     });
     if (!product) throw new NotFoundException('Product not found');
 
-    for (const image of product.images) {
-      if (image.upload) {
-        await this.storage.delete(image.upload.s3Key);
-        await this.prisma.upload.delete({ where: { id: image.upload.id } });
-      }
+    const ordered = await this.prisma.orderItem.count({ where: { variant: { productId: id } } });
+    if (ordered > 0) {
+      await this.prisma.$transaction([
+        this.prisma.product.update({ where: { id }, data: { isActive: false } }),
+        this.prisma.productVariant.updateMany({ where: { productId: id }, data: { isActive: false } }),
+      ]);
+      return { archived: true };
     }
 
-    await this.prisma.product.delete({ where: { id } });
+    const uploads = product.images.flatMap((image) => (image.upload ? [image.upload] : []));
+    await this.prisma.$transaction([
+      // Cart lines reference variants without ON DELETE CASCADE.
+      this.prisma.cartItem.deleteMany({ where: { variant: { productId: id } } }),
+      // Images and variants cascade with the product.
+      this.prisma.product.delete({ where: { id } }),
+      this.prisma.upload.deleteMany({ where: { id: { in: uploads.map((u) => u.id) } } }),
+    ]);
+
+    // Storage last: a failure here only leaves an orphaned object, never a broken product.
+    await this.removeKeys(uploads.map((u) => u.s3Key));
     return { deleted: true };
   }
 

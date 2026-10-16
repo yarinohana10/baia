@@ -119,14 +119,34 @@ describe('ProductsService', () => {
       expect(result.products[0].images[0].url).toBe('/products/men/old.jpg');
     });
 
-    it('should sort by price ascending', async () => {
+    it('sorts by effective price in SQL and keeps that order', async () => {
+      const queryRaw = jest.fn().mockResolvedValue([{ id: 'cheap' }, { id: 'dear' }]);
+      (prisma as any).$queryRaw = queryRaw;
+      prisma.product.findMany.mockResolvedValue([
+        mockProduct({ id: 'dear' }),
+        mockProduct({ id: 'cheap' }),
+      ]);
+      prisma.product.count.mockResolvedValue(2);
+
+      const result = await service.findAll({ sort: 'price-asc', page: 1, limit: 10 });
+
+      const sql = queryRaw.mock.calls[0][0].join('?');
+      expect(sql).toContain('salePrice');
+      expect(sql).toContain('ORDER BY COALESCE(ep.min_price');
+      expect(prisma.product.findMany.mock.calls[0][0].where).toEqual({ id: { in: ['cheap', 'dear'] } });
+      expect(result.products.map((p: { id: string }) => p.id)).toEqual(['cheap', 'dear']);
+    });
+
+    it('clamps bad paging input instead of failing', async () => {
       prisma.product.findMany.mockResolvedValue([]);
       prisma.product.count.mockResolvedValue(0);
 
-      await service.findAll({ sort: 'price-asc' });
+      const result = await service.findAll({ page: 0, limit: 100000 });
 
-      const findManyCall = prisma.product.findMany.mock.calls[0][0];
-      expect(findManyCall.orderBy).toEqual({ basePrice: 'asc' });
+      const call = prisma.product.findMany.mock.calls[0][0];
+      expect(call.skip).toBe(0);
+      expect(call.take).toBe(100);
+      expect(result.page).toBe(1);
     });
   });
 
@@ -166,30 +186,84 @@ describe('ProductsService', () => {
   });
 
   describe('delete', () => {
-    it('should delete product and clean up S3 images', async () => {
-      const prod = mockProduct({
-        images: [{ id: 'img-1', upload: MOCK_UPLOAD }],
-      });
+    let orderItemCount: jest.Mock;
+    let cartItemDeleteMany: jest.Mock;
+    let uploadDeleteMany: jest.Mock;
+    let variantUpdateMany: jest.Mock;
+    let calls: string[];
 
-      prisma.product.findUnique.mockResolvedValue(prod);
-      prisma.upload.delete.mockResolvedValue(MOCK_UPLOAD);
-      prisma.product.delete.mockResolvedValue(prod);
+    beforeEach(() => {
+      calls = [];
+      const track = (name: string, value: unknown = {}) =>
+        jest.fn().mockImplementation(async () => {
+          calls.push(name);
+          return value;
+        });
+      orderItemCount = jest.fn().mockResolvedValue(0);
+      cartItemDeleteMany = track('cartItem.deleteMany', { count: 0 });
+      uploadDeleteMany = track('upload.deleteMany', { count: 1 });
+      variantUpdateMany = track('productVariant.updateMany', { count: 2 });
+      Object.assign(prisma as any, {
+        orderItem: { ...(prisma as any).orderItem, count: orderItemCount },
+        cartItem: { deleteMany: cartItemDeleteMany },
+      });
+      (prisma.upload as any).deleteMany = uploadDeleteMany;
+      (prisma.productVariant as any).updateMany = variantUpdateMany;
+      prisma.product.delete.mockImplementation(async () => {
+        calls.push('product.delete');
+        return {};
+      });
+      prisma.product.update.mockImplementation(async () => {
+        calls.push('product.update');
+        return {};
+      });
+      storage.delete.mockImplementation(async () => {
+        calls.push('storage.delete');
+      });
+    });
+
+    it('deletes DB rows first, then the storage objects', async () => {
+      prisma.product.findUnique.mockResolvedValue(
+        mockProduct({ images: [{ id: 'img-1', upload: MOCK_UPLOAD }] }),
+      );
 
       const result = await service.delete('prod-1');
 
-      expect(storage.delete).toHaveBeenCalledWith('products/prod-1/abc.jpg');
-      expect(prisma.upload.delete).toHaveBeenCalledWith({ where: { id: 'upload-1' } });
-      expect(prisma.product.delete).toHaveBeenCalledWith({ where: { id: 'prod-1' } });
       expect(result).toEqual({ deleted: true });
+      expect(prisma.product.delete).toHaveBeenCalledWith({ where: { id: 'prod-1' } });
+      expect(uploadDeleteMany).toHaveBeenCalledWith({ where: { id: { in: ['upload-1'] } } });
+      expect(storage.delete).toHaveBeenCalledWith('products/prod-1/abc.jpg');
+      expect(calls.indexOf('storage.delete')).toBeGreaterThan(calls.indexOf('product.delete'));
+    });
+
+    it('keeps the storage objects when the DB delete fails', async () => {
+      prisma.product.findUnique.mockResolvedValue(
+        mockProduct({ images: [{ id: 'img-1', upload: MOCK_UPLOAD }] }),
+      );
+      prisma.product.delete.mockRejectedValue(new Error('P2003'));
+
+      await expect(service.delete('prod-1')).rejects.toThrow('P2003');
+      expect(storage.delete).not.toHaveBeenCalled();
+    });
+
+    it('archives (hides) a product that has been ordered instead of deleting it', async () => {
+      prisma.product.findUnique.mockResolvedValue(
+        mockProduct({ images: [{ id: 'img-1', upload: MOCK_UPLOAD }] }),
+      );
+      orderItemCount.mockResolvedValue(3);
+
+      const result = await service.delete('prod-1');
+
+      expect(result).toEqual({ archived: true });
+      expect(orderItemCount).toHaveBeenCalledWith({ where: { variant: { productId: 'prod-1' } } });
+      expect(prisma.product.update).toHaveBeenCalledWith({ where: { id: 'prod-1' }, data: { isActive: false } });
+      expect(variantUpdateMany).toHaveBeenCalledWith({ where: { productId: 'prod-1' }, data: { isActive: false } });
+      expect(prisma.product.delete).not.toHaveBeenCalled();
+      expect(storage.delete).not.toHaveBeenCalled();
     });
 
     it('should delete product without S3 cleanup for legacy images', async () => {
-      const prod = mockProduct({
-        images: [{ id: 'img-1', upload: null }],
-      });
-
-      prisma.product.findUnique.mockResolvedValue(prod);
-      prisma.product.delete.mockResolvedValue(prod);
+      prisma.product.findUnique.mockResolvedValue(mockProduct({ images: [{ id: 'img-1', upload: null }] }));
 
       await service.delete('prod-1');
 
@@ -226,6 +300,19 @@ describe('ProductsService', () => {
         { nameHe: { contains: 'classic', mode: 'insensitive' } },
         { variants: { some: { sku: { contains: 'classic', mode: 'insensitive' } } } },
       ]);
+    });
+
+    it('returns a page with totals from findAllAdminPage', async () => {
+      prisma.product.findMany.mockResolvedValue([mockProduct()]);
+      prisma.product.count.mockResolvedValue(120);
+
+      const result = await service.findAllAdminPage({ page: 3, limit: 50 });
+
+      const call = prisma.product.findMany.mock.calls[0][0];
+      expect(call.skip).toBe(100);
+      expect(call.take).toBe(50);
+      expect(result).toMatchObject({ total: 120, page: 3, limit: 50, totalPages: 3 });
+      expect(result.products).toHaveLength(1);
     });
   });
 });
