@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { WishlistButton } from './WishlistButton';
 import type { CardProduct } from '@/lib/catalog/types';
-import { activeSalePrice, totalStock } from '@/lib/catalog/pricing';
+import { activeSalePrice, formatPrice, totalStock } from '@/lib/catalog/pricing';
 
 type Props = {
   product: CardProduct;
@@ -24,6 +24,7 @@ export default function ProductCard({ product, priority = false, sizes = DEFAULT
   const salePrice = activeSalePrice(product.variants);
   const imageUrl = product.images[0]?.url;
   const discountPct = salePrice ? Math.round(((basePrice - salePrice) / basePrice) * 100) : 0;
+  // Unlimited-stock variants count as Infinity, so they never show as sold out.
   const outOfStock = totalStock(product.variants) === 0;
 
   return (
@@ -77,11 +78,11 @@ export default function ProductCard({ product, priority = false, sizes = DEFAULT
           <div className="flex items-center justify-center gap-2">
             {salePrice ? (
               <>
-                <span className="text-lg font-semibold text-red-500">₪{salePrice.toFixed(0)}</span>
-                <span className="text-xs text-gray-400 line-through">₪{basePrice.toFixed(0)}</span>
+                <span className="text-lg font-semibold text-red-500">{formatPrice(salePrice)}</span>
+                <span className="text-xs text-gray-400 line-through">{formatPrice(basePrice)}</span>
               </>
             ) : (
-              <span className="text-lg font-semibold text-charcoal">₪{basePrice.toFixed(0)}</span>
+              <span className="text-lg font-semibold text-charcoal">{formatPrice(basePrice)}</span>
             )}
           </div>
         </div>

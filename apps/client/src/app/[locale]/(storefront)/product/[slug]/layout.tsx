@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { JsonLd } from '@/components/storefront/JsonLd';
 import { getProduct } from '@/lib/catalog/server';
-import { isSaleActive } from '@/lib/catalog/pricing';
+import { isInStock, isSaleActive } from '@/lib/catalog/pricing';
 import { SITE_NAME, absoluteUrl, breadcrumbJsonLd, pageMetadata } from '@/lib/seo';
 import type { Product } from '@/lib/catalog/types';
 
@@ -50,13 +50,13 @@ function productJsonLd(product: Product, locale: string) {
       sku: v.sku,
       price: price.toFixed(2),
       priceCurrency: 'ILS',
-      availability: v.stockQuantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      availability: isInStock(v) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
       url,
     };
   });
   const prices = offers.map((o) => parseFloat(o.price));
-  const anyInStock = product.variants.some((v) => v.stockQuantity > 0);
+  const anyInStock = product.variants.some(isInStock);
 
   return {
     '@context': 'https://schema.org',
