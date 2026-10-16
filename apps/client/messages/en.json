@@ -162,7 +162,14 @@
     "aboutUs": "About BAIA",
     "shopTitle": "Shop",
     "newsletterTitle": "The BAIA club",
-    "newsletterBody": "Early access to new collections and members-only offers."
+    "newsletterBody": "Early access to new collections and members-only offers.",
+    "careTitle": "Customer Care",
+    "myOrders": "My Orders",
+    "clubCta": "Join the club",
+    "freeShippingSub": "Delivery across Israel",
+    "easyReturnsSub": "14 days to return or exchange",
+    "securePaymentSub": "Your details stay protected",
+    "secureCheckoutNote": "Secure checkout"
   },
   "seo": {
     "homeTitle": "BAIA Swimwear — Mediterranean Swimwear for the Whole Family",

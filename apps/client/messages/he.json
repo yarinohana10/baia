@@ -162,7 +162,14 @@
     "aboutUs": "אודות BAIA",
     "shopTitle": "קנייה",
     "newsletterTitle": "מועדון BAIA",
-    "newsletterBody": "גישה מוקדמת לקולקציות חדשות והטבות לחברי המועדון."
+    "newsletterBody": "גישה מוקדמת לקולקציות חדשות והטבות לחברי המועדון.",
+    "careTitle": "שירות לקוחות",
+    "myOrders": "ההזמנות שלי",
+    "clubCta": "הצטרפו למועדון",
+    "freeShippingSub": "משלוחים לכל הארץ",
+    "easyReturnsSub": "14 יום להחזרה או החלפה",
+    "securePaymentSub": "הפרטים שלכם מוגנים",
+    "secureCheckoutNote": "תשלום מאובטח"
   },
   "seo": {
     "homeTitle": "BAIA בגדי ים — בגדי ים ים-תיכוניים לכל המשפחה",
