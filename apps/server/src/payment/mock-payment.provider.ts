@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 
 @Injectable()
 export class MockPaymentProvider implements PaymentProvider {
-  async charge(params: {
+  async charge(_params: {
     amount: number;
     currency: string;
     orderId: string;

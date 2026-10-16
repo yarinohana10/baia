@@ -4,23 +4,6 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { createMockPrismaService } from './helpers';
 
 /**
- * Helper to create a Date at noon today (local time).
- * The service uses `createdAt.toISOString().split('T')[0]` to build map keys,
- * so the mock dates must produce the same ISO-date string as the map key.
- * The map keys are built from `startOfDay().toISOString().split('T')[0]`.
- * Using the same approach ensures they match.
- */
-function todayAtNoon(): Date {
-  const d = new Date();
-  d.setHours(12, 0, 0, 0);
-  return d;
-}
-
-function isoDateKey(d: Date): string {
-  return d.toISOString().split('T')[0];
-}
-
-/**
  * Get today's map key as the service would generate it:
  * `startOfDay().toISOString().split('T')[0]`.
  */

@@ -130,7 +130,7 @@ describe('UploadsService', () => {
 
   describe('getUrl', () => {
     it('should delegate to storage service', () => {
-      const url = service.getUrl('test/key.jpg');
+      service.getUrl('test/key.jpg');
       expect(storage.getUrl).toHaveBeenCalledWith('test/key.jpg');
     });
   });
