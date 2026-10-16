@@ -230,13 +230,22 @@ export class OrdersService {
     return token;
   }
 
-  async findByUser(userId: string) {
-    return this.prisma.order.findMany({
-      where: { userId },
-      include: { items: true, coupon: true },
-      omit: ORDER_PRIVATE_FIELDS,
-      orderBy: { createdAt: 'desc' },
-    });
+  /** A page of the user's own orders, newest first. */
+  async findByUser(userId: string, params: { page?: number; limit?: number } = {}) {
+    const { page = 1, limit = 20 } = params;
+    const where: Prisma.OrderWhereInput = { userId };
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: { items: true, coupon: true },
+        omit: ORDER_PRIVATE_FIELDS,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+    return { orders, total, page, totalPages: Math.ceil(total / limit) };
   }
 
   /**

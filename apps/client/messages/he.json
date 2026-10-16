@@ -145,7 +145,16 @@
     "continueShopping": "המשך קניות",
     "decreaseQuantity": "הפחת כמות",
     "increaseQuantity": "הוסף כמות",
-    "removeItem": "הסר פריט"
+    "removeItem": "הסר פריט",
+    "viewCart": "לצפייה בעגלה",
+    "freeShippingOver": "משלוח חינם בהזמנות מעל {amount}",
+    "updating": "מעדכנים…",
+    "issues": {
+      "unavailable": "הפריט הזה כבר לא זמין. יש להסיר אותו מהעגלה.",
+      "outOfStock": "הפריט הזה אזל מהמלאי. יש להסיר אותו מהעגלה.",
+      "insufficient": "{available, plural, one {נותר במלאי פריט אחד בלבד.} other {נותרו במלאי # בלבד.}} יש להפחית את הכמות.",
+      "blocked": "יש פריטים בעגלה שדורשים את תשומת לבך לפני המעבר לתשלום."
+    }
   },
   "footer": {
     "categoriesTitle": "קטגוריות",
@@ -266,6 +275,12 @@
       "body": "העמוד שחיפשתם לא קיים או שעבר למקום אחר. בואו נחזיר אתכם לחוף.",
       "home": "חזרה לדף הבית",
       "shop": "לפריטים החדשים"
+    },
+    "product": {
+      "notFound": "המוצר לא נמצא.",
+      "sku": "מק״ט: {sku}",
+      "lowStock": "{count, plural, one {נותר פריט אחרון} other {נותרו # בלבד}}",
+      "adding": "מוסיפים…"
     }
   },
   "pages": {
@@ -720,7 +735,49 @@
   "checkout": {
     "paymentFailed": "התשלום לא הושלם. ההזמנה שלך נשמרה — אפשר לנסות שוב.",
     "failed": "התשלום נכשל. אנא נסו שוב.",
-    "retryPayment": "ניסיון תשלום חוזר"
+    "retryPayment": "ניסיון תשלום חוזר",
+    "contact": "פרטי התקשרות",
+    "email": "אימייל",
+    "fullName": "שם מלא",
+    "phone": "טלפון",
+    "phoneHint": "ספרות בלבד, למשל 050-1234567",
+    "shippingAddress": "כתובת למשלוח",
+    "city": "עיר",
+    "street": "רחוב",
+    "number": "מספר בית",
+    "apartment": "דירה",
+    "zip": "מיקוד",
+    "coupon": "קוד קופון",
+    "apply": "הפעלה",
+    "removeCoupon": "הסרת הקופון",
+    "discountApplied": "הקופון {code} הופעל: ‎-{amount}",
+    "discount": "הנחה",
+    "orderSummary": "סיכום הזמנה",
+    "placeOrder": "ביצוע הזמנה",
+    "processing": "מעבדים…",
+    "secureNote": "תשלום מאובטח ומוצפן",
+    "empty": "העגלה ריקה.",
+    "loading": "טוענים את העגלה…",
+    "backToCart": "חזרה לעגלה",
+    "errors": {
+      "generic": "משהו השתבש. אנא נסו שוב.",
+      "network": "לא הצלחנו להתחבר לחנות. בדקו את החיבור ונסו שוב.",
+      "invalidDetails": "חלק מהפרטים חסרים או שגויים. בדקו אותם ונסו שוב.",
+      "tooManyRequests": "יותר מדי ניסיונות. המתינו דקה ונסו שוב.",
+      "paymentDeclined": "התשלום נדחה. ההזמנה שלך נשמרה — אפשר לנסות שוב.",
+      "cartEmpty": "העגלה ריקה.",
+      "variantUnavailable": "{product} (מידה {size}) כבר לא זמין. יש להסיר אותו מהעגלה.",
+      "variantUnavailableGeneric": "הפריט הזה כבר לא זמין.",
+      "outOfStock": "אין מספיק מלאי של {product} (מידה {size}). יש לעדכן את העגלה.",
+      "outOfStockAvailable": "{available, plural, one {נותר במלאי פריט אחד בלבד.} other {נותרו במלאי # בלבד.}}",
+      "outOfStockGeneric": "הפריט הזה אזל מהמלאי.",
+      "couponInvalid": "קוד הקופון אינו תקף.",
+      "couponInactive": "הקופון הזה כבר לא פעיל.",
+      "couponExpired": "תוקף הקופון פג.",
+      "couponLimitReached": "הקופון הגיע למספר השימושים המרבי.",
+      "couponMinTotal": "הקופון תקף בהזמנה מינימלית של {min}.",
+      "orderNotPayable": "ההזמנה בוטלה כי לא שולמה תוך 60 דקות, והפריטים חזרו למלאי. אפשר להוסיף אותם שוב לעגלה ולבצע את ההזמנה מחדש."
+    }
   },
   "orderConfirmation": {
     "thankYou": "תודה רבה!",
@@ -749,5 +806,20 @@
       "CANCELLED": "בוטלה",
       "REFUNDED": "הוחזרה"
     }
+  },
+  "orders": {
+    "title": "ההזמנות שלי",
+    "empty": "עדיין אין הזמנות.",
+    "startShopping": "להתחלת הקנייה",
+    "itemCount": "{count, plural, one {פריט אחד} other {# פריטים}}",
+    "loadError": "לא הצלחנו לטעון את ההזמנות. אנא נסו שוב.",
+    "retry": "ניסיון נוסף",
+    "loadMore": "הצגת הזמנות נוספות",
+    "loadingMore": "טוענים…",
+    "viewOrder": "צפייה בהזמנה {number}",
+    "phone": "טלפון",
+    "tracking": "מספר מעקב",
+    "completePayment": "להשלמת התשלום",
+    "paying": "מעבדים…"
   }
 }

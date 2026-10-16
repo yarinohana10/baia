@@ -4,6 +4,9 @@ export type Variant = {
   size: string;
   sku?: string;
   stockQuantity: number;
+  /** false = unlimited stock (stockQuantity is ignored). */
+  trackInventory?: boolean;
+  isActive?: boolean;
   priceOverride: string | null;
   salePrice: string | null;
   saleStart: string | null;
@@ -82,5 +85,6 @@ export type CardProduct = {
     saleEnd?: string | null;
     priceOverride?: string | null;
     stockQuantity?: number;
+    trackInventory?: boolean;
   }[];
 };

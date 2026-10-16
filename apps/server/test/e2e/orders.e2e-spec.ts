@@ -169,10 +169,25 @@ describe('Orders: ownership & guest access tokens (e2e)', () => {
       const orderA = await userOrder(a.agent);
       const orderB = await userOrder(b.agent);
       const res = await a.agent.get('/v1/orders/my').expect(200);
-      const ids = res.body.map((o: { id: string }) => o.id);
+      expect(res.body).toMatchObject({ total: 1, page: 1, totalPages: 1 });
+      const ids = res.body.orders.map((o: { id: string }) => o.id);
       expect(ids).toEqual([orderA.id]);
       expect(ids).not.toContain(orderB.id);
-      expect(res.body[0].accessTokenHash).toBeUndefined();
+      expect(res.body.orders[0].accessTokenHash).toBeUndefined();
+    });
+
+    it('/orders/my is paginated', async () => {
+      const a = await signUp(t);
+      const first = await userOrder(a.agent);
+      const second = await userOrder(a.agent);
+      const page1 = await a.agent.get('/v1/orders/my?limit=1').expect(200);
+      expect(page1.body).toMatchObject({ total: 2, page: 1, totalPages: 2 });
+      expect(page1.body.orders.map((o: { id: string }) => o.id)).toEqual([second.id]);
+      const page2 = await a.agent.get('/v1/orders/my?limit=1&page=2').expect(200);
+      expect(page2.body.orders.map((o: { id: string }) => o.id)).toEqual([first.id]);
+      // Out-of-range limits are clamped rather than rejected.
+      const clamped = await a.agent.get('/v1/orders/my?limit=500&page=-1').expect(200);
+      expect(clamped.body).toMatchObject({ page: 1, totalPages: 1 });
     });
 
     it('/orders/my requires a session', async () => {

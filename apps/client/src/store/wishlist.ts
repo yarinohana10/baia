@@ -16,6 +16,7 @@ export type WishlistProduct = {
     saleEnd?: string | null;
     priceOverride?: string | null;
     stockQuantity?: number;
+    trackInventory?: boolean;
   }[];
 };
 
@@ -68,6 +69,7 @@ function toSnapshot(p: WishlistProduct): WishlistProduct {
       saleEnd: v.saleEnd,
       priceOverride: v.priceOverride,
       stockQuantity: v.stockQuantity,
+      trackInventory: v.trackInventory,
     })),
   };
 }

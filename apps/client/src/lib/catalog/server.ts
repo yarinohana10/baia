@@ -72,6 +72,7 @@ export function toCardProduct(p: Product): CardProduct {
       saleEnd: v.saleEnd,
       priceOverride: v.priceOverride,
       stockQuantity: v.stockQuantity,
+      trackInventory: v.trackInventory,
     })),
   };
 }

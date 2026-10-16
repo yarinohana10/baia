@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { listingHref, parseListingQuery } from '../catalog/query';
-import { activeSalePrice, formatPrice, isNewProduct, sizesInStock, totalStock } from '../catalog/pricing';
+import {
+  MAX_LINE_QUANTITY,
+  activeSalePrice,
+  availableQty,
+  formatPrice,
+  isInStock,
+  isNewProduct,
+  lowStockCount,
+  sizesInStock,
+  totalStock,
+} from '../catalog/pricing';
 import { suggestedCollections } from '../catalog/collections';
 
 describe('listing query', () => {
@@ -47,6 +57,30 @@ describe('pricing helpers', () => {
     ];
     expect(sizesInStock(variants)).toEqual(['S', 'XL']);
     expect(totalStock(variants)).toBe(3);
+  });
+
+  it('treats untracked (unlimited) variants as always in stock', () => {
+    const unlimited = { size: 'M', stockQuantity: 0, trackInventory: false };
+    const soldOut = { size: 'L', stockQuantity: 0, trackInventory: true };
+    expect(isInStock(unlimited)).toBe(true);
+    expect(isInStock(soldOut)).toBe(false);
+    expect(sizesInStock([soldOut, unlimited])).toEqual(['M']);
+    expect(totalStock([soldOut, unlimited])).toBe(Number.POSITIVE_INFINITY);
+    expect(totalStock([soldOut])).toBe(0);
+  });
+
+  it('caps the purchasable quantity at the per-line maximum', () => {
+    expect(availableQty({ stockQuantity: 0, trackInventory: false })).toBe(MAX_LINE_QUANTITY);
+    expect(availableQty({ stockQuantity: 3, trackInventory: true })).toBe(3);
+    expect(availableQty({ stockQuantity: 500 })).toBe(MAX_LINE_QUANTITY);
+    expect(availableQty({ stockQuantity: -2 })).toBe(0);
+  });
+
+  it('only shows low-stock hints for tracked variants', () => {
+    expect(lowStockCount({ stockQuantity: 2, trackInventory: true })).toBe(2);
+    expect(lowStockCount({ stockQuantity: 2, trackInventory: false })).toBeNull();
+    expect(lowStockCount({ stockQuantity: 0 })).toBeNull();
+    expect(lowStockCount({ stockQuantity: 20 })).toBeNull();
   });
 
   it('formats shekel prices without trailing .00', () => {

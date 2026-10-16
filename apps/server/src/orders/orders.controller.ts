@@ -79,8 +79,11 @@ export class OrdersController {
   @Get('orders/my')
   @UseGuards(AuthGuard)
   @Header('Cache-Control', 'no-store')
-  async myOrders(@Req() req: Request) {
-    return this.ordersService.findByUser((req as Request & { user: { id: string } }).user.id);
+  async myOrders(@Req() req: Request, @Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.ordersService.findByUser((req as Request & { user: { id: string } }).user.id, {
+      page: Math.max(1, parseInt(page ?? '', 10) || 1),
+      limit: Math.min(50, Math.max(1, parseInt(limit ?? '', 10) || 20)),
+    });
   }
 
   /**
