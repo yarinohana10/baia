@@ -34,6 +34,16 @@ services:
       timeout: 5s
       retries: 10
 
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: baia-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+
   server:
     build:
       context: .
@@ -44,6 +54,8 @@ services:
         condition: service_healthy
       localstack:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     environment:
       PORT: 8000
       NODE_ENV: development
@@ -52,6 +64,10 @@ services:
       BETTER_AUTH_SECRET: docker-dev-secret-change-me-in-production
       BETTER_AUTH_URL: http://localhost:8000
       AUTH_COOKIE_PREFIX: baia
+      EMAIL_PROVIDER: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      EMAIL_FROM: BAIA Swimwear <no-reply@baia.local>
       STORAGE_PROVIDER: s3
       S3_ENDPOINT: http://localstack:4566
       S3_PUBLIC_URL: http://localhost:4566

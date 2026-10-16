@@ -9,6 +9,14 @@ const meta: Meta<typeof Header> = {
     nextjs: { appDirectory: true },
     layout: 'fullscreen',
   },
+  args: {
+    nav: [
+      { label: 'Women', href: '/category/women' },
+      { label: 'Men', href: '/category/men' },
+      { label: 'Kids', href: '/category/children' },
+      { label: 'New Arrivals', href: '/new-arrivals' },
+    ],
+  },
 };
 
 export default meta;

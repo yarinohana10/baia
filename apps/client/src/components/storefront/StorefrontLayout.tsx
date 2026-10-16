@@ -1,14 +1,32 @@
-import { Header } from './Header';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { Header, type NavItem } from './Header';
 import { Footer } from './Footer';
 import { CartDrawer } from './CartDrawer';
+import { SessionSync } from './SessionSync';
+import { getCategories } from '@/lib/catalog/server';
 
-export function StorefrontLayout({ children }: { children: React.ReactNode }) {
+export async function StorefrontLayout({ children }: { children: React.ReactNode }) {
+  const [locale, categories, tNav] = await Promise.all([getLocale(), getCategories(), getTranslations('nav')]);
+
+  // Top-level categories drive both nav and footer, so links always match real slugs.
+  const categoryNav: NavItem[] = categories.length
+    ? categories.map((c) => ({ label: locale === 'he' ? c.nameHe : c.nameEn, href: `/category/${c.slug}` }))
+    : [
+        { label: tNav('women'), href: '/category/women' },
+        { label: tNav('men'), href: '/category/men' },
+        { label: tNav('children'), href: '/category/children' },
+      ];
+  const nav: NavItem[] = [...categoryNav, { label: tNav('newArrivals'), href: '/new-arrivals' }];
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-1 pt-16">{children}</main>
-      <Footer />
+    <div className="flex min-h-screen flex-col bg-white">
+      <Header nav={nav} />
+      <main id="main" className="flex-1">
+        {children}
+      </main>
+      <Footer categories={categoryNav} />
       <CartDrawer />
+      <SessionSync />
     </div>
   );
 }

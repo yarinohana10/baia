@@ -1,8 +1,10 @@
 import { PrismaClient } from '../src/generated/prisma';
-import { auth } from '../src/auth/auth';
+import '../src/config/load-env';
+import { seedAdminFromEnv } from '../src/admin-users/seed-admin';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import { backfillSizeSets } from './size-sets';
 
 const prisma = new PrismaClient();
 
@@ -126,42 +128,9 @@ async function main() {
   console.log('Seeding database...');
   console.log(`Storage provider: ${useS3 ? 's3' : 'local'}`);
 
-  const adminEmail = 'yarinohana9@gmail.com';
-  const adminPassword = '123456789';
-  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (!existingAdmin) {
-    const ctx = await auth.api.signUpEmail({
-      body: { email: adminEmail, password: adminPassword, name: 'Yarin Ohana' },
-    });
-    if (ctx?.user?.id) {
-      await prisma.user.update({
-        where: { id: ctx.user.id },
-        data: { role: 'ADMIN', emailVerified: true },
-      });
-      console.log(`Admin user created: ${adminEmail} (password: ${adminPassword})`);
-    } else {
-      console.error('Failed to create admin user via better-auth');
-    }
-  } else {
-    const hasCredential = await prisma.account.findFirst({
-      where: { userId: existingAdmin.id, providerId: 'credential' },
-    });
-    if (!hasCredential) {
-      await prisma.user.delete({ where: { id: existingAdmin.id } });
-      const ctx = await auth.api.signUpEmail({
-        body: { email: adminEmail, password: adminPassword, name: 'Yarin Ohana' },
-      });
-      if (ctx?.user?.id) {
-        await prisma.user.update({
-          where: { id: ctx.user.id },
-          data: { role: 'ADMIN', emailVerified: true },
-        });
-        console.log(`Admin user recreated with password: ${adminEmail}`);
-      }
-    } else {
-      console.log(`Admin user already exists: ${adminEmail}`);
-    }
-  }
+  // Admin: only from ADMIN_EMAIL / ADMIN_PASSWORD. Never deletes users, never
+  // changes an existing password, never logs the password.
+  await seedAdminFromEnv(prisma);
 
   // Seed SiteConfig with hero image (upload to S3 if available)
   const existingSiteConfig = await prisma.siteConfig.findUnique({ where: { id: 'default' } });
@@ -315,7 +284,8 @@ async function main() {
             url: imageUrl,
             uploadId: uploadId || null,
             color: product.color,
-            altText: product.nameEn,
+            altTextEn: product.nameEn,
+            altTextHe: product.nameHe,
             sortOrder: 0,
           }],
         },
@@ -343,5 +313,9 @@ async function main() {
 }
 
 main()
+  .then(async () => {
+    const result = await backfillSizeSets(prisma);
+    console.log('Size sets:', result);
+  })
   .catch((e) => { console.error(e); process.exit(1); })
   .finally(() => prisma.$disconnect());

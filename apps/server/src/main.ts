@@ -1,8 +1,10 @@
+import './config/load-env';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { authRouter } from './auth/auth.router';
 import { join } from 'path';
+import { configureGlobalPipeline } from './common/app-setup';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -22,6 +24,9 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), uploadsDir), { prefix: '/uploads' });
 
   app.setGlobalPrefix('v1');
+
+  // Global DTO validation (whitelist + transform) and Prisma error mapping
+  configureGlobalPipeline(app);
 
   const port = process.env.PORT || 8000;
   await app.listen(port);

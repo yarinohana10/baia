@@ -1,207 +1,149 @@
-'use client';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { SlidersHorizontal } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
+import { ListingHeader } from '@/components/storefront/ListingHeader';
+import { ProductGrid } from '@/components/storefront/ProductGrid';
+import { SortSelect } from '@/components/storefront/SortSelect';
+import { Pagination } from '@/components/storefront/Pagination';
+import { EmptyCategory } from '@/components/storefront/EmptyCategory';
+import { suggestedCollections } from '@/lib/catalog/collections';
+import { JsonLd } from '@/components/storefront/JsonLd';
+import { getCategories, getCategory, getProducts, toCardProduct } from '@/lib/catalog/server';
+import { PAGE_SIZE, listingHref, parseListingQuery } from '@/lib/catalog/query';
+import { absoluteUrl, breadcrumbJsonLd, pageMetadata } from '@/lib/seo';
+import type { Category } from '@/lib/catalog/types';
 
-import { Suspense, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
-import { api } from '@/lib/api';
-import ProductCard from '@/components/storefront/ProductCard';
-import { SlidersHorizontal, ChevronDown } from 'lucide-react';
-
-type Category = {
-  id: string;
-  nameHe: string;
-  nameEn: string;
-  slug: string;
-  children?: Category[];
+type Props = {
+  params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type Product = {
-  id: string;
-  nameHe: string;
-  nameEn: string;
-  slug: string;
-  basePrice: string;
-  images: { url: string; color?: string }[];
-  variants: {
-    salePrice?: string | null;
-    saleStart?: string | null;
-    saleEnd?: string | null;
-    priceOverride?: string | null;
-  }[];
-};
+const nameOf = (c: { nameHe: string; nameEn: string }, locale: string) => (locale === 'he' ? c.nameHe : c.nameEn);
 
-type SortOption = 'newest' | 'price-asc' | 'price-desc';
-
-function CategoryPageContent() {
-  const params = useParams();
-  const slug = params.slug as string;
-  const locale = useLocale();
-  const t = useTranslations('product');
-  const tCommon = useTranslations('common');
-
-  const [category, setCategory] = useState<Category | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [sort, setSort] = useState<SortOption>('newest');
-  const [loading, setLoading] = useState(true);
-  const [selectedSubCat, setSelectedSubCat] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.get(`/categories/${slug}`).then((res) => setCategory(res.data));
-  }, [slug]);
-
-  useEffect(() => {
-    if (!category) return;
-    setLoading(true);
-
-    const categoryId = selectedSubCat || category.id;
-    api
-      .get('/products', {
-        params: { categoryId, page, limit: 12, sort },
-      })
-      .then((res) => {
-        setProducts(res.data.products || []);
-        setTotal(res.data.total || 0);
-        setTotalPages(res.data.totalPages || 1);
-      })
-      .finally(() => setLoading(false));
-  }, [category, selectedSubCat, page, sort]);
-
-  const catName = category
-    ? locale === 'he'
-      ? category.nameHe
-      : category.nameEn
-    : '';
-
-  return (
-    <div className="container-page py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-normal mb-2">{catName}</h1>
-        <p className="text-sm text-gray-400">
-          {total} {total === 1 ? t('productSingular') : t('productPlural')}
-        </p>
-      </div>
-
-      {/* Sub-categories */}
-      {category?.children && category.children.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-8">
-          <button
-            onClick={() => { setSelectedSubCat(null); setPage(1); }}
-            className={`px-4 py-1.5 text-sm border rounded-lg transition-colors ${
-              !selectedSubCat
-                ? 'border-ocean-700 bg-ocean-700 text-white'
-                : 'border-gray-300 hover:border-ocean-500'
-            }`}
-          >
-            {t('all')}
-          </button>
-          {category.children.map((sub) => (
-            <button
-              key={sub.id}
-              onClick={() => { setSelectedSubCat(sub.id); setPage(1); }}
-              className={`px-4 py-1.5 text-sm border rounded-lg transition-colors ${
-                selectedSubCat === sub.id
-                  ? 'border-ocean-700 bg-ocean-700 text-white'
-                  : 'border-gray-300 hover:border-ocean-500'
-              }`}
-            >
-              {locale === 'he' ? sub.nameHe : sub.nameEn}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Sort bar */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <SlidersHorizontal size={14} />
-          <span>{total} {t('results')}</span>
-        </div>
-        <div className="relative">
-          <select
-            value={sort}
-            onChange={(e) => { setSort(e.target.value as SortOption); setPage(1); }}
-            aria-label={t('sortNewest')}
-            className="appearance-none text-sm text-gray-600 bg-transparent pe-6 cursor-pointer focus:outline-none rounded-lg"
-          >
-            <option value="newest">{t('sortNewest')}</option>
-            <option value="price-asc">{t('sortPriceLow')}</option>
-            <option value="price-desc">{t('sortPriceHigh')}</option>
-          </select>
-          <ChevronDown size={12} className="absolute end-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
-      </div>
-
-      {/* Products grid */}
-      {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-7">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="animate-pulse bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-              <div className="aspect-square bg-gray-200" />
-              <div className="p-4">
-                <div className="h-4 bg-gray-200 w-3/4 mb-3 rounded" />
-                <div className="h-5 bg-gray-200 w-1/3 mx-auto mb-4 rounded" />
-                <div className="h-9 bg-gray-200 rounded-xl" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : products.length === 0 ? (
-        <div className="text-center py-16 text-gray-400 tracking-wider">
-          {t('noProducts')}
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-7">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-12">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i + 1)}
-                  className={`w-9 h-9 text-sm border rounded-lg transition-colors ${
-                    page === i + 1
-                      ? 'border-ocean-700 bg-ocean-700 text-white'
-                      : 'border-gray-300 hover:border-ocean-500'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const query = parseListingQuery(await searchParams);
+  const category = await getCategory(slug);
+  if (!category) return {};
+  const t = await getTranslations({ locale, namespace: 'seo' });
+  const name = nameOf(category, locale);
+  const meta = pageMetadata({
+    locale,
+    path: `/category/${slug}`,
+    title: name,
+    description: t('categoryDescription', { name }),
+    images: category.image ? [{ url: category.image, alt: name }] : undefined,
+  });
+  // Filtered/sorted/paginated variants consolidate onto the clean category URL.
+  if (query.type || query.sort !== 'newest' || query.page > 1) {
+    meta.robots = { index: false, follow: true };
+  }
+  return meta;
 }
 
-export default function CategoryPage() {
+export default async function CategoryPage({ params, searchParams }: Props) {
+  const { locale, slug } = await params;
+  setRequestLocale(locale);
+  const query = parseListingQuery(await searchParams);
+
+  const [category, allCategories, t, tSeo] = await Promise.all([
+    getCategory(slug),
+    getCategories(),
+    getTranslations('storefront'),
+    getTranslations('storefront.category'),
+  ]);
+  if (!category) notFound();
+
+  const children = category.children ?? [];
+  const activeChild = query.type ? children.find((c) => c.slug === query.type) : undefined;
+  const { products, total, totalPages } = await getProducts({
+    categoryId: activeChild?.id ?? category.id,
+    page: query.page,
+    limit: PAGE_SIZE,
+    sort: query.sort,
+  });
+
+  const name = nameOf(category, locale);
+  const parent: Category | undefined = category.parentId
+    ? allCategories.find((c) => c.id === category.parentId)
+    : undefined;
+  const basePath = `/category/${slug}`;
+
+  const crumbs = [
+    { label: t('home'), href: '/' },
+    ...(parent ? [{ label: nameOf(parent, locale), href: `/category/${parent.slug}` }] : []),
+    { label: name, href: basePath },
+  ];
+
+  const topLevel = allCategories.map((c) => ({ label: nameOf(c, locale), href: `/category/${c.slug}` }));
+  const suggestions = [
+    ...suggestedCollections(topLevel, parent ? `/category/${parent.slug}` : basePath),
+    { label: t('newArrivals.title'), href: '/new-arrivals' },
+  ];
+
+  const pill = 'px-4 py-1.5 text-sm border rounded-lg transition-colors';
+  const pillState = (active: boolean) =>
+    active ? 'border-ocean-700 bg-ocean-700 text-white' : 'border-gray-300 hover:border-ocean-500';
+
   return (
-    <Suspense
-      fallback={
-        <div className="container-page py-8">
-          <div className="animate-pulse h-8 bg-gray-200 w-48 mb-8 rounded" />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-7">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={`skeleton-${i}`} className="animate-pulse bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-                <div className="aspect-square bg-gray-200" />
+    <>
+      <JsonLd
+        data={breadcrumbJsonLd(
+          crumbs.map((c) => ({ name: c.label, url: absoluteUrl(locale, c.href === '/' ? '/' : c.href) })),
+        )}
+      />
+
+      <div className="container-page py-8">
+        <ListingHeader title={name} countLabel={tSeo('count', { count: total })} />
+
+        {/* Sub-categories */}
+        {children.length > 0 && (total > 0 || activeChild) && (
+          <nav aria-label={tSeo('filterLabel')} className="mb-8">
+            <ul className="flex flex-wrap gap-2">
+              <li>
+                <Link
+                  href={listingHref(basePath, { sort: query.sort })}
+                  aria-current={!activeChild ? 'page' : undefined}
+                  className={`${pill} inline-block ${pillState(!activeChild)}`}
+                >
+                  {tSeo('all')}
+                </Link>
+              </li>
+              {children.map((child) => (
+                <li key={child.id}>
+                  <Link
+                    href={listingHref(basePath, { type: child.slug, sort: query.sort })}
+                    aria-current={activeChild?.id === child.id ? 'page' : undefined}
+                    className={`${pill} inline-block ${pillState(activeChild?.id === child.id)}`}
+                  >
+                    {nameOf(child, locale)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
+
+        {products.length === 0 ? (
+          <EmptyCategory name={activeChild ? nameOf(activeChild, locale) : name} suggestions={suggestions} />
+        ) : (
+          <>
+            {/* Sort bar */}
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <SlidersHorizontal size={14} aria-hidden="true" />
+                <span>{tSeo('count', { count: total })}</span>
               </div>
-            ))}
-          </div>
-        </div>
-      }
-    >
-      <CategoryPageContent />
-    </Suspense>
+              {total > 1 && <SortSelect basePath={basePath} query={query} />}
+            </div>
+
+            <ProductGrid products={products.map(toCardProduct)} priorityCount={4} />
+            <Pagination basePath={basePath} query={query} totalPages={totalPages} />
+          </>
+        )}
+      </div>
+    </>
   );
 }

@@ -1,60 +1,30 @@
 'use client';
 
-import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { Heart } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { WishlistButton } from './WishlistButton';
+import type { CardProduct } from '@/lib/catalog/types';
+import { activeSalePrice, totalStock } from '@/lib/catalog/pricing';
 
 type Props = {
-  product: {
-    id: string;
-    nameHe: string;
-    nameEn: string;
-    slug: string;
-    basePrice: string;
-    images: { url: string; color?: string }[];
-    variants: {
-      id?: string;
-      salePrice?: string | null;
-      saleStart?: string | null;
-      saleEnd?: string | null;
-      priceOverride?: string | null;
-      stockQuantity?: number;
-    }[];
-  };
+  product: CardProduct;
+  /** Set for above-the-fold cards so the first image is preloaded (LCP). */
+  priority?: boolean;
+  sizes?: string;
 };
 
-function getActiveSale(variants: Props['product']['variants']) {
-  const now = new Date();
-  for (const v of variants) {
-    if (!v.salePrice) continue;
-    const start = v.saleStart ? new Date(v.saleStart) : null;
-    const end = v.saleEnd ? new Date(v.saleEnd) : null;
-    if (start && now < start) continue;
-    if (end && now > end) continue;
-    return parseFloat(v.salePrice);
-  }
-  return null;
-}
+const DEFAULT_SIZES = '(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw';
 
-function isOutOfStock(variants: Props['product']['variants']) {
-  if (variants.length === 0) return true;
-  return variants.every((v) => (v.stockQuantity ?? 0) === 0);
-}
-
-export default function ProductCard({ product }: Props) {
+export default function ProductCard({ product, priority = false, sizes = DEFAULT_SIZES }: Props) {
   const locale = useLocale();
   const t = useTranslations('product');
   const name = locale === 'he' ? product.nameHe : product.nameEn;
   const basePrice = parseFloat(product.basePrice);
-  const salePrice = getActiveSale(product.variants);
+  const salePrice = activeSalePrice(product.variants);
   const imageUrl = product.images[0]?.url;
   const discountPct = salePrice ? Math.round(((basePrice - salePrice) / basePrice) * 100) : 0;
-  const outOfStock = isOutOfStock(product.variants);
-
-  const [wishlisted, setWishlisted] = useState(false);
+  const outOfStock = totalStock(product.variants) === 0;
 
   return (
     <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100">
@@ -66,7 +36,8 @@ export default function ProductCard({ product }: Props) {
               src={imageUrl}
               alt={name}
               fill
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              priority={priority}
+              sizes={sizes}
               className="object-contain object-center group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
@@ -89,21 +60,12 @@ export default function ProductCard({ product }: Props) {
             </div>
           )}
 
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setWishlisted(!wishlisted);
-            }}
-            className={`absolute top-3 end-3 p-2 rounded-full backdrop-blur-sm transition-all duration-200 ${
-              wishlisted
-                ? 'bg-red-50 text-red-500'
-                : 'bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-white'
-            }`}
-            aria-label="Wishlist"
-          >
-            <Heart size={16} fill={wishlisted ? 'currentColor' : 'none'} />
-          </button>
+          <WishlistButton
+            product={product}
+            className="absolute top-3 end-3 z-20 p-2 rounded-full backdrop-blur-sm transition-all duration-200"
+            activeClassName="bg-red-50 text-red-500"
+            inactiveClassName="bg-white/70 text-gray-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-red-500 hover:bg-white"
+          />
         </div>
 
         {/* Info */}

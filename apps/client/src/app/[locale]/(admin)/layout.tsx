@@ -8,7 +8,8 @@ async function getSession() {
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:8000'}/api/auth/get-session`,
+      // Skip the cookie cache so a just-demoted admin loses access immediately.
+      `${process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:8000'}/api/auth/get-session?disableCookieCache=true`,
       {
         headers: { cookie },
         cache: 'no-store',
@@ -24,13 +25,18 @@ async function getSession() {
 
 export default async function AdminLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
-  const session = await getSession();
+  const [{ locale }, session] = await Promise.all([params, getSession()]);
 
-  if (!session?.user || session.user.role !== 'ADMIN') {
-    redirect('/login');
+  if (!session?.user) {
+    redirect(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/admin`)}`);
+  }
+  if (session.user.role !== 'ADMIN') {
+    redirect(`/${locale}`);
   }
 
   return <AdminShell user={session.user}>{children}</AdminShell>;

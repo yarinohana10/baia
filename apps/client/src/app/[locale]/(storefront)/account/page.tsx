@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useSession, signOut } from '@/lib/auth-client';
 import { Package, LogOut, ChevronRight, Loader2 } from 'lucide-react';
+import { VerifyEmailBanner } from '@/components/storefront/VerifyEmailBanner';
 
 async function handleSignOut() {
   await signOut();
@@ -36,6 +37,8 @@ export default function AccountPage() {
           </p>
         )}
       </div>
+
+      {user && !user.emailVerified && <VerifyEmailBanner email={user.email} />}
 
       <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 space-y-4">
         {user?.name && (

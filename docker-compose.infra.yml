@@ -1,4 +1,4 @@
-# Infrastructure only — Postgres + LocalStack for local development.
+# Infrastructure only — Postgres + LocalStack + Mailpit for local development.
 # Usage:  docker compose -f docker-compose.infra.yml up -d
 # Or via: pnpm dev:infra
 
@@ -37,6 +37,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: baia-mailpit
+    ports:
+      - "1025:1025" # SMTP (server sends here: SMTP_HOST=localhost SMTP_PORT=1025)
+      - "8025:8025" # Web UI: http://localhost:8025
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
 
 volumes:
   postgres_data:

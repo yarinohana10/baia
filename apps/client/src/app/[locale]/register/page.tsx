@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { signUp, signIn } from '@/lib/auth-client';
+import { useLocale, useTranslations } from 'next-intl';
+import { authErrorKey, signUp, signIn } from '@/lib/auth-client';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
@@ -20,6 +20,7 @@ function GoogleIcon() {
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
+  const locale = useLocale();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,9 +34,14 @@ export default function RegisterPage() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      await signIn.social({ provider: 'google' });
+      // Absolute URLs so Google sends the user back to the shop, not the API origin.
+      await signIn.social({
+        provider: 'google',
+        callbackURL: `${window.location.origin}/${locale}`,
+        errorCallbackURL: `${window.location.origin}/${locale}/login`,
+      });
     } catch {
-      setError('Something went wrong');
+      setError(t('genericError'));
       setGoogleLoading(false);
     }
   };
@@ -45,7 +51,7 @@ export default function RegisterPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('passwordsDoNotMatch'));
       return;
     }
 
@@ -54,12 +60,12 @@ export default function RegisterPage() {
     try {
       const result = await signUp.email({ name, email, password });
       if (result.error) {
-        setError(result.error.message || 'Registration failed');
+        setError(t(authErrorKey(result.error)));
       } else {
-        window.location.href = '/';
+        window.location.href = `/${locale}`;
       }
     } catch {
-      setError('Something went wrong');
+      setError(t('genericError'));
     } finally {
       setLoading(false);
     }

@@ -14,6 +14,8 @@ import { OrdersModule } from './orders/orders.module';
 import { PaymentModule } from './payment/payment.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { SiteConfigModule } from './site-config/site-config.module';
+import { EmailModule } from './email/email.module';
+import { AdminUsersModule } from './admin-users/admin-users.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { SiteConfigModule } from './site-config/site-config.module';
     PaymentModule,
     AnalyticsModule,
     SiteConfigModule,
+    EmailModule,
+    AdminUsersModule,
   ],
 })
 export class AppModule {}

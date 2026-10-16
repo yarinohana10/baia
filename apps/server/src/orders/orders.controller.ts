@@ -1,58 +1,120 @@
 import {
+  BadRequestException,
   Controller,
   Get,
+  Header,
+  HttpCode,
   Post,
   Put,
   Body,
   Param,
   Query,
   UseGuards,
+  UsePipes,
   Req,
+  Res,
 } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { OrdersService } from './orders.service';
 import { AuthGuard, Roles } from '../auth/auth.guard';
-import { Request } from 'express';
-import { auth } from '../auth/auth';
-import { fromNodeHeaders } from 'better-auth/node';
+import { getOptionalUser } from '../common/session';
+import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
+import { strictValidationPipe } from '../common/validation';
+import { secureCookieOptions } from '../common/cookies';
+import { readGuestCartKeyHash, type CartOwner } from '../cart/cart-identity';
+import { CreateOrderDto, OrderAccessDto, UpdateOrderStatusDto } from './dto/order.dto';
+import {
+  ORDER_ACCESS_COOKIE_MAX_AGE_MS,
+  extractOrderToken,
+  orderAccessCookieName,
+} from './order-access';
+
+const MINUTE = 60_000;
 
 @Controller()
+@UseGuards(RateLimitGuard)
+@UsePipes(strictValidationPipe)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post('orders')
-  async createOrder(@Req() req: Request, @Body() body: any) {
-    let userId: string | undefined;
-    try {
-      const session = await auth.api.getSession({
-        headers: fromNodeHeaders(req.headers),
-      });
-      if (session?.user) userId = session.user.id;
-    } catch {}
+  @RateLimit({ limit: 10, windowMs: MINUTE })
+  @Header('Cache-Control', 'no-store')
+  async createOrder(@Req() req: Request, @Body() body: CreateOrderDto) {
+    const user = await getOptionalUser(req);
 
-    return this.ordersService.createOrder({
-      userId,
-      customerEmail: body.customerEmail,
+    let owner: CartOwner;
+    if (user) {
+      owner = { userId: user.id };
+    } else {
+      const guestKeyHash = readGuestCartKeyHash(req);
+      if (!guestKeyHash) throw new BadRequestException('Cart is empty');
+      owner = { guestKeyHash };
+    }
+
+    const customerEmail = body.customerEmail ?? user?.email;
+    if (!customerEmail) throw new BadRequestException('customerEmail is required');
+
+    const { order, accessToken } = await this.ordersService.createOrder({
+      owner,
+      customerEmail,
       couponCode: body.couponCode,
       shippingCity: body.shippingCity,
       shippingStreet: body.shippingStreet,
       shippingNumber: body.shippingNumber,
       shippingApartment: body.shippingApartment,
       shippingZip: body.shippingZip,
-      cartId: body.cartId,
     });
+
+    // accessToken is returned exactly once and only for guest orders.
+    return accessToken ? { ...order, accessToken } : order;
   }
 
-  // Customer: my orders
+  // Customer: my orders (bound to the session user only)
   @Get('orders/my')
   @UseGuards(AuthGuard)
+  @Header('Cache-Control', 'no-store')
   async myOrders(@Req() req: Request) {
-    return this.ordersService.findByUser((req as any).user.id);
+    return this.ordersService.findByUser((req as Request & { user: { id: string } }).user.id);
+  }
+
+  /**
+   * Exchange a guest access token (from the confirmation URL fragment) for an
+   * httpOnly cookie scoped to this order's path, and return the order.
+   */
+  @Post('orders/:id/access')
+  @HttpCode(200)
+  @RateLimit({ limit: 20, windowMs: MINUTE })
+  @Header('Cache-Control', 'no-store')
+  async exchangeAccessToken(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+    @Param('id') id: string,
+    @Body() body: OrderAccessDto,
+  ) {
+    const user = await getOptionalUser(req);
+    const access = await this.ordersService.assertAccess(id, { user, token: body.token }, { allowAdmin: false });
+
+    if (access.accessTokenExpiresAt) {
+      const remaining = access.accessTokenExpiresAt.getTime() - Date.now();
+      res.cookie(
+        orderAccessCookieName(id),
+        body.token,
+        secureCookieOptions({
+          path: `/v1/orders/${encodeURIComponent(id)}`,
+          maxAge: Math.max(0, Math.min(ORDER_ACCESS_COOKIE_MAX_AGE_MS, remaining)),
+        }),
+      );
+    }
+    return this.ordersService.findById(id);
   }
 
   @Get('orders/:id')
-  @UseGuards(AuthGuard)
-  async getOrder(@Param('id') id: string) {
-    return this.ordersService.findById(id);
+  @RateLimit({ limit: 30, windowMs: MINUTE })
+  @Header('Cache-Control', 'no-store')
+  async getOrder(@Req() req: Request, @Param('id') id: string) {
+    const user = await getOptionalUser(req);
+    return this.ordersService.findForRequester(id, { user, token: extractOrderToken(req, id) });
   }
 
   // ─── Admin ──────────────────────────────────────
@@ -67,8 +129,8 @@ export class OrdersController {
   ) {
     return this.ordersService.findAll({
       status,
-      page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 20,
+      page: page ? Math.max(1, parseInt(page) || 1) : 1,
+      limit: limit ? Math.min(100, Math.max(1, parseInt(limit) || 20)) : 20,
     });
   }
 
@@ -82,10 +144,7 @@ export class OrdersController {
   @Put('admin/orders/:id/status')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  updateStatus(
-    @Param('id') id: string,
-    @Body() body: { status: string; trackingNumber?: string },
-  ) {
+  updateStatus(@Param('id') id: string, @Body() body: UpdateOrderStatusDto) {
     return this.ordersService.updateStatus(id, body.status, body.trackingNumber);
   }
 }

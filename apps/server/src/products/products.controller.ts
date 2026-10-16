@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -11,11 +12,26 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { Request } from 'express';
+import { JsonBody, JsonBodyValidationPipe } from '../common/json-body.decorator';
+import {
+  CreateProductDto,
+  ImageMetaDto,
+  MAX_IMAGES_PER_REQUEST,
+  ReorderImagesDto,
+  UpdateProductDto,
+  UpdateVariantDto,
+  VariantDto,
+} from './dto/product.dto';
+
+function userIdOf(req?: Request): string | undefined {
+  return (req as unknown as { user?: { id?: string } } | undefined)?.user?.id;
+}
 
 @Controller()
 export class ProductsController {
@@ -45,6 +61,11 @@ export class ProductsController {
     return this.productsService.findBySlug(slug);
   }
 
+  @Get('size-sets')
+  listSizeSets() {
+    return this.productsService.listSizeSets();
+  }
+
   // ─── Admin: Products ─────────────────────────────
 
   @Get('admin/products')
@@ -64,26 +85,27 @@ export class ProductsController {
     return this.productsService.findById(id);
   }
 
+  /**
+   * Creates a product with variants and (optionally) images in one request.
+   * Accepts either JSON, or multipart/form-data with a JSON `payload` field
+   * plus `images` files (metadata in `payload.images`, aligned by index).
+   */
   @Post('admin/products')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  create(@Body() body: {
-    nameHe: string;
-    nameEn: string;
-    descriptionHe?: string;
-    descriptionEn?: string;
-    slug: string;
-    basePrice: number;
-    categoryId: string;
-    isFeatured?: boolean;
-  }) {
-    return this.productsService.create(body);
+  @UseInterceptors(FilesInterceptor('images', MAX_IMAGES_PER_REQUEST))
+  create(
+    @JsonBody('payload', JsonBodyValidationPipe) body: CreateProductDto,
+    @UploadedFiles() files: Express.Multer.File[] | undefined,
+    @Req() req: Request,
+  ) {
+    return this.productsService.create(body, files ?? [], userIdOf(req));
   }
 
   @Put('admin/products/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdateProductDto) {
     return this.productsService.update(id, body);
   }
 
@@ -99,26 +121,14 @@ export class ProductsController {
   @Post('admin/products/:id/variants')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  createVariant(
-    @Param('id') productId: string,
-    @Body() body: {
-      color: string;
-      size: string;
-      sku: string;
-      stockQuantity: number;
-      priceOverride?: number;
-      salePrice?: number;
-      saleStart?: string;
-      saleEnd?: string;
-    },
-  ) {
+  createVariant(@Param('id') productId: string, @Body() body: VariantDto) {
     return this.productsService.createVariant(productId, body);
   }
 
   @Put('admin/variants/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  updateVariant(@Param('id') id: string, @Body() body: any) {
+  updateVariant(@Param('id') id: string, @Body() body: UpdateVariantDto) {
     return this.productsService.updateVariant(id, body);
   }
 
@@ -137,19 +147,25 @@ export class ProductsController {
   @UseInterceptors(FileInterceptor('file'))
   uploadImage(
     @Param('id') productId: string,
-    @UploadedFile() file: Express.Multer.File,
-    @Body('color') color?: string,
-    @Req() req?: Request,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Body() meta: ImageMetaDto,
+    @Req() req: Request,
   ) {
-    const userId = (req as any)?.user?.id;
-    return this.productsService.uploadImage(
-      productId,
-      file.buffer,
-      file.originalname,
-      file.mimetype,
-      color,
-      userId,
-    );
+    return this.productsService.uploadImage(productId, file, meta, userIdOf(req));
+  }
+
+  @Put('admin/products/:id/images/order')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  reorderImages(@Param('id') productId: string, @Body() body: ReorderImagesDto) {
+    return this.productsService.reorderImages(productId, body.imageIds);
+  }
+
+  @Patch('admin/images/:id')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  updateImage(@Param('id') id: string, @Body() body: ImageMetaDto) {
+    return this.productsService.updateImage(id, body);
   }
 
   @Delete('admin/images/:id')

@@ -110,6 +110,9 @@ model Category {
   sortOrder      Int        @default(0)
   parentId       String?
   parent         Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  // Default size set for products in this category (inherited from parent when null)
+  sizeSetId      String?
+  sizeSet        SizeSet?   @relation(fields: [sizeSetId], references: [id], onDelete: SetNull)
   children       Category[] @relation("CategoryHierarchy")
   products       Product[]
   createdAt      DateTime   @default(now())
@@ -130,6 +133,9 @@ model Product {
   category      Category         @relation(fields: [categoryId], references: [id])
   isFeatured    Boolean          @default(false)
   isActive      Boolean          @default(true)
+  // Size set used for variant sizes; null = custom (free-text) sizes
+  sizeSetId     String?
+  sizeSet       SizeSet?         @relation(fields: [sizeSetId], references: [id], onDelete: SetNull)
   variants      ProductVariant[]
   images        ProductImage[]
   wishlistItems Wishlist[]
@@ -169,10 +175,30 @@ model ProductImage {
   uploadId  String?
   upload    Upload? @relation(fields: [uploadId], references: [id])
   color     String?
-  altText   String?
+  altText   String? // legacy single-language alt text (kept for existing rows)
+  altTextHe String?
+  altTextEn String?
   sortOrder Int     @default(0)
 
+  @@index([productId, sortOrder])
   @@map("product_images")
+}
+
+// A named, ordered list of sizes (e.g. adult letter sizes, kids ages).
+// Data-driven: add rows to support new size systems without code changes.
+model SizeSet {
+  id         String     @id @default(cuid())
+  key        String     @unique
+  nameHe     String
+  nameEn     String
+  sizes      String[]
+  sortOrder  Int        @default(0)
+  categories Category[]
+  products   Product[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@map("size_sets")
 }
 
 // ─── Wishlist ─────────────────────────────────────────────────
@@ -246,6 +272,16 @@ model Order {
   paymentRef     String?
   items          OrderItem[]
 
+  // Guest access: SHA-256 hash of a 256-bit random token returned once at
+  // creation. The raw token is never stored. Null for logged-in orders.
+  accessTokenHash      String?
+  accessTokenExpiresAt DateTime?
+
+  // Short-lived claim so concurrent /payment/charge calls cannot both reach
+  // the provider. Cleared on failure; stale claims expire (see PaymentService).
+  paymentClaimedAt DateTime?
+  paymentAttempts  PaymentAttempt[]
+
   shippingCity      String
   shippingStreet    String
   shippingNumber    String
@@ -255,7 +291,34 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId])
   @@map("orders")
+}
+
+// ─── Payments ─────────────────────────────────────────────────
+
+enum PaymentAttemptStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model PaymentAttempt {
+  id          String               @id @default(cuid())
+  orderId     String
+  order       Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider    String
+  status      PaymentAttemptStatus @default(PENDING)
+  amount      Decimal              @db.Decimal(10, 2)
+  currency    String
+  providerRef String?
+  error       String?
+  ipAddress   String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([orderId])
+  @@map("payment_attempts")
 }
 
 model OrderItem {

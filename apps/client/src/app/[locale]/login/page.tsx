@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { signIn } from '@/lib/auth-client';
+import { useLocale, useTranslations } from 'next-intl';
+import { authErrorKey, signIn } from '@/lib/auth-client';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
@@ -20,6 +20,7 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const t = useTranslations('auth');
+  const locale = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,9 +31,14 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      await signIn.social({ provider: 'google' });
+      // Absolute URLs so Google sends the user back to the shop, not the API origin.
+      await signIn.social({
+        provider: 'google',
+        callbackURL: `${window.location.origin}/${locale}`,
+        errorCallbackURL: `${window.location.origin}/${locale}/login`,
+      });
     } catch {
-      setError('Something went wrong');
+      setError(t('genericError'));
       setGoogleLoading(false);
     }
   };
@@ -45,12 +51,15 @@ export default function LoginPage() {
     try {
       const result = await signIn.email({ email, password });
       if (result.error) {
-        setError(result.error.message || 'Login failed');
+        setError(t(authErrorKey(result.error)));
       } else {
-        window.location.href = '/';
+        // Only same-origin paths, never `//host` or absolute URLs (open redirect).
+        const redirect = new URLSearchParams(window.location.search).get('redirect');
+        const safe = redirect && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.startsWith('/\\');
+        window.location.href = safe ? redirect : `/${locale}`;
       }
     } catch {
-      setError('Something went wrong');
+      setError(t('genericError'));
     } finally {
       setLoading(false);
     }
@@ -152,7 +161,7 @@ export default function LoginPage() {
                   {t('passwordLabel')}
                 </label>
                 <Link
-                  href="#"
+                  href="/forgot-password"
                   className="font-body text-xs font-medium tracking-[0.05em] text-[#005d72] hover:text-[#007791] transition-colors"
                 >
                   {t('forgotPassword')}

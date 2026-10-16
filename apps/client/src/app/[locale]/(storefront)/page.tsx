@@ -1,45 +1,31 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
-import { Link } from '@/i18n/navigation';
-import { api } from '@/lib/api';
+import type { Metadata } from 'next';
 import Image from 'next/image';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
+import { routing } from '@/i18n/routing';
 import ProductCard from '@/components/storefront/ProductCard';
+import { JsonLd } from '@/components/storefront/JsonLd';
+import { getCategories, getProducts, getSiteConfig, toCardProduct } from '@/lib/catalog/server';
+import type { Product } from '@/lib/catalog/types';
+import { SITE_NAME, absoluteUrl, getSiteUrl, pageMetadata } from '@/lib/seo';
 
-type Product = {
-  id: string;
-  nameHe: string;
-  nameEn: string;
-  slug: string;
-  basePrice: string;
-  isFeatured: boolean;
-  images: { url: string; color?: string }[];
-  variants: {
-    salePrice?: string | null;
-    saleStart?: string | null;
-    saleEnd?: string | null;
-    priceOverride?: string | null;
-  }[];
-};
+export const revalidate = 300;
 
-type CategoryData = {
-  id: string;
-  nameHe: string;
-  nameEn: string;
-  slug: string;
-  image: string | null;
-  children?: CategoryData[];
-};
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
 
-type SiteConfigData = {
-  heroImageUrl: string | null;
-  heroTitleHe: string | null;
-  heroTitleEn: string | null;
-  heroSubtitleHe: string | null;
-  heroSubtitleEn: string | null;
-  heroCtaUrl: string | null;
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'seo' });
+  return pageMetadata({
+    locale,
+    path: '/',
+    title: t('homeTitle'),
+    description: t('homeDescription'),
+    absoluteTitle: true,
+  });
+}
 
 /* ─── New Arrival Card (horizontal: image left, text right) ─── */
 
@@ -55,23 +41,13 @@ function NewArrivalCard({ product, locale }: { product: Product; locale: string 
     >
       <div className="relative w-[88px] h-[88px] flex-shrink-0 bg-warm-100 rounded-lg overflow-hidden">
         {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt={name}
-            fill
-            sizes="88px"
-            className="object-cover"
-          />
+          <Image src={imageUrl} alt={name} fill sizes="88px" className="object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">
-            BAIA
-          </div>
+          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">BAIA</div>
         )}
       </div>
       <div className="flex-1 min-w-0 text-center">
-        <h3 className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-snug mb-1.5">
-          {name}
-        </h3>
+        <h3 className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-snug mb-1.5">{name}</h3>
         <p className="text-[15px] font-semibold text-gray-900">₪{price.toFixed(0)}</p>
       </div>
     </Link>
@@ -80,47 +56,54 @@ function NewArrivalCard({ product, locale }: { product: Product; locale: string 
 
 /* ─── Homepage ─── */
 
-export default function HomePage() {
-  const t = useTranslations('home');
-  const locale = useLocale();
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<CategoryData[]>([]);
-  const [siteConfig, setSiteConfig] = useState<SiteConfigData | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [t, { products }, categories, siteConfig] = await Promise.all([
+    getTranslations('home'),
+    getProducts({ limit: 50, sort: 'newest' }),
+    getCategories(),
+    getSiteConfig(),
+  ]);
 
-  useEffect(() => {
-    Promise.all([
-      api.get('/products', { params: { limit: 50 } }),
-      api.get('/categories'),
-      api.get('/site-config'),
-    ])
-      .then(([productsRes, categoriesRes, configRes]) => {
-        setProducts(productsRes.data.products || []);
-        setCategories(categoriesRes.data || []);
-        setSiteConfig(configRes.data || null);
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
-  }, []);
-
+  const he = locale === 'he';
   const newArrivals = products.slice(0, 12);
+  const featured = products.filter((p) => p.isFeatured).slice(0, 8).map(toCardProduct);
 
   const heroImage = siteConfig?.heroImageUrl || '/hero/hero-banner.png';
-  const heroSubtitle = locale === 'he'
-    ? (siteConfig?.heroSubtitleHe || t('heroSubtitle'))
-    : (siteConfig?.heroSubtitleEn || t('heroSubtitle'));
+  const heroSubtitle = (he ? siteConfig?.heroSubtitleHe : siteConfig?.heroSubtitleEn) || t('heroSubtitle');
   const heroCtaUrl = siteConfig?.heroCtaUrl || '/category/men';
 
-  // Map top-level categories with their images from DB
   const categoryCards = categories.map((cat) => ({
     slug: cat.slug,
-    label: locale === 'he' ? cat.nameHe : cat.nameEn,
+    label: he ? cat.nameHe : cat.nameEn,
     image: cat.image || `/categories/${cat.slug}.jpg`,
   }));
 
+  const siteUrl = getSiteUrl().toString();
+
   return (
     <>
+      <JsonLd
+        data={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: SITE_NAME,
+            url: siteUrl,
+            logo: new URL('/logo/baia-logo.svg', siteUrl).toString(),
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: SITE_NAME,
+            url: absoluteUrl(locale, '/'),
+            inLanguage: he ? 'he-IL' : 'en-US',
+          },
+        ]}
+      />
+
       {/* ─── Hero Banner ──────────────────────────────── */}
       <section className="relative w-full h-[420px] sm:h-[480px] lg:h-[540px] overflow-hidden">
         <Image
@@ -188,11 +171,9 @@ export default function HomePage() {
           </h2>
         </div>
 
-        {loaded && newArrivals.length === 0 ? (
-          <p className="text-center text-gray-400 py-12 text-sm tracking-wide">
-            {t('comingSoon')}
-          </p>
-        ) : newArrivals.length > 0 ? (
+        {newArrivals.length === 0 ? (
+          <p className="text-center text-gray-400 py-12 text-sm tracking-wide">{t('comingSoon')}</p>
+        ) : (
           <div className="overflow-hidden pb-12 sm:pb-16 marquee-wrapper">
             <div
               className="marquee-track gap-4"
@@ -207,11 +188,11 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-        ) : null}
+        )}
       </section>
 
       {/* ─── Featured Products Grid ────────────────────── */}
-      {products.filter(p => p.isFeatured).length > 0 && (
+      {featured.length > 0 && (
         <section className="bg-ocean-50/40">
           <div className="container-page py-12 sm:py-16">
             <div className="flex items-center justify-between mb-6">
@@ -226,8 +207,8 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-              {products.filter(p => p.isFeatured).slice(0, 8).map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {featured.map((product, i) => (
+                <ProductCard key={product.id} product={product} priority={i < 4} />
               ))}
             </div>
           </div>

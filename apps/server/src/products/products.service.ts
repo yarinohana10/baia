@@ -1,8 +1,21 @@
-import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService, STORAGE_SERVICE } from '../storage/storage.interface';
 import { Prisma } from '../generated/prisma';
 import { randomUUID } from 'crypto';
+import {
+  FieldError,
+  fieldConflictException,
+  fieldValidationException,
+} from '../common/validation';
+import {
+  CreateProductDto,
+  ImageMetaDto,
+  UpdateProductDto,
+  UpdateVariantDto,
+  VariantDto,
+} from './dto/product.dto';
+import { compareSizes } from './size-sets';
 
 type ImageWithUpload = {
   id: string;
@@ -16,8 +29,44 @@ type ProductWithImages = {
   [key: string]: unknown;
 };
 
+/** Minimal file shape (subset of Express.Multer.File) the service needs. */
+export type IncomingFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size?: number;
+};
+
+type PricingFields = {
+  priceOverride?: number | null;
+  salePrice?: number | null;
+  saleStart?: string | Date | null;
+  saleEnd?: string | Date | null;
+};
+
+type DecimalLike = { toNumber(): number } | number | string | null | undefined;
+
+function toNumber(value: DecimalLike): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') return parseFloat(value);
+  return value.toNumber();
+}
+
+function decimalOrNull(value: number | null | undefined) {
+  return value === null || value === undefined ? null : new Prisma.Decimal(value);
+}
+
+function dateOrNull(value: string | null | undefined) {
+  return value ? new Date(value) : null;
+}
+
+const IMAGE_INCLUDE = { orderBy: { sortOrder: 'asc' }, include: { upload: true } } as const;
+
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     private prisma: PrismaService,
     @Inject(STORAGE_SERVICE) private storage: StorageService,
@@ -36,6 +85,18 @@ export class ProductsService {
     }
     return product;
   }
+
+  private get bucket() {
+    return process.env.S3_BUCKET || 'baia-assets';
+  }
+
+  // ─── Size sets ───────────────────────────────────
+
+  listSizeSets() {
+    return this.prisma.sizeSet.findMany({ orderBy: { sortOrder: 'asc' } });
+  }
+
+  // ─── Queries ─────────────────────────────────────
 
   async findAll(params?: {
     categoryId?: string;
@@ -79,7 +140,7 @@ export class ProductsService {
         include: {
           category: true,
           variants: { where: { isActive: true } },
-          images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
+          images: IMAGE_INCLUDE,
         },
         orderBy,
         skip: (page - 1) * limit,
@@ -113,7 +174,7 @@ export class ProductsService {
       include: {
         category: true,
         variants: true,
-        images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
+        images: IMAGE_INCLUDE,
         _count: { select: { variants: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -122,17 +183,19 @@ export class ProductsService {
     return products.map((p) => this.resolveProductImages(p));
   }
 
+  /** Public product page lookup — hidden (inactive) products are not exposed. */
   async findBySlug(slug: string) {
     const product = await this.prisma.product.findUnique({
       where: { slug },
       include: {
         category: { include: { parent: true } },
+        sizeSet: true,
         variants: { where: { isActive: true }, orderBy: { color: 'asc' } },
-        images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
+        images: IMAGE_INCLUDE,
       },
     });
-    if (!product) throw new NotFoundException('Product not found');
-    return this.resolveProductImages(product);
+    if (!product || product.isActive === false) throw new NotFoundException('Product not found');
+    return this.resolveProductImages(this.sortVariantsBySize(product));
   }
 
   async findById(id: string) {
@@ -140,82 +203,330 @@ export class ProductsService {
       where: { id },
       include: {
         category: true,
+        sizeSet: true,
         variants: { orderBy: [{ color: 'asc' }, { size: 'asc' }] },
-        images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
+        images: IMAGE_INCLUDE,
       },
     });
     if (!product) throw new NotFoundException('Product not found');
-    return this.resolveProductImages(product);
+    return this.resolveProductImages(this.sortVariantsBySize(product));
   }
 
-  async create(data: {
-    nameHe: string;
-    nameEn: string;
-    descriptionHe?: string;
-    descriptionEn?: string;
-    slug: string;
-    basePrice: number;
-    categoryId: string;
-    isFeatured?: boolean;
-  }) {
-    if (!data.categoryId) {
-      throw new BadRequestException('Every product must be assigned to a category');
-    }
-
-    const category = await this.prisma.category.findUnique({
-      where: { id: data.categoryId },
-    });
-    if (!category) {
-      throw new BadRequestException(`Category with id "${data.categoryId}" does not exist`);
-    }
-
-    return this.prisma.product.create({
-      data: {
-        ...data,
-        basePrice: new Prisma.Decimal(data.basePrice),
-      },
-      include: { category: true, variants: true, images: true },
-    });
+  private sortVariantsBySize<
+    T extends { variants?: { color: string; size: string }[]; sizeSet?: { sizes: string[] } | null },
+  >(product: T): T {
+    if (!product.variants) return product;
+    const order = product.sizeSet?.sizes ?? [];
+    const variants = [...product.variants].sort(
+      (a, b) => a.color.localeCompare(b.color) || compareSizes(a.size, b.size, order),
+    );
+    return { ...product, variants };
   }
 
-  async update(id: string, data: Partial<{
-    nameHe: string;
-    nameEn: string;
-    descriptionHe: string;
-    descriptionEn: string;
-    slug: string;
-    basePrice: number;
-    categoryId: string;
-    isFeatured: boolean;
-    isActive: boolean;
-  }>) {
-    await this.findById(id);
+  // ─── Validation helpers ──────────────────────────
 
-    if (data.categoryId !== undefined) {
-      if (!data.categoryId) {
-        throw new BadRequestException('Cannot remove category from a product — every product must belong to a category');
+  /**
+   * Business rules that span fields/objects (DTOs cover per-field rules):
+   * - sale price must be below the variant's effective price
+   * - SKUs and color+size combinations must be unique within the payload
+   */
+  private variantRuleErrors(
+    variants: (PricingFields & { sku?: string; color?: string; size?: string })[],
+    basePrice: number,
+    pathPrefix = 'variants',
+  ): FieldError[] {
+    const errors: FieldError[] = [];
+    const skus = new Map<string, number>();
+    const combos = new Map<string, number>();
+
+    variants.forEach((v, i) => {
+      const path = pathPrefix ? `${pathPrefix}.${i}` : '';
+      const at = (field: string) => (path ? `${path}.${field}` : field);
+
+      errors.push(...this.pricingErrors(v, basePrice, path));
+
+      if (v.sku) {
+        const key = v.sku.toLowerCase();
+        if (skus.has(key)) {
+          errors.push({ field: at('sku'), code: 'duplicate', message: `SKU "${v.sku}" is used more than once` });
+        } else {
+          skus.set(key, i);
+        }
       }
-      const category = await this.prisma.category.findUnique({
-        where: { id: data.categoryId },
+      if (v.color && v.size) {
+        const key = `${v.color.toLowerCase()}|${v.size.toLowerCase()}`;
+        if (combos.has(key)) {
+          errors.push({
+            field: at('size'),
+            code: 'duplicateCombination',
+            message: `Color "${v.color}" / size "${v.size}" is used more than once`,
+          });
+        } else {
+          combos.set(key, i);
+        }
+      }
+    });
+    return errors;
+  }
+
+  private pricingErrors(v: PricingFields, basePrice: number, path: string): FieldError[] {
+    const at = (field: string) => (path ? `${path}.${field}` : field);
+    const errors: FieldError[] = [];
+    const effective = v.priceOverride ?? basePrice;
+    if (v.salePrice !== null && v.salePrice !== undefined && v.salePrice >= effective) {
+      errors.push({
+        field: at('salePrice'),
+        code: 'saleBelowPrice',
+        message: `salePrice must be lower than the price (${effective})`,
       });
+    }
+    if (v.saleStart && v.saleEnd && new Date(v.saleEnd).getTime() <= new Date(v.saleStart).getTime()) {
+      errors.push({ field: at('saleEnd'), code: 'saleDateRange', message: 'saleEnd must be after saleStart' });
+    }
+    return errors;
+  }
+
+  private async relationErrors(data: { categoryId?: string; sizeSetId?: string | null }) {
+    const errors: FieldError[] = [];
+    if (data.categoryId !== undefined) {
+      const category = await this.prisma.category.findUnique({ where: { id: data.categoryId } });
       if (!category) {
-        throw new BadRequestException(`Category with id "${data.categoryId}" does not exist`);
+        errors.push({ field: 'categoryId', code: 'notFound', message: 'Category does not exist' });
+      }
+    }
+    if (data.sizeSetId) {
+      const sizeSet = await this.prisma.sizeSet.findUnique({ where: { id: data.sizeSetId } });
+      if (!sizeSet) {
+        errors.push({ field: 'sizeSetId', code: 'notFound', message: 'Size set does not exist' });
+      }
+    }
+    return errors;
+  }
+
+  /** Pre-checks unique fields so the client gets precise field paths (409). */
+  private async uniquenessErrors(params: {
+    slug?: string;
+    excludeProductId?: string;
+    variants?: { id?: string; sku: string }[];
+    pathPrefix?: string;
+  }): Promise<FieldError[]> {
+    const errors: FieldError[] = [];
+    const { slug, excludeProductId, variants = [], pathPrefix = 'variants' } = params;
+
+    if (slug) {
+      const existing = await this.prisma.product.findUnique({ where: { slug }, select: { id: true } });
+      if (existing && existing.id !== excludeProductId) {
+        errors.push({ field: 'slug', code: 'unique', message: `A product with slug "${slug}" already exists` });
       }
     }
 
-    const updateData: any = { ...data };
-    if (data.basePrice !== undefined) {
-      updateData.basePrice = new Prisma.Decimal(data.basePrice);
+    if (variants.length > 0) {
+      const taken = await this.prisma.productVariant.findMany({
+        where: { sku: { in: variants.map((v) => v.sku) } },
+        select: { id: true, sku: true },
+      });
+      variants.forEach((v, i) => {
+        const clash = taken.find((t) => t.sku === v.sku && t.id !== v.id);
+        if (clash) {
+          errors.push({
+            field: pathPrefix ? `${pathPrefix}.${i}.sku` : 'sku',
+            code: 'unique',
+            message: `SKU "${v.sku}" already exists`,
+          });
+        }
+      });
     }
-    return this.prisma.product.update({
+    return errors;
+  }
+
+  private variantData(v: VariantDto | UpdateVariantDto) {
+    const data: Prisma.ProductVariantUncheckedUpdateInput = {};
+    if (v.color !== undefined) data.color = v.color;
+    if (v.size !== undefined) data.size = v.size;
+    if (v.sku !== undefined) data.sku = v.sku;
+    if (v.stockQuantity !== undefined) data.stockQuantity = v.stockQuantity;
+    if (v.priceOverride !== undefined) data.priceOverride = decimalOrNull(v.priceOverride);
+    if (v.salePrice !== undefined) data.salePrice = decimalOrNull(v.salePrice);
+    if (v.saleStart !== undefined) data.saleStart = dateOrNull(v.saleStart);
+    if (v.saleEnd !== undefined) data.saleEnd = dateOrNull(v.saleEnd);
+    if (v.isActive !== undefined) data.isActive = v.isActive;
+    return data;
+  }
+
+  // ─── Image storage helpers ───────────────────────
+
+  private imageKey(productId: string, originalName: string) {
+    const ext = (originalName.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    return `products/${productId}/${randomUUID()}.${ext}`;
+  }
+
+  /** Uploads files to storage; if any upload fails, already-uploaded ones are removed. */
+  private async putFiles(productId: string, files: IncomingFile[]) {
+    const keys = files.map((f) => this.imageKey(productId, f.originalname));
+    const results = await Promise.allSettled(
+      files.map((f, i) => this.storage.upload(f.buffer, keys[i], f.mimetype)),
+    );
+    const failed = results.find((r) => r.status === 'rejected');
+    if (failed) {
+      await this.removeKeys(keys.filter((_, i) => results[i].status === 'fulfilled'));
+      throw (failed as PromiseRejectedResult).reason;
+    }
+    return keys.map((key, i) => ({ key, url: (results[i] as PromiseFulfilledResult<string>).value }));
+  }
+
+  private async removeKeys(keys: string[]) {
+    await Promise.all(
+      keys.map((key) =>
+        this.storage.delete(key).catch((err) => {
+          this.logger.warn(`Failed to clean up storage object ${key}: ${err}`);
+        }),
+      ),
+    );
+  }
+
+  // ─── Products: create / update / delete ──────────
+
+  /**
+   * Creates a product with its variants and images atomically.
+   * Files are uploaded to storage first; the product, variants, Upload and
+   * ProductImage rows are then written in a single transaction. If the
+   * transaction fails, the uploaded storage objects are deleted.
+   */
+  async create(dto: CreateProductDto, files: IncomingFile[] = [], uploadedBy?: string) {
+    const variants = dto.variants ?? [];
+    const imageMeta: ImageMetaDto[] = files.map((_, i) => dto.images?.[i] ?? {});
+
+    const errors = [
+      ...this.variantRuleErrors(variants, dto.basePrice),
+      ...(await this.relationErrors({ categoryId: dto.categoryId, sizeSetId: dto.sizeSetId })),
+    ];
+    if (dto.images && dto.images.length > files.length) {
+      errors.push({
+        field: 'images',
+        code: 'fileMissing',
+        message: `${dto.images.length} image entries were sent but only ${files.length} files`,
+      });
+    }
+    if (errors.length) throw fieldValidationException(errors);
+
+    const conflicts = await this.uniquenessErrors({ slug: dto.slug, variants });
+    if (conflicts.length) throw fieldConflictException(conflicts);
+
+    const productId = randomUUID();
+    const stored = await this.putFiles(productId, files);
+
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        return tx.product.create({
+          data: {
+            id: productId,
+            nameHe: dto.nameHe,
+            nameEn: dto.nameEn,
+            descriptionHe: dto.descriptionHe ?? null,
+            descriptionEn: dto.descriptionEn ?? null,
+            slug: dto.slug,
+            basePrice: new Prisma.Decimal(dto.basePrice),
+            categoryId: dto.categoryId,
+            sizeSetId: dto.sizeSetId ?? null,
+            isFeatured: dto.isFeatured ?? false,
+            isActive: dto.isActive ?? true,
+            variants: {
+              create: variants.map((v) => ({
+                color: v.color,
+                size: v.size,
+                sku: v.sku,
+                stockQuantity: v.stockQuantity,
+                priceOverride: decimalOrNull(v.priceOverride),
+                salePrice: decimalOrNull(v.salePrice),
+                saleStart: dateOrNull(v.saleStart),
+                saleEnd: dateOrNull(v.saleEnd),
+                isActive: v.isActive ?? true,
+              })),
+            },
+            images: {
+              create: stored.map((s, i) => ({
+                url: s.url,
+                sortOrder: i,
+                color: imageMeta[i].color ?? null,
+                altTextHe: imageMeta[i].altTextHe ?? null,
+                altTextEn: imageMeta[i].altTextEn ?? null,
+                upload: {
+                  create: {
+                    s3Key: s.key,
+                    s3Bucket: this.bucket,
+                    mimeType: files[i].mimetype,
+                    sizeBytes: files[i].size ?? files[i].buffer.length,
+                    fileName: files[i].originalname,
+                    uploadedBy,
+                  },
+                },
+              })),
+            },
+          },
+          include: {
+            category: true,
+            sizeSet: true,
+            variants: true,
+            images: IMAGE_INCLUDE,
+          },
+        });
+      });
+      return this.resolveProductImages(created);
+    } catch (err) {
+      await this.removeKeys(stored.map((s) => s.key));
+      throw err;
+    }
+  }
+
+  async update(id: string, dto: UpdateProductDto) {
+    const existing = await this.prisma.product.findUnique({
       where: { id },
-      data: updateData,
-      include: {
-        category: true,
-        variants: true,
-        images: { orderBy: { sortOrder: 'asc' }, include: { upload: true } },
-      },
-    }).then((p) => this.resolveProductImages(p));
+      include: { variants: { select: { id: true } } },
+    });
+    if (!existing) throw new NotFoundException('Product not found');
+
+    const variants = dto.variants ?? [];
+    const basePrice = dto.basePrice ?? toNumber(existing.basePrice as DecimalLike) ?? 0;
+    const ownIds = new Set(existing.variants.map((v) => v.id));
+
+    const errors = [
+      ...this.variantRuleErrors(variants, basePrice),
+      ...(await this.relationErrors({ categoryId: dto.categoryId, sizeSetId: dto.sizeSetId })),
+    ];
+    variants.forEach((v, i) => {
+      if (v.id && !ownIds.has(v.id)) {
+        errors.push({ field: `variants.${i}.id`, code: 'notFound', message: 'Variant does not belong to this product' });
+      }
+    });
+    if (errors.length) throw fieldValidationException(errors);
+
+    const conflicts = await this.uniquenessErrors({ slug: dto.slug, excludeProductId: id, variants });
+    if (conflicts.length) throw fieldConflictException(conflicts);
+
+    const data: Prisma.ProductUncheckedUpdateInput = {};
+    const scalarKeys = [
+      'nameHe', 'nameEn', 'descriptionHe', 'descriptionEn', 'slug',
+      'categoryId', 'isFeatured', 'isActive', 'sizeSetId',
+    ] as const;
+    for (const key of scalarKeys) {
+      if (dto[key] !== undefined) (data as Record<string, unknown>)[key] = dto[key];
+    }
+    if (dto.basePrice !== undefined) data.basePrice = new Prisma.Decimal(dto.basePrice);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.product.update({ where: { id }, data });
+      for (const v of variants) {
+        if (v.id) {
+          await tx.productVariant.update({ where: { id: v.id }, data: this.variantData(v) });
+        } else {
+          await tx.productVariant.create({
+            data: { ...(this.variantData(v) as Prisma.ProductVariantUncheckedCreateInput), productId: id },
+          });
+        }
+      }
+    });
+
+    return this.findById(id);
   }
 
   async delete(id: string) {
@@ -238,62 +549,68 @@ export class ProductsService {
 
   // ─── Variants ────────────────────────────────────
 
-  async createVariant(productId: string, data: {
-    color: string;
-    size: string;
-    sku: string;
-    stockQuantity: number;
-    priceOverride?: number;
-    salePrice?: number;
-    saleStart?: string;
-    saleEnd?: string;
-  }) {
+  async createVariant(productId: string, dto: VariantDto) {
+    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const basePrice = toNumber(product.basePrice as DecimalLike) ?? 0;
+    const errors = this.pricingErrors(dto, basePrice, '');
+    if (errors.length) throw fieldValidationException(errors);
+
+    const conflicts = await this.uniquenessErrors({ variants: [dto], pathPrefix: '' });
+    if (conflicts.length) throw fieldConflictException(conflicts);
+
+    const { id: _ignored, ...rest } = dto;
     return this.prisma.productVariant.create({
-      data: {
-        productId,
-        color: data.color,
-        size: data.size,
-        sku: data.sku,
-        stockQuantity: data.stockQuantity,
-        priceOverride: data.priceOverride ? new Prisma.Decimal(data.priceOverride) : null,
-        salePrice: data.salePrice ? new Prisma.Decimal(data.salePrice) : null,
-        saleStart: data.saleStart ? new Date(data.saleStart) : null,
-        saleEnd: data.saleEnd ? new Date(data.saleEnd) : null,
-      },
+      data: { ...(this.variantData(rest) as Prisma.ProductVariantUncheckedCreateInput), productId },
     });
   }
 
-  async updateVariant(variantId: string, data: Partial<{
-    color: string;
-    size: string;
-    sku: string;
-    stockQuantity: number;
-    priceOverride: number | null;
-    salePrice: number | null;
-    saleStart: string | null;
-    saleEnd: string | null;
-    isActive: boolean;
-  }>) {
-    const updateData: any = { ...data };
-    if (data.priceOverride !== undefined) {
-      updateData.priceOverride = data.priceOverride ? new Prisma.Decimal(data.priceOverride) : null;
+  async updateVariant(variantId: string, dto: UpdateVariantDto) {
+    const variant = await this.prisma.productVariant.findUnique({
+      where: { id: variantId },
+      include: { product: { select: { basePrice: true } } },
+    });
+    if (!variant) throw new NotFoundException('Variant not found');
+
+    // Validate the merged state so partial updates can't produce invalid pricing
+    const merged: PricingFields = {
+      priceOverride: dto.priceOverride !== undefined ? dto.priceOverride : toNumber(variant.priceOverride as DecimalLike),
+      salePrice: dto.salePrice !== undefined ? dto.salePrice : toNumber(variant.salePrice as DecimalLike),
+      saleStart: dto.saleStart !== undefined ? dto.saleStart : variant.saleStart,
+      saleEnd: dto.saleEnd !== undefined ? dto.saleEnd : variant.saleEnd,
+    };
+    const basePrice = toNumber(variant.product.basePrice as DecimalLike) ?? 0;
+    const errors = this.pricingErrors(merged, basePrice, '');
+    if (errors.length) throw fieldValidationException(errors);
+
+    if (dto.sku !== undefined) {
+      const conflicts = await this.uniquenessErrors({ variants: [{ id: variantId, sku: dto.sku }], pathPrefix: '' });
+      if (conflicts.length) throw fieldConflictException(conflicts);
     }
-    if (data.salePrice !== undefined) {
-      updateData.salePrice = data.salePrice ? new Prisma.Decimal(data.salePrice) : null;
-    }
-    if (data.saleStart !== undefined) {
-      updateData.saleStart = data.saleStart ? new Date(data.saleStart) : null;
-    }
-    if (data.saleEnd !== undefined) {
-      updateData.saleEnd = data.saleEnd ? new Date(data.saleEnd) : null;
-    }
+
     return this.prisma.productVariant.update({
       where: { id: variantId },
-      data: updateData,
+      data: this.variantData(dto),
     });
   }
 
+  /**
+   * Deletes a variant. Variants referenced by orders or carts are deactivated
+   * instead so order history stays intact.
+   */
   async deleteVariant(variantId: string) {
+    const variant = await this.prisma.productVariant.findUnique({
+      where: { id: variantId },
+      include: { _count: { select: { orderItems: true, cartItems: true } } },
+    });
+    if (!variant) throw new NotFoundException('Variant not found');
+
+    if (variant._count.orderItems > 0 || variant._count.cartItems > 0) {
+      await this.prisma.productVariant.update({ where: { id: variantId }, data: { isActive: false } });
+      return { deleted: false, deactivated: true };
+    }
+
     await this.prisma.productVariant.delete({ where: { id: variantId } });
     return { deleted: true };
   }
@@ -302,51 +619,107 @@ export class ProductsService {
 
   async uploadImage(
     productId: string,
-    file: Buffer,
-    originalName: string,
-    mimeType: string,
-    color?: string,
+    file: IncomingFile | undefined,
+    meta: ImageMetaDto = {},
     uploadedBy?: string,
   ) {
-    const ext = originalName.split('.').pop() || 'jpg';
-    const uploadId = randomUUID();
-    const s3Key = `products/${productId}/${uploadId}.${ext}`;
-    const bucket = process.env.S3_BUCKET || 'baia-assets';
+    if (!file || !file.buffer) {
+      throw fieldValidationException([{ field: 'file', code: 'required', message: 'An image file is required' }]);
+    }
 
-    const url = await this.storage.upload(file, s3Key, mimeType);
+    const product = await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const [stored] = await this.putFiles(productId, [file]);
 
     try {
-      const upload = await this.prisma.upload.create({
-        data: {
-          s3Key,
-          s3Bucket: bucket,
-          mimeType,
-          sizeBytes: file.length,
-          fileName: originalName,
-          uploadedBy,
-        },
+      const image = await this.prisma.$transaction(async (tx) => {
+        const maxSort = await tx.productImage.aggregate({
+          where: { productId },
+          _max: { sortOrder: true },
+        });
+        const current = maxSort._max.sortOrder;
+        return tx.productImage.create({
+          data: {
+            product: { connect: { id: productId } },
+            url: stored.url,
+            color: meta.color ?? null,
+            altTextHe: meta.altTextHe ?? null,
+            altTextEn: meta.altTextEn ?? null,
+            sortOrder: current === null || current === undefined ? 0 : current + 1,
+            upload: {
+              create: {
+                s3Key: stored.key,
+                s3Bucket: this.bucket,
+                mimeType: file.mimetype,
+                sizeBytes: file.size ?? file.buffer.length,
+                fileName: file.originalname,
+                uploadedBy,
+              },
+            },
+          },
+          include: { upload: true },
+        });
       });
-
-      const maxSort = await this.prisma.productImage.aggregate({
-        where: { productId },
-        _max: { sortOrder: true },
-      });
-
-      return await this.prisma.productImage.create({
-        data: {
-          productId,
-          url,
-          uploadId: upload.id,
-          color,
-          sortOrder: (maxSort._max.sortOrder || 0) + 1,
-        },
-        include: { upload: true },
-      });
+      return this.resolveImageUrl(image);
     } catch (err) {
-      // DB write failed — clean up the S3 object to prevent orphans
-      await this.storage.delete(s3Key).catch(() => {});
+      // DB write failed — clean up the storage object to prevent orphans
+      await this.removeKeys([stored.key]);
       throw err;
     }
+  }
+
+  async updateImage(imageId: string, meta: ImageMetaDto) {
+    const image = await this.prisma.productImage.findUnique({ where: { id: imageId } });
+    if (!image) throw new NotFoundException('Image not found');
+
+    const data: Prisma.ProductImageUpdateInput = {};
+    if (meta.color !== undefined) data.color = meta.color;
+    if (meta.altTextHe !== undefined) data.altTextHe = meta.altTextHe;
+    if (meta.altTextEn !== undefined) data.altTextEn = meta.altTextEn;
+
+    const updated = await this.prisma.productImage.update({
+      where: { id: imageId },
+      data,
+      include: { upload: true },
+    });
+    return this.resolveImageUrl(updated);
+  }
+
+  /** Sets the gallery order; `imageIds` must list every image of the product exactly once. */
+  async reorderImages(productId: string, imageIds: string[]) {
+    const images = await this.prisma.productImage.findMany({
+      where: { productId },
+      select: { id: true },
+    });
+    if (images.length === 0) {
+      const product = await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
+      if (!product) throw new NotFoundException('Product not found');
+    }
+
+    const current = new Set(images.map((i) => i.id));
+    const sameSet = imageIds.length === current.size && imageIds.every((id) => current.has(id));
+    if (!sameSet) {
+      throw fieldValidationException([
+        {
+          field: 'imageIds',
+          code: 'mismatch',
+          message: 'imageIds must contain every image of the product exactly once',
+        },
+      ]);
+    }
+
+    await this.prisma.$transaction(
+      imageIds.map((id, index) =>
+        this.prisma.productImage.update({ where: { id }, data: { sortOrder: index } }),
+      ),
+    );
+
+    const ordered = await this.prisma.productImage.findMany({
+      where: { productId },
+      ...IMAGE_INCLUDE,
+    });
+    return ordered.map((img) => this.resolveImageUrl(img));
   }
 
   async deleteImage(imageId: string) {
@@ -356,12 +729,12 @@ export class ProductsService {
     });
     if (!image) throw new NotFoundException('Image not found');
 
+    // Remove DB rows first so the product never points at a missing file;
+    // a leftover storage object is harmless and logged.
+    await this.prisma.productImage.delete({ where: { id: imageId } });
     if (image.upload) {
-      await this.storage.delete(image.upload.s3Key);
-      await this.prisma.productImage.delete({ where: { id: imageId } });
       await this.prisma.upload.delete({ where: { id: image.upload.id } });
-    } else {
-      await this.prisma.productImage.delete({ where: { id: imageId } });
+      await this.removeKeys([image.upload.s3Key]);
     }
 
     return { deleted: true };

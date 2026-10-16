@@ -11,7 +11,8 @@ permissions:
   pull-requests: write
 
 env:
-  NODE_VERSION: '20'
+  # 24.9+: Jest needs native require(esm) to load better-auth (ESM-only) in server tests.
+  NODE_VERSION: '24'
 
 jobs:
   # ──────────────────────────────────────────────────
