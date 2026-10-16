@@ -145,7 +145,16 @@
     "continueShopping": "Continue Shopping",
     "decreaseQuantity": "Decrease quantity",
     "increaseQuantity": "Increase quantity",
-    "removeItem": "Remove item"
+    "removeItem": "Remove item",
+    "viewCart": "View cart",
+    "freeShippingOver": "Free shipping on orders over {amount}",
+    "updating": "Updating…",
+    "issues": {
+      "unavailable": "This item is no longer available. Please remove it from your cart.",
+      "outOfStock": "This item is out of stock. Please remove it from your cart.",
+      "insufficient": "{available, plural, one {Only # left in stock.} other {Only # left in stock.}} Please lower the quantity.",
+      "blocked": "Some items in your cart need your attention before you can check out."
+    }
   },
   "footer": {
     "categoriesTitle": "Categories",
@@ -266,6 +275,12 @@
       "body": "The page you're looking for doesn't exist or has moved. Let's get you back to the shore.",
       "home": "Back to homepage",
       "shop": "Shop new arrivals"
+    },
+    "product": {
+      "notFound": "Product not found.",
+      "sku": "SKU: {sku}",
+      "lowStock": "{count, plural, one {Only # left} other {Only # left}}",
+      "adding": "Adding…"
     }
   },
   "pages": {
@@ -666,7 +681,49 @@
   "checkout": {
     "paymentFailed": "Payment was not completed. Your order is saved — you can try again.",
     "failed": "Checkout failed. Please try again.",
-    "retryPayment": "Retry Payment"
+    "retryPayment": "Retry Payment",
+    "contact": "Contact",
+    "email": "Email",
+    "fullName": "Full name",
+    "phone": "Phone",
+    "phoneHint": "Digits only, e.g. 050-1234567",
+    "shippingAddress": "Shipping Address",
+    "city": "City",
+    "street": "Street",
+    "number": "Number",
+    "apartment": "Apartment",
+    "zip": "ZIP code",
+    "coupon": "Coupon code",
+    "apply": "Apply",
+    "removeCoupon": "Remove coupon",
+    "discountApplied": "Coupon {code} applied: -{amount}",
+    "discount": "Discount",
+    "orderSummary": "Order Summary",
+    "placeOrder": "Place Order",
+    "processing": "Processing…",
+    "secureNote": "Secure checkout with encrypted payment",
+    "empty": "Your cart is empty.",
+    "loading": "Loading your cart…",
+    "backToCart": "Back to cart",
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "network": "We couldn't reach the store. Check your connection and try again.",
+      "invalidDetails": "Some of the details are missing or invalid. Please check them and try again.",
+      "tooManyRequests": "Too many attempts. Please wait a minute and try again.",
+      "paymentDeclined": "The payment was declined. Your order is saved — you can try again.",
+      "cartEmpty": "Your cart is empty.",
+      "variantUnavailable": "{product} (size {size}) is no longer available. Please remove it from your cart.",
+      "variantUnavailableGeneric": "This item is no longer available.",
+      "outOfStock": "There isn't enough stock of {product} (size {size}). Please update your cart.",
+      "outOfStockAvailable": "{available, plural, one {Only # left in stock.} other {Only # left in stock.}}",
+      "outOfStockGeneric": "This item is out of stock.",
+      "couponInvalid": "This coupon code isn't valid.",
+      "couponInactive": "This coupon is no longer active.",
+      "couponExpired": "This coupon has expired.",
+      "couponLimitReached": "This coupon has reached its usage limit.",
+      "couponMinTotal": "This coupon requires a minimum order of {min}.",
+      "orderNotPayable": "This order expired because it wasn't paid within 60 minutes, and its items were released back to stock. You can add them to your cart and place the order again."
+    }
   },
   "orderConfirmation": {
     "thankYou": "Thank You!",
@@ -695,5 +752,20 @@
       "CANCELLED": "Cancelled",
       "REFUNDED": "Refunded"
     }
+  },
+  "orders": {
+    "title": "My Orders",
+    "empty": "No orders yet.",
+    "startShopping": "Start Shopping",
+    "itemCount": "{count, plural, one {# item} other {# items}}",
+    "loadError": "We couldn't load your orders. Please try again.",
+    "retry": "Try again",
+    "loadMore": "Load more orders",
+    "loadingMore": "Loading…",
+    "viewOrder": "View order {number}",
+    "phone": "Phone",
+    "tracking": "Tracking number",
+    "completePayment": "Complete payment",
+    "paying": "Processing…"
   }
 }

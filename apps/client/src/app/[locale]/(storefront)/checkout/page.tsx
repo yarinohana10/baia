@@ -1,73 +1,124 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from '@/i18n/navigation';
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
-import { useCartStore } from '@/store/cart';
-import { ShieldCheck, Truck, CreditCard, AlertTriangle } from 'lucide-react';
+import { useSession } from '@/lib/auth-client';
+import { formatPrice } from '@/lib/catalog/pricing';
+import { errorCode, shopErrorMessage, type ErrorMessage } from '@/lib/shop-errors';
+import { cartSubtotal, lineIssue, shippingFor, useCartStore } from '@/store/cart';
+import { ShieldCheck, Truck, CreditCard, AlertTriangle, X } from 'lucide-react';
+
+/** Same rule as the API's CreateOrderDto (HTML patterns are implicitly anchored). */
+const PHONE_PATTERN = '\\+?[0-9][0-9\\s\\-]{7,18}';
+
+const inputClass =
+  'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none';
+const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
+
+type AppliedCoupon = { code: string; discount: number; subtotal: number };
 
 export default function CheckoutPage() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('cart');
   const tCheckout = useTranslations('checkout');
-  const { items, fetchCart } = useCartStore();
+  const tErrors = useTranslations('checkout.errors');
+  const { items, loaded, shipping, fetchCart, fetchShipping } = useCartStore();
+  const { data: session } = useSession();
 
   const [email, setEmail] = useState('');
+  const [recipientName, setRecipientName] = useState('');
+  const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [street, setStreet] = useState('');
   const [number, setNumber] = useState('');
   const [apartment, setApartment] = useState('');
   const [zip, setZip] = useState('');
-  const [couponCode, setCouponCode] = useState('');
-  const [couponResult, setCouponResult] = useState<{ discount: number } | null>(null);
-  const [couponError, setCouponError] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [couponError, setCouponError] = useState<ErrorMessage | null>(null);
+  const [couponChecking, setCouponChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<ErrorMessage | null>(null);
   // An order whose payment did not go through: retry charges it instead of
   // creating a second order (the cart was already converted into it).
   const [pendingOrder, setPendingOrder] = useState<{ id: string; token?: string } | null>(null);
 
-  useEffect(() => { fetchCart(); }, [fetchCart]);
+  useEffect(() => {
+    fetchCart();
+    fetchShipping();
+  }, [fetchCart, fetchShipping]);
 
-  const subtotal = items.reduce((sum, item) => {
-    const variant = item.variant;
-    let price = parseFloat(variant.priceOverride || variant.product.basePrice);
-    if (variant.salePrice) {
-      const now = new Date();
-      const start = variant.saleStart ? new Date(variant.saleStart) : null;
-      const end = variant.saleEnd ? new Date(variant.saleEnd) : null;
-      if ((!start || now >= start) && (!end || now <= end)) {
-        price = parseFloat(variant.salePrice);
-      }
-    }
-    return sum + price * item.quantity;
-  }, 0);
+  // Signed-in shoppers: start from the account's email and name.
+  const sessionEmail = session?.user?.email;
+  const sessionName = session?.user?.name;
+  useEffect(() => {
+    if (sessionEmail) setEmail((current) => current || sessionEmail);
+    if (sessionName) setRecipientName((current) => current || sessionName);
+  }, [sessionEmail, sessionName]);
 
-  const freeShippingThreshold = 249;
-  const shippingCost = subtotal >= freeShippingThreshold ? 0 : 29.9;
-  const discount = couponResult?.discount || 0;
-  const total = subtotal + shippingCost - discount;
+  const subtotal = cartSubtotal(items);
+  const shippingCost = shippingFor(subtotal, shipping);
+  const discount = appliedCoupon?.discount ?? 0;
+  const total = Math.max(0, subtotal + shippingCost - discount);
+  const hasIssues = items.some((item) => lineIssue(item));
+
+  // The discount depends on the subtotal: re-check the coupon whenever the cart changes.
+  useEffect(() => {
+    if (!appliedCoupon || appliedCoupon.subtotal === subtotal || pendingOrder || subtotal <= 0) return;
+    let cancelled = false;
+    const { code } = appliedCoupon;
+    api
+      .post('/coupons/validate', { code, cartTotal: subtotal })
+      .then((res) => {
+        if (!cancelled) setAppliedCoupon({ code, discount: Number(res.data.discount) || 0, subtotal });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setAppliedCoupon(null);
+        setCouponError(shopErrorMessage(err, locale));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appliedCoupon, subtotal, pendingOrder, locale]);
 
   const applyCoupon = async () => {
-    setCouponError('');
-    setCouponResult(null);
-    if (!couponCode) return;
+    const code = couponInput.trim();
+    setCouponError(null);
+    setAppliedCoupon(null);
+    if (!code) return;
+    setCouponChecking(true);
     try {
-      const res = await api.post('/coupons/validate', {
-        code: couponCode,
-        cartTotal: subtotal,
-      });
-      setCouponResult(res.data);
-    } catch (err: any) {
-      setCouponError(err.response?.data?.message || 'Invalid coupon');
+      const res = await api.post('/coupons/validate', { code, cartTotal: subtotal });
+      setAppliedCoupon({ code, discount: Number(res.data.discount) || 0, subtotal });
+    } catch (err) {
+      setCouponError(shopErrorMessage(err, locale));
+    } finally {
+      setCouponChecking(false);
     }
   };
 
-  const handleSubmit = async () => {
-    setError('');
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponError(null);
+  };
+
+  const onCouponKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    // Enter applies the coupon instead of submitting the whole order.
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      void applyCoupon();
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (submitting || (!pendingOrder && hasIssues)) return;
+    setError(null);
     setSubmitting(true);
 
     let order = pendingOrder;
@@ -75,8 +126,11 @@ export default function CheckoutPage() {
       if (!order) {
         // The cart is resolved server-side from the session / guest cookie.
         const res = await api.post('/orders', {
-          customerEmail: email,
-          couponCode: couponCode || undefined,
+          customerEmail: email.trim(),
+          recipientName: recipientName.trim(),
+          phone: phone.trim(),
+          locale: locale === 'en' ? 'en' : 'he',
+          couponCode: appliedCoupon?.code,
           shippingCity: city,
           shippingStreet: street,
           shippingNumber: number,
@@ -88,7 +142,14 @@ export default function CheckoutPage() {
         setPendingOrder(order);
       }
     } catch (err) {
-      setError((isAxiosError(err) && err.response?.data?.message) || tCheckout('failed'));
+      const code = errorCode(err);
+      if (code?.startsWith('COUPON_')) {
+        setAppliedCoupon(null);
+        setCouponError(shopErrorMessage(err, locale));
+      }
+      // Stock or availability changed: re-sync so the affected lines are flagged.
+      if (code === 'OUT_OF_STOCK' || code === 'VARIANT_UNAVAILABLE' || code === 'CART_EMPTY') void fetchCart();
+      setError(shopErrorMessage(err, locale));
       setSubmitting(false);
       return;
     }
@@ -105,110 +166,182 @@ export default function CheckoutPage() {
       // servers or in Referer headers; the confirmation page swaps it for an
       // httpOnly cookie and strips it from the address bar.
       router.push(`/order-confirmation/${order.id}${order.token ? `#token=${order.token}` : ''}`);
-    } catch {
-      setError(tCheckout('paymentFailed'));
+    } catch (err) {
+      if (errorCode(err) === 'ORDER_NOT_PAYABLE') {
+        // The unpaid order expired (stock released): start over from the cart.
+        setPendingOrder(null);
+        setAppliedCoupon(null);
+        void fetchCart();
+        setError({ key: 'orderNotPayable' });
+      } else {
+        // 402 = declined; the order stays pending, so "retry payment" charges it again.
+        setError(shopErrorMessage(err, locale));
+      }
       setSubmitting(false);
     }
   };
 
-  if (items.length === 0 && !pendingOrder) {
+  const errorBanner = error && (
+    <div
+      role="alert"
+      className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6 flex items-center gap-2 rounded-lg"
+    >
+      <AlertTriangle size={14} className="shrink-0" /> {tErrors(error.key, error.values)}
+    </div>
+  );
+
+  if (!loaded) {
     return (
-      <div className="max-w-3xl mx-auto py-20 px-4 text-center text-gray-400">
-        <p>Your cart is empty.</p>
+      <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 animate-pulse" aria-busy="true">
+        <span className="sr-only">{tCheckout('loading')}</span>
+        <div className="h-8 bg-gray-200 w-1/4 mb-8" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="h-32 bg-gray-100 rounded-xl" />
+            <div className="h-48 bg-gray-100 rounded-xl" />
+          </div>
+          <div className="h-64 bg-gray-100 rounded-xl" />
+        </div>
       </div>
     );
   }
+
+  if (items.length === 0 && !pendingOrder) {
+    return (
+      <div className="max-w-3xl mx-auto py-20 px-4 text-center text-gray-400">
+        {errorBanner}
+        <p>{tCheckout('empty')}</p>
+      </div>
+    );
+  }
+
+  const canSubmit = !submitting && (pendingOrder !== null || !hasIssues);
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
       <h1 className="text-2xl font-bold tracking-normal mb-8">{t('checkout')}</h1>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6 flex items-center gap-2 rounded-lg">
-          <AlertTriangle size={14} /> {error}
-        </div>
-      )}
+      {errorBanner}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Form */}
         <div className="lg:col-span-2 space-y-6">
           {/* Contact */}
           <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
             <h2 className="font-medium text-gray-800 flex items-center gap-2">
-              <CreditCard size={16} /> Contact
+              <CreditCard size={16} /> {tCheckout('contact')}
             </h2>
             <div>
-              <label htmlFor="checkout-email" className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+              <label htmlFor="checkout-name" className={labelClass}>{tCheckout('fullName')}</label>
               <input
-                id="checkout-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
+                id="checkout-name"
+                type="text"
+                autoComplete="name"
+                maxLength={100}
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+                className={inputClass}
                 required
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="checkout-email" className={labelClass}>{tCheckout('email')}</label>
+                <input
+                  id="checkout-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={inputClass}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="checkout-phone" className={labelClass}>{tCheckout('phone')}</label>
+                <input
+                  id="checkout-phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  pattern={PHONE_PATTERN}
+                  title={tCheckout('phoneHint')}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className={inputClass}
+                  required
+                />
+              </div>
             </div>
           </section>
 
           {/* Shipping */}
           <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
             <h2 className="font-medium text-gray-800 flex items-center gap-2">
-              <Truck size={16} /> Shipping Address
+              <Truck size={16} /> {tCheckout('shippingAddress')}
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="checkout-city" className="block text-xs font-medium text-gray-500 mb-1">City</label>
+                <label htmlFor="checkout-city" className={labelClass}>{tCheckout('city')}</label>
                 <input
                   id="checkout-city"
                   type="text"
+                  autoComplete="address-level2"
+                  maxLength={100}
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
+                  className={inputClass}
                   required
                 />
               </div>
               <div>
-                <label htmlFor="checkout-street" className="block text-xs font-medium text-gray-500 mb-1">Street</label>
+                <label htmlFor="checkout-street" className={labelClass}>{tCheckout('street')}</label>
                 <input
                   id="checkout-street"
                   type="text"
+                  autoComplete="address-line1"
+                  maxLength={150}
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
+                  className={inputClass}
                   required
                 />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label htmlFor="checkout-number" className="block text-xs font-medium text-gray-500 mb-1">Number</label>
+                <label htmlFor="checkout-number" className={labelClass}>{tCheckout('number')}</label>
                 <input
                   id="checkout-number"
                   type="text"
+                  maxLength={20}
                   value={number}
                   onChange={(e) => setNumber(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
+                  className={inputClass}
                   required
                 />
               </div>
               <div>
-                <label htmlFor="checkout-apartment" className="block text-xs font-medium text-gray-500 mb-1">Apartment</label>
+                <label htmlFor="checkout-apartment" className={labelClass}>{tCheckout('apartment')}</label>
                 <input
                   id="checkout-apartment"
                   type="text"
+                  maxLength={20}
                   value={apartment}
                   onChange={(e) => setApartment(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
+                  className={inputClass}
                 />
               </div>
               <div>
-                <label htmlFor="checkout-zip" className="block text-xs font-medium text-gray-500 mb-1">ZIP</label>
+                <label htmlFor="checkout-zip" className={labelClass}>{tCheckout('zip')}</label>
                 <input
                   id="checkout-zip"
                   type="text"
+                  autoComplete="postal-code"
+                  maxLength={20}
                   value={zip}
                   onChange={(e) => setZip(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -216,28 +349,48 @@ export default function CheckoutPage() {
 
           {/* Coupon */}
           <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
-            <h2 className="font-medium text-gray-800">Coupon Code</h2>
+            <h2 className="font-medium text-gray-800">{tCheckout('coupon')}</h2>
             <div className="flex gap-2">
-              <label htmlFor="checkout-coupon" className="sr-only">Coupon Code</label>
+              <label htmlFor="checkout-coupon" className="sr-only">{tCheckout('coupon')}</label>
               <input
                 id="checkout-coupon"
                 type="text"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                maxLength={50}
+                value={couponInput}
+                onChange={(e) => {
+                  setCouponInput(e.target.value.toUpperCase());
+                  setAppliedCoupon(null);
+                  setCouponError(null);
+                }}
+                onKeyDown={onCouponKeyDown}
+                disabled={pendingOrder !== null}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none uppercase"
-                aria-label="Coupon code"
               />
               <button
+                type="button"
                 onClick={applyCoupon}
-                className="px-4 py-2 text-sm bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 transition-colors"
+                disabled={couponChecking || !couponInput.trim() || pendingOrder !== null}
+                className="px-4 py-2 text-sm bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Apply
+                {tCheckout('apply')}
               </button>
             </div>
-            {couponError && <p className="text-xs text-red-500">{couponError}</p>}
-            {couponResult && (
-              <p className="text-xs text-green-600">
-                Discount applied: -₪{couponResult.discount.toFixed(2)}
+            {couponError && (
+              <p role="alert" className="text-xs text-red-500">{tErrors(couponError.key, couponError.values)}</p>
+            )}
+            {appliedCoupon && (
+              <p className="text-xs text-green-600 flex items-center gap-2">
+                {tCheckout('discountApplied', { code: appliedCoupon.code, amount: formatPrice(appliedCoupon.discount) })}
+                {!pendingOrder && (
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    aria-label={tCheckout('removeCoupon')}
+                    className="p-0.5 text-gray-400 hover:text-red-500 rounded-full transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
               </p>
             )}
           </section>
@@ -245,12 +398,13 @@ export default function CheckoutPage() {
 
         {/* Order Summary */}
         <div className="bg-white border border-gray-200 rounded-xl p-6 h-fit space-y-4">
-          <h2 className="font-medium text-gray-800">Order Summary</h2>
+          <h2 className="font-medium text-gray-800">{tCheckout('orderSummary')}</h2>
 
           <div className="space-y-3 max-h-60 overflow-y-auto">
             {items.map((item) => {
               const product = item.variant.product;
               const name = locale === 'he' ? product.nameHe : product.nameEn;
+              const issue = lineIssue(item);
               return (
                 <div key={item.id} className="flex justify-between text-sm">
                   <div>
@@ -258,6 +412,13 @@ export default function CheckoutPage() {
                     <p className="text-xs text-gray-400">
                       {item.variant.color} / {item.variant.size} x{item.quantity}
                     </p>
+                    {issue && (
+                      <p className="text-xs text-red-500">
+                        {issue.kind === 'insufficient'
+                          ? t('issues.insufficient', { available: issue.available })
+                          : t(`issues.${issue.kind}`)}
+                      </p>
+                    )}
                   </div>
                 </div>
               );
@@ -267,40 +428,55 @@ export default function CheckoutPage() {
           <div className="border-t border-gray-200 pt-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{t('subtotal')}</span>
-              <span>₪{subtotal.toFixed(2)}</span>
+              <span>{formatPrice(subtotal)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{t('shipping')}</span>
               <span className={shippingCost === 0 ? 'text-green-600' : ''}>
-                {shippingCost === 0 ? t('freeShipping') : `₪${shippingCost.toFixed(2)}`}
+                {shippingCost === 0 ? t('freeShipping') : formatPrice(shippingCost)}
               </span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Discount</span>
-                <span className="text-green-600">-₪{discount.toFixed(2)}</span>
+                <span className="text-gray-500">{tCheckout('discount')}</span>
+                <span className="text-green-600">-{formatPrice(discount)}</span>
               </div>
             )}
             <div className="border-t border-gray-200 pt-3 flex justify-between font-medium text-lg">
               <span>{t('total')}</span>
-              <span>₪{total.toFixed(2)}</span>
+              <span>{formatPrice(total)}</span>
             </div>
           </div>
 
+          {hasIssues && !pendingOrder && (
+            <p role="status" className="text-xs text-red-500 flex items-start gap-1.5">
+              <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+              <span>
+                {t('issues.blocked')}{' '}
+                <Link href="/cart" className="underline hover:text-red-600">
+                  {tCheckout('backToCart')}
+                </Link>
+              </span>
+            </p>
+          )}
+
           <button
-            onClick={handleSubmit}
-            disabled={submitting || !email || !city || !street || !number}
+            type="submit"
+            disabled={!canSubmit}
+            aria-busy={submitting}
             className="w-full bg-ocean-700 text-white py-3 text-sm tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <ShieldCheck size={16} />
-            {submitting ? 'Processing...' : pendingOrder ? tCheckout('retryPayment') : 'Place Order'}
+            {submitting
+              ? tCheckout('processing')
+              : pendingOrder
+                ? tCheckout('retryPayment')
+                : tCheckout('placeOrder')}
           </button>
 
-          <p className="text-xs text-center text-gray-400">
-            Secure checkout with encrypted payment
-          </p>
+          <p className="text-xs text-center text-gray-400">{tCheckout('secureNote')}</p>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
