@@ -1,3 +1,4 @@
+import { SlidersHorizontal } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ListingHeader } from '@/components/storefront/ListingHeader';
@@ -43,34 +44,28 @@ export default async function NewArrivalsPage({ params, searchParams }: Props) {
   const basePath = '/new-arrivals';
 
   return (
-    <>
-      <ListingHeader
-        title={tSeo('newArrivalsTitle')}
-        countLabel={tCat('count', { count: total })}
-        crumbs={[{ label: t('home'), href: '/' }, { label: tSeo('newArrivalsTitle') }]}
-        breadcrumbLabel={t('breadcrumb')}
-        locale={locale}
-      />
-      <div className="container-page py-8 sm:py-10">
-        {products.length === 0 ? (
-          <EmptyCategory
-            suggestions={categories.map((c) => ({
-              label: locale === 'he' ? c.nameHe : c.nameEn,
-              href: `/category/${c.slug}`,
-            }))}
-          />
-        ) : (
-          <>
-            {total > 1 && (
-              <div className="mb-8 flex justify-end">
-                <SortSelect basePath={basePath} query={query} />
-              </div>
-            )}
+    <div className="container-page py-8">
+      <ListingHeader title={tSeo('newArrivalsTitle')} countLabel={tCat('count', { count: total })} />
+      {products.length === 0 ? (
+        <EmptyCategory
+          suggestions={categories.map((c) => ({
+            label: locale === 'he' ? c.nameHe : c.nameEn,
+            href: `/category/${c.slug}`,
+          }))}
+        />
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <SlidersHorizontal size={14} aria-hidden="true" />
+              <span>{tCat('count', { count: total })}</span>
+            </div>
+            {total > 1 && <SortSelect basePath={basePath} query={query} />}
+          </div>
             <ProductGrid products={products.map(toCardProduct)} priorityCount={4} />
             <Pagination basePath={basePath} query={query} totalPages={totalPages} />
-          </>
-        )}
-      </div>
-    </>
+        </>
+      )}
+    </div>
   );
 }

@@ -9,8 +9,8 @@ import { useTranslations } from 'next-intl';
 export function ContactForm({ to }: { to: string }) {
   const t = useTranslations('pages.contact');
 
-  const field = 'mt-1.5 block w-full rounded-[2px] border border-sand-300 bg-white px-3.5 py-3 text-[15px] text-ink placeholder:text-stone/70';
-  const label = 'block text-sm font-semibold text-ink';
+  const field = 'mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-3 text-[15px] text-gray-900 placeholder:text-gray-400';
+  const label = 'block text-sm font-semibold text-gray-900';
 
   return (
     <form
@@ -48,11 +48,11 @@ export function ContactForm({ to }: { to: string }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <button
           type="submit"
-          className="inline-flex justify-center rounded-[2px] bg-ink px-7 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-coral"
+          className="inline-flex justify-center rounded-lg bg-ocean-700 px-7 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-ocean-600"
         >
           {t('submit')}
         </button>
-        <p className="text-sm text-stone">{t('formNote')}</p>
+        <p className="text-sm text-gray-500">{t('formNote')}</p>
       </div>
     </form>
   );

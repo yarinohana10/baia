@@ -232,7 +232,7 @@
       "wishlist": "Add to wishlist"
     },
     "category": {
-      "count": "{count, plural, =0 {No pieces yet} one {# piece} other {# pieces}}",
+      "count": "{count, plural, =0 {0 products} one {# product} other {# products}}",
       "all": "All",
       "sortLabel": "Sort by",
       "sortNewest": "Newest",

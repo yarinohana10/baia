@@ -8,7 +8,7 @@ export function EmptyCategory({ name, suggestions }: { name?: string; suggestion
   return (
     <section
       aria-labelledby="empty-title"
-      className="mx-auto max-w-2xl border border-sand-200 bg-sand-50 px-6 py-14 text-center sm:px-12 sm:py-20"
+      className="mx-auto max-w-2xl rounded-2xl border border-gray-100 bg-warm-50 px-6 py-12 text-center shadow-sm sm:px-12 sm:py-16"
     >
       <svg aria-hidden="true" viewBox="0 0 120 24" className="mx-auto mb-6 h-6 w-28 text-ocean-300">
         <path
@@ -25,11 +25,11 @@ export function EmptyCategory({ name, suggestions }: { name?: string; suggestion
           opacity=".5"
         />
       </svg>
-      <p className="eyebrow mb-3 text-ocean-700">{t('eyebrow')}</p>
-      <h2 id="empty-title" className="font-display text-3xl text-ink sm:text-4xl">
+      <p className="mb-3 text-xs font-medium tracking-widest uppercase text-ocean-600">{t('eyebrow')}</p>
+      <h2 id="empty-title" className="text-[22px] sm:text-2xl font-semibold text-gray-900 tracking-tight">
         {t('title')}
       </h2>
-      <p className="mx-auto mt-4 max-w-md text-[16px] leading-relaxed text-stone">
+      <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-gray-500">
         {name ? t('body', { name }) : t('bodyGeneric')}
       </p>
 
@@ -41,7 +41,7 @@ export function EmptyCategory({ name, suggestions }: { name?: string; suggestion
               <li key={s.href}>
                 <Link
                   href={s.href}
-                  className="inline-flex rounded-full border border-ink/25 px-5 py-2 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-ink hover:text-white"
+                  className="inline-flex px-4 py-1.5 text-sm border border-gray-300 rounded-lg transition-colors hover:border-ocean-500"
                 >
                   {s.label}
                 </Link>
@@ -51,12 +51,12 @@ export function EmptyCategory({ name, suggestions }: { name?: string; suggestion
         </div>
       )}
 
-      <div className="mt-10 border-t border-sand-200 pt-8">
-        <p className="font-display text-xl text-ink">{t('notify')}</p>
-        <p className="mx-auto mt-1 max-w-sm text-sm text-stone">{t('notifyBody')}</p>
+      <div className="mt-10 border-t border-gray-200 pt-8">
+        <p className="text-base font-semibold text-gray-900">{t('notify')}</p>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">{t('notifyBody')}</p>
         <Link
           href="/register"
-          className="mt-5 inline-flex rounded-[2px] bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-coral"
+          className="mt-5 inline-block bg-ocean-700 text-white px-8 py-3 text-[13px] font-bold tracking-[0.1em] uppercase rounded-lg hover:bg-ocean-600 transition-colors"
         >
           {t('notify')}
         </Link>

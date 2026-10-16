@@ -29,19 +29,19 @@ export async function StaticPage({
 
   return (
     <article>
-      <header className="border-b border-sand-200 bg-sand-50">
+      <header className="border-b border-gray-200 bg-warm-50">
         <div className="container-page pb-12 pt-8 sm:pb-16">
           <Breadcrumbs items={[{ label: t('home'), href: '/' }, { label: title }]} label={t('breadcrumb')} locale={locale} />
-          <p className="eyebrow mt-8 text-ocean-700">{eyebrow}</p>
-          <h1 className="mt-3 font-display text-[40px] leading-none text-ink sm:text-6xl">{title}</h1>
-          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-stone">{intro}</p>
+          <p className="text-xs font-medium tracking-widest uppercase mt-8 text-ocean-700">{eyebrow}</p>
+          <h1 className="mt-3 text-2xl font-bold tracking-normal text-gray-900">{title}</h1>
+          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-gray-500">{intro}</p>
         </div>
       </header>
 
       <div className="container-page grid gap-12 py-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-20">
         <div className="prose-baia max-w-2xl">
           {process.env.NODE_ENV !== 'production' && (
-            <p role="note" className="mb-8 border-s-2 border-sun bg-sun/10 px-4 py-3 text-sm text-ink">
+            <p role="note" className="mb-8 border-s-2 border-amber-400 bg-amber-50 px-4 py-3 text-sm text-gray-900">
               {tPages('placeholderNotice')}
             </p>
           )}

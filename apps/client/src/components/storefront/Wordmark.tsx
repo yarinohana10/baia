@@ -15,7 +15,7 @@ export function Wordmark({ className, tone = 'ink' }: { className?: string; tone
       <span
         className={cn(
           'mt-1 text-[9px] font-semibold tracking-[0.5em] ps-[0.5em]',
-          tone === 'ink' ? 'text-stone' : 'text-white/70',
+          tone === 'ink' ? 'text-[#5E6B70]' : 'text-white/70',
         )}
       >
         SWIMWEAR

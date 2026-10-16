@@ -29,13 +29,13 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
       title={t('title')}
       intro={t('intro')}
       aside={
-        <dl className="space-y-6 border border-sand-200 bg-white p-6">
+        <dl className="space-y-6 border border-gray-200 bg-white p-6">
           <div className="flex gap-3">
             <Mail size={20} strokeWidth={1.4} aria-hidden="true" className="mt-0.5 text-ocean-700" />
             <div>
-              <dt className="eyebrow text-stone">{t('emailLabel')}</dt>
+              <dt className="text-xs font-medium tracking-widest uppercase text-gray-500">{t('emailLabel')}</dt>
               <dd className="mt-1">
-                <a href={`mailto:${CONTACT_EMAIL}`} dir="ltr" className="font-semibold text-ink underline underline-offset-4">
+                <a href={`mailto:${CONTACT_EMAIL}`} dir="ltr" className="font-semibold text-gray-900 underline underline-offset-4">
                   {CONTACT_EMAIL}
                 </a>
               </dd>
@@ -44,8 +44,8 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
           <div className="flex gap-3">
             <Clock size={20} strokeWidth={1.4} aria-hidden="true" className="mt-0.5 text-ocean-700" />
             <div>
-              <dt className="eyebrow text-stone">{t('hoursLabel')}</dt>
-              <dd className="mt-1 text-ink">{t('hours')}</dd>
+              <dt className="text-xs font-medium tracking-widest uppercase text-gray-500">{t('hoursLabel')}</dt>
+              <dd className="mt-1 text-gray-900">{t('hours')}</dd>
             </div>
           </div>
         </dl>

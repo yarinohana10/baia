@@ -19,7 +19,7 @@ export async function StorefrontLayout({ children }: { children: React.ReactNode
   const nav: NavItem[] = [...categoryNav, { label: tNav('newArrivals'), href: '/new-arrivals' }];
 
   return (
-    <div className="flex min-h-screen flex-col bg-shell">
+    <div className="flex min-h-screen flex-col bg-white">
       <Header nav={nav} />
       <main id="main" className="flex-1">
         {children}

@@ -3,10 +3,32 @@ import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import type { Metadata, Viewport } from 'next';
-import { Assistant, Frank_Ruhl_Libre } from 'next/font/google';
+import { Assistant, Frank_Ruhl_Libre, Lato, Libre_Caslon_Text, DM_Sans } from 'next/font/google';
 import { SITE_NAME, getSiteUrl, ogLocale } from '@/lib/seo';
 import '../globals.css';
 
+const lato = Lato({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['100', '300', '400', '700', '900'],
+  display: 'swap',
+  variable: '--font-lato',
+});
+
+const libreCaslon = Libre_Caslon_Text({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  display: 'swap',
+  variable: '--font-libre-caslon',
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  display: 'swap',
+  variable: '--font-dm-sans',
+});
+
+// Assistant + Frank Ruhl Libre are used by the header only.
 const assistant = Assistant({
   subsets: ['hebrew', 'latin'],
   weight: ['400', '600', '700'],
@@ -22,7 +44,7 @@ const frank = Frank_Ruhl_Libre({
 });
 
 export const viewport: Viewport = {
-  themeColor: '#0F2A36',
+  themeColor: '#7BB4D4',
 };
 
 export async function generateMetadata({
@@ -75,8 +97,8 @@ export default async function LocaleLayout({
   const dir = locale === 'he' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={locale} dir={dir} className={`${assistant.variable} ${frank.variable}`}>
-      <body className="min-h-screen bg-shell font-sans text-ink antialiased">
+    <html lang={locale} dir={dir} className={`${lato.variable} ${libreCaslon.variable} ${dmSans.variable} ${assistant.variable} ${frank.variable}`}>
+      <body className={`min-h-screen bg-white text-charcoal antialiased ${lato.className}`}>
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>

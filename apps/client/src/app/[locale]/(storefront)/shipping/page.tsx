@@ -36,10 +36,10 @@ export default async function ShippingPage({ params }: { params: Promise<{ local
       intro={t('intro')}
       sections={t.raw('sections') as StaticSection[]}
       aside={
-        <div className="border border-sand-200 bg-white p-6">
+        <div className="border border-gray-200 bg-white p-6">
           <Truck size={26} strokeWidth={1.3} aria-hidden="true" className="text-ocean-700" />
-          <h2 className="mt-4 font-display text-xl text-ink">{t('costTitle')}</h2>
-          <ul className="mt-3 space-y-2 text-[15px] text-stone">
+          <h2 className="mt-4 text-xl text-gray-900">{t('costTitle')}</h2>
+          <ul className="mt-3 space-y-2 text-[15px] text-gray-500">
             <li>{t('costFree', { threshold })}</li>
             <li>{t('costFlat', { threshold, cost })}</li>
           </ul>

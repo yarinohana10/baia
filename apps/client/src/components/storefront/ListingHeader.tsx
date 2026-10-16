@@ -1,25 +1,8 @@
-import { Breadcrumbs, type Crumb } from './Breadcrumbs';
-
-export function ListingHeader({
-  title,
-  countLabel,
-  crumbs,
-  breadcrumbLabel,
-  locale,
-}: {
-  title: string;
-  countLabel: string;
-  crumbs: Crumb[];
-  breadcrumbLabel: string;
-  locale: string;
-}) {
+export function ListingHeader({ title, countLabel }: { title: string; countLabel: string }) {
   return (
-    <header className="border-b border-sand-200 bg-sand-50">
-      <div className="container-page pb-10 pt-8 sm:pb-14">
-        <Breadcrumbs items={crumbs} label={breadcrumbLabel} locale={locale} />
-        <h1 className="mt-6 font-display text-[40px] leading-none text-ink sm:text-6xl">{title}</h1>
-        <p className="mt-3 text-[15px] text-stone">{countLabel}</p>
-      </div>
-    </header>
+    <div className="mb-8">
+      <h1 className="text-2xl font-bold tracking-normal mb-2">{title}</h1>
+      <p className="text-sm text-gray-400">{countLabel}</p>
+    </div>
   );
 }

@@ -232,7 +232,7 @@
       "wishlist": "הוספה למועדפים"
     },
     "category": {
-      "count": "{count, plural, =0 {עדיין אין פריטים} one {פריט אחד} other {# פריטים}}",
+      "count": "{count, plural, =0 {0 מוצרים} one {מוצר אחד} other {# מוצרים}}",
       "all": "הכל",
       "sortLabel": "מיון לפי",
       "sortNewest": "החדשים ביותר",

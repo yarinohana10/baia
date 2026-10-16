@@ -14,8 +14,8 @@ export function SortSelect({ basePath, query }: { basePath: string; query: Listi
   const [pending, startTransition] = useTransition();
 
   return (
-    <label className="inline-flex items-center gap-2 self-start text-sm sm:self-auto">
-      <span className="text-stone">{t('sortLabel')}</span>
+    <label className="relative inline-flex items-center text-sm">
+      <span className="sr-only">{t('sortLabel')}</span>
       <span className="relative inline-flex">
         <select
           value={query.sort}
@@ -27,7 +27,7 @@ export function SortSelect({ basePath, query }: { basePath: string; query: Listi
               }),
             )
           }
-          className="cursor-pointer appearance-none rounded-[2px] border border-sand-300 bg-white py-2 ps-3 pe-8 font-semibold text-ink"
+          className="appearance-none text-sm text-gray-600 bg-transparent pe-6 cursor-pointer focus:outline-none rounded-lg"
         >
           {SORT_OPTIONS.map((o) => (
             <option key={o} value={o}>
@@ -35,7 +35,7 @@ export function SortSelect({ basePath, query }: { basePath: string; query: Listi
             </option>
           ))}
         </select>
-        <ChevronDown size={14} aria-hidden="true" className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-stone" />
+        <ChevronDown size={12} aria-hidden="true" className="pointer-events-none absolute end-0 top-1/2 -translate-y-1/2 text-gray-400" />
       </span>
     </label>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { SlidersHorizontal } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { ListingHeader } from '@/components/storefront/ListingHeader';
 import { ProductGrid } from '@/components/storefront/ProductGrid';
@@ -82,7 +83,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     { label: t('newArrivals.title'), href: '/new-arrivals' },
   ];
 
-  const pill = 'inline-flex whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors';
+  const pill = 'px-4 py-1.5 text-sm border rounded-lg transition-colors';
+  const pillState = (active: boolean) =>
+    active ? 'border-ocean-700 bg-ocean-700 text-white' : 'border-gray-300 hover:border-ocean-500';
 
   return (
     <>
@@ -92,55 +95,50 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         )}
       />
 
-      <ListingHeader
-        title={name}
-        countLabel={tSeo('count', { count: total })}
-        crumbs={crumbs}
-        breadcrumbLabel={t('breadcrumb')}
-        locale={locale}
-      />
+      <div className="container-page py-8">
+        <ListingHeader title={name} countLabel={tSeo('count', { count: total })} />
 
-      <div className="container-page py-8 sm:py-10">
-        {(total > 0 || activeChild) && (
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            {children.length > 0 ? (
-              <nav aria-label={tSeo('filterLabel')} className="-mx-4 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:px-0">
-                <ul className="flex gap-2">
-                  <li>
-                    <Link
-                      href={listingHref(basePath, { sort: query.sort })}
-                      aria-current={!activeChild ? 'page' : undefined}
-                      className={`${pill} ${!activeChild ? 'border-ink bg-ink text-white' : 'border-sand-300 text-ink hover:border-ink'}`}
-                    >
-                      {tSeo('all')}
-                    </Link>
-                  </li>
-                  {children.map((child) => (
-                    <li key={child.id}>
-                      <Link
-                        href={listingHref(basePath, { type: child.slug, sort: query.sort })}
-                        aria-current={activeChild?.id === child.id ? 'page' : undefined}
-                        className={`${pill} ${activeChild?.id === child.id ? 'border-ink bg-ink text-white' : 'border-sand-300 text-ink hover:border-ink'}`}
-                      >
-                        {nameOf(child, locale)}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            ) : (
-              <span />
-            )}
-            {total > 1 && <SortSelect basePath={basePath} query={query} />}
-          </div>
+        {/* Sub-categories */}
+        {children.length > 0 && (total > 0 || activeChild) && (
+          <nav aria-label={tSeo('filterLabel')} className="mb-8">
+            <ul className="flex flex-wrap gap-2">
+              <li>
+                <Link
+                  href={listingHref(basePath, { sort: query.sort })}
+                  aria-current={!activeChild ? 'page' : undefined}
+                  className={`${pill} inline-block ${pillState(!activeChild)}`}
+                >
+                  {tSeo('all')}
+                </Link>
+              </li>
+              {children.map((child) => (
+                <li key={child.id}>
+                  <Link
+                    href={listingHref(basePath, { type: child.slug, sort: query.sort })}
+                    aria-current={activeChild?.id === child.id ? 'page' : undefined}
+                    className={`${pill} inline-block ${pillState(activeChild?.id === child.id)}`}
+                  >
+                    {nameOf(child, locale)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
         )}
 
         {products.length === 0 ? (
-          <div className="py-6 sm:py-10">
-            <EmptyCategory name={activeChild ? nameOf(activeChild, locale) : name} suggestions={suggestions} />
-          </div>
+          <EmptyCategory name={activeChild ? nameOf(activeChild, locale) : name} suggestions={suggestions} />
         ) : (
           <>
+            {/* Sort bar */}
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <SlidersHorizontal size={14} aria-hidden="true" />
+                <span>{tSeo('count', { count: total })}</span>
+              </div>
+              {total > 1 && <SortSelect basePath={basePath} query={query} />}
+            </div>
+
             <ProductGrid products={products.map(toCardProduct)} priorityCount={4} />
             <Pagination basePath={basePath} query={query} totalPages={totalPages} />
           </>

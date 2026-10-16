@@ -64,7 +64,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-50">
+    <header className="sticky top-0 z-50 font-brand">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-2 focus:z-[60] focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold"
@@ -76,8 +76,8 @@ export function Header({ nav }: { nav: NavItem[] }) {
         {ts('announcement')}
       </p>
 
-      <div className="border-b border-sand-200 bg-shell/95 backdrop-blur supports-[backdrop-filter]:bg-shell/85">
-        <div className="container-page grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4 lg:h-20">
+      <div className="border-b border-header-line bg-shell/95 backdrop-blur supports-[backdrop-filter]:bg-shell/85">
+        <div className="container-header grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4 lg:h-20">
           {/* Start: menu (mobile) / nav (desktop) */}
           <div className="flex items-center">
             <button
@@ -159,23 +159,23 @@ export function Header({ nav }: { nav: NavItem[] }) {
       <div
         id="mobile-menu"
         hidden={!menuOpen}
-        className="absolute inset-x-0 top-full border-b border-sand-200 bg-shell shadow-[0_24px_48px_-24px_rgba(15,42,54,0.25)] lg:hidden"
+        className="absolute inset-x-0 top-full border-b border-header-line bg-shell shadow-[0_24px_48px_-24px_rgba(15,42,54,0.25)] lg:hidden"
       >
-        <nav aria-label={ts('primaryNav')} className="container-page py-4">
+        <nav aria-label={ts('primaryNav')} className="container-header py-4">
           <ul>
             {nav.map((item) => (
-              <li key={item.href} className="border-b border-sand-200 last:border-0">
+              <li key={item.href} className="border-b border-header-line last:border-0">
                 <Link
                   href={item.href}
                   aria-current={isActive(item.href) ? 'page' : undefined}
-                  className="block py-4 font-display text-2xl text-ink aria-[current=page]:text-ocean-600"
+                  className="block py-4 font-display text-2xl text-ink aria-[current=page]:text-header-active"
                 >
                   {item.label}
                 </Link>
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-sand-200 pt-4 text-sm font-semibold">
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-header-line pt-4 text-sm font-semibold">
             <LocaleSwitcher
               onAfterSwitch={() => setMenuOpen(false)}
               className="rounded-full border border-ink/20 px-4 py-2 text-ink"
