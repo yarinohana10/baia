@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -29,11 +30,48 @@ function selectClassName() {
   );
 }
 
+// Expiry is stored as the end of a calendar day in Israel; show and edit it in that zone.
+const STORE_TIME_ZONE = 'Asia/Jerusalem';
+
+/** `YYYY-MM-DD` of the instant in Israel time (for `<input type="date">`). */
+function toStoreDate(dateStr: string) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: STORE_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(dateStr));
+}
+
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${month}/${day}/${d.getFullYear()}`;
+  const [year, month, day] = toStoreDate(dateStr).split('-');
+  return `${month}/${day}/${year}`;
+}
+
+type Feedback = { type: 'success' | 'error'; text: string };
+type ApiFieldError = { field: string; code: string };
+
+type CouponErrorKey =
+  | 'duplicateCode'
+  | 'invalidCode'
+  | 'invalidPercentage'
+  | 'invalidFixedValue'
+  | 'invalidMinCart'
+  | 'invalidMaxUses'
+  | 'invalidExpiry'
+  | 'saveFailed';
+
+function couponErrorKey(err: unknown, discountType: 'PERCENTAGE' | 'FIXED'): CouponErrorKey {
+  if (!isAxiosError(err)) return 'saveFailed';
+  if (err.response?.status === 409) return 'duplicateCode';
+  const errors: ApiFieldError[] = err.response?.data?.errors ?? [];
+  const fields = new Set(errors.map((e) => e.field));
+  if (fields.has('code')) return 'invalidCode';
+  if (fields.has('value')) return discountType === 'PERCENTAGE' ? 'invalidPercentage' : 'invalidFixedValue';
+  if (fields.has('minCartValue')) return 'invalidMinCart';
+  if (fields.has('maxUses')) return 'invalidMaxUses';
+  if (fields.has('expiresAt')) return 'invalidExpiry';
+  return 'saveFailed';
 }
 
 function isExpired(c: Coupon) {
@@ -56,12 +94,19 @@ export default function CouponsPage() {
   const [minCartValue, setMinCartValue] = useState('');
   const [maxUses, setMaxUses] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<Feedback | null>(null);
 
   const fetchCoupons = async () => {
-    const res = await api.get('/admin/coupons');
-    setCoupons(res.data);
+    try {
+      const res = await api.get('/admin/coupons');
+      setCoupons(res.data);
+    } catch {
+      setMessage({ type: 'error', text: t('loadFailed') });
+    }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchCoupons(); }, []);
 
   const resetForm = () => {
@@ -81,39 +126,65 @@ export default function CouponsPage() {
     setValue(parseFloat(c.value).toString());
     setMinCartValue(c.minCartValue ? parseFloat(c.minCartValue).toString() : '');
     setMaxUses(c.maxUses?.toString() || '');
-    setExpiresAt(c.expiresAt ? c.expiresAt.split('T')[0] : '');
+    setExpiresAt(c.expiresAt ? toStoreDate(c.expiresAt) : '');
     setEditing(c);
     setShowForm(true);
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
+    // Cleared optional fields are sent as null so they are removed on update.
     const payload = {
-      code,
+      code: code.trim(),
       discountType,
       value: parseFloat(value),
-      minCartValue: minCartValue ? parseFloat(minCartValue) : undefined,
-      maxUses: maxUses ? parseInt(maxUses) : undefined,
-      expiresAt: expiresAt || undefined,
+      minCartValue: minCartValue.trim() ? parseFloat(minCartValue) : null,
+      maxUses: maxUses.trim() ? parseInt(maxUses, 10) : null,
+      // A calendar day: the API keeps the coupon valid until the end of it (Israel time).
+      expiresAt: expiresAt || null,
     };
 
-    if (editing) {
-      await api.put(`/admin/coupons/${editing.id}`, payload);
-    } else {
-      await api.post('/admin/coupons', payload);
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      if (editing) {
+        await api.put(`/admin/coupons/${editing.id}`, payload);
+      } else {
+        await api.post('/admin/coupons', payload);
+      }
+      setMessage({ type: 'success', text: t(editing ? 'updatedSuccess' : 'createdSuccess') });
+      resetForm();
+      fetchCoupons();
+    } catch (err) {
+      setMessage({ type: 'error', text: t(couponErrorKey(err, discountType)) });
+    } finally {
+      setSubmitting(false);
     }
-
-    resetForm();
-    fetchCoupons();
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm(t('deleteConfirm'))) return;
-    await api.delete(`/admin/coupons/${id}`);
+    setMessage(null);
+    try {
+      const res = await api.delete<{ deleted: boolean; deactivated?: boolean }>(`/admin/coupons/${id}`);
+      setMessage({
+        type: 'success',
+        text: t(res.data.deactivated ? 'deactivatedInstead' : 'deletedSuccess'),
+      });
+      if (editing?.id === id) resetForm();
+    } catch {
+      setMessage({ type: 'error', text: t('deleteFailed') });
+    }
     fetchCoupons();
   };
 
   const toggleActive = async (c: Coupon) => {
-    await api.put(`/admin/coupons/${c.id}`, { isActive: !c.isActive });
+    setMessage(null);
+    try {
+      await api.put(`/admin/coupons/${c.id}`, { isActive: !c.isActive });
+    } catch {
+      setMessage({ type: 'error', text: t('saveFailed') });
+    }
     fetchCoupons();
   };
 
@@ -128,6 +199,19 @@ export default function CouponsPage() {
           <Plus size={16} /> {t('createCoupon')}
         </Button>
       </div>
+
+      {message && (
+        <div
+          role={message.type === 'error' ? 'alert' : 'status'}
+          className={`mb-6 rounded-xl px-4 py-3 font-body text-sm ${
+            message.type === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-destructive border border-red-200'
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
 
       {/* Form */}
       {showForm && (
@@ -148,6 +232,7 @@ export default function CouponsPage() {
                   type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  maxLength={30}
                   className="uppercase"
                   placeholder="SUMMER25"
                 />
@@ -198,7 +283,8 @@ export default function CouponsPage() {
                 <Input
                   id="coupon-maxUses"
                   type="number"
-                  min="0"
+                  min="1"
+                  step="1"
                   value={maxUses}
                   onChange={(e) => setMaxUses(e.target.value)}
                   placeholder={t('unlimited')}
@@ -218,7 +304,7 @@ export default function CouponsPage() {
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={!code || !value}
+              disabled={!code || !value || submitting}
               className="bg-ocean-700 text-white hover:bg-ocean-800"
             >
               {editing ? t('update') : t('create')}

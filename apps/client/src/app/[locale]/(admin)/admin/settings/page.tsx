@@ -3,12 +3,25 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
+import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
+import { revalidateCatalog } from '@/lib/catalog/revalidate';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Save, Upload, Image as ImageIcon, Truck, Info } from 'lucide-react';
+
+type ApiFieldError = { field: string; code: string };
+
+/** Turns the API's field errors into a specific, translated message key. */
+function saveErrorKey(err: unknown): 'invalidCtaUrl' | 'invalidAmount' | 'textTooLong' | 'saveFailed' {
+  const errors: ApiFieldError[] = (isAxiosError(err) && err.response?.data?.errors) || [];
+  if (errors.some((e) => e.field === 'heroCtaUrl' && e.code !== 'maxLength')) return 'invalidCtaUrl';
+  if (errors.some((e) => e.field === 'shippingCost' || e.field === 'freeShippingThreshold')) return 'invalidAmount';
+  if (errors.some((e) => e.code === 'maxLength')) return 'textTooLong';
+  return 'saveFailed';
+}
 
 type SiteConfig = {
   id: string;
@@ -65,8 +78,9 @@ export default function SettingsPage() {
         heroCtaUrl: config.heroCtaUrl,
       });
       setMessage({ type: 'success', text: t('savedSuccess') });
-    } catch {
-      setMessage({ type: 'error', text: t('saveFailed') });
+      await revalidateCatalog();
+    } catch (err) {
+      setMessage({ type: 'error', text: t(saveErrorKey(err)) });
     } finally {
       setSaving(false);
     }
@@ -88,6 +102,7 @@ export default function SettingsPage() {
         prev ? { ...prev, heroImageUrl: res.data.heroImageUrl } : prev,
       );
       setMessage({ type: 'success', text: t('heroUploaded') });
+      await revalidateCatalog();
     } catch {
       setMessage({ type: 'error', text: t('heroUploadFailed') });
     } finally {
@@ -133,6 +148,7 @@ export default function SettingsPage() {
 
       {message && (
         <div
+          role={message.type === 'error' ? 'alert' : 'status'}
           className={`mb-6 rounded-xl px-4 py-3 font-body text-sm ${
             message.type === 'success'
               ? 'bg-green-50 text-green-700 border border-green-200'
@@ -160,6 +176,7 @@ export default function SettingsPage() {
               <Input
                 id="shippingCost"
                 type="number"
+                min="0"
                 step="0.01"
                 value={config.shippingCost}
                 onChange={(e) =>
@@ -175,6 +192,7 @@ export default function SettingsPage() {
               <Input
                 id="freeShippingThreshold"
                 type="number"
+                min="0"
                 step="1"
                 value={config.freeShippingThreshold}
                 onChange={(e) =>

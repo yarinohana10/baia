@@ -78,6 +78,8 @@ type AOVData = {
 
 type InventoryData = {
   totalVariants: number;
+  /** Sizes sold without stock tracking (left out of the stock counts). */
+  unlimitedVariants?: number;
   totalStock: number;
   outOfStockCount: number;
   lowStockCount: number;
@@ -348,6 +350,12 @@ function InventoryAlerts({ data }: { data: InventoryData }) {
           <span className="font-body text-xs text-muted-foreground">{t('totalStock')}</span>
           <span className="font-body text-sm font-semibold text-foreground">{data.totalStock.toLocaleString()} {t('stockUnits')}</span>
         </div>
+        {(data.unlimitedVariants ?? 0) > 0 && (
+          <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
+            <span className="font-body text-xs text-muted-foreground">{t('unlimitedStock')}</span>
+            <span className="font-body text-sm font-semibold text-foreground">{t('sizesCount', { count: data.unlimitedVariants ?? 0 })}</span>
+          </div>
+        )}
         {data.outOfStockCount > 0 && (
           <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2">
             <span className="font-body text-xs text-destructive">{t('outOfStock')}</span>
@@ -412,7 +420,6 @@ function InventoryAlerts({ data }: { data: InventoryData }) {
 
 export default function AdminDashboard() {
   const t = useTranslations('admin.dashboard');
-  const locale = useLocale();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [salesDays, setSalesDays] = useState<SalesDay[]>([]);
   const [ordersByStatus, setOrdersByStatus] = useState<OrderByStatus[]>([]);
@@ -425,23 +432,17 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [overviewRes, salesRes, productsRes] = await Promise.all([
+        // The overview already includes totalProducts; no need to download the product list.
+        const [overviewRes, salesRes] = await Promise.all([
           api.get('/admin/analytics/overview'),
           api.get('/admin/analytics/sales', { params: { days: 30 } }),
-          api.get('/admin/products'),
         ]);
 
-        setOverview({
-          ...overviewRes.data,
-          totalProducts: productsRes.data.length,
-        });
+        setOverview(overviewRes.data);
         setSalesDays(salesRes.data.days);
       } catch {
         try {
-          const [ordersRes, productsRes] = await Promise.all([
-            api.get('/admin/orders', { params: { limit: 100 } }),
-            api.get('/admin/products'),
-          ]);
+          const ordersRes = await api.get('/admin/orders', { params: { limit: 100 } });
           const orders = ordersRes.data.orders ?? [];
           const totalRevenue = orders.reduce(
             (sum: number, o: { total: string | number }) => sum + Number(o.total),
@@ -454,7 +455,7 @@ export default function AdminDashboard() {
             todayRevenue: 0,
             totalCustomers: 0,
             newCustomersToday: 0,
-            totalProducts: productsRes.data.length,
+            totalProducts: 0,
             recentOrders: orders.slice(0, 10).map((o: Overview['recentOrders'][0]) => ({
               ...o,
               total: Number(o.total),
