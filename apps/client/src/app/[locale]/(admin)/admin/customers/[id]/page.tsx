@@ -5,13 +5,14 @@ import { useLocale, useTranslations } from 'next-intl';
 import { isAxiosError } from 'axios';
 import { ArrowRight, BadgeCheck, CircleAlert } from 'lucide-react';
 import { api } from '@/lib/api';
-import { Link, useRouter } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   ORDER_STATUS_COLORS,
   ORDER_STATUS_LABEL_KEYS,
   formatShekels,
 } from '@/components/admin/order-status';
+import { CUSTOMERS_LIST_QUERY_KEY } from '@/components/admin/customers-list';
 
 type CustomerOrder = {
   id: string;
@@ -38,7 +39,6 @@ export default function AdminCustomerPage({ params }: { params: Promise<{ id: st
   const t = useTranslations('admin.customers');
   const tOrders = useTranslations('admin.orders');
   const locale = useLocale();
-  const router = useRouter();
   const intlLocale = locale === 'he' ? 'he-IL' : 'en-IL';
   const dateFormat = useMemo(() => new Intl.DateTimeFormat(intlLocale, { dateStyle: 'medium' }), [intlLocale]);
 
@@ -59,21 +59,23 @@ export default function AdminCustomerPage({ params }: { params: Promise<{ id: st
     };
   }, [id, t]);
 
-  // Return to the list with its search/page intact when we came from it.
-  const goBack = (e: React.MouseEvent) => {
-    if (document.referrer.includes('/admin/customers') && window.history.length > 1) {
-      e.preventDefault();
-      router.back();
+  // Link back to the list with the search/page it was showing.
+  const [backHref, setBackHref] = useState('/admin/customers');
+  useEffect(() => {
+    try {
+      const qs = sessionStorage.getItem(CUSTOMERS_LIST_QUERY_KEY);
+      if (qs) setBackHref(`/admin/customers?${qs}`);
+    } catch {
+      // Storage unavailable: keep the plain list link.
     }
-  };
+  }, []);
 
   const th = 'text-start px-4 py-3 font-medium text-muted-foreground';
 
   return (
     <div>
       <Link
-        href="/admin/customers"
-        onClick={goBack}
+        href={backHref}
         className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowRight size={14} className="ltr:rotate-180" />

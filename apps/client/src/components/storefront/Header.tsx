@@ -141,7 +141,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
               {searchOpen ? <X size={20} strokeWidth={1.6} /> : <Search size={20} strokeWidth={1.6} />}
             </button>
 
-            <LocaleSwitcher className={`${iconButton} hidden text-[13px] font-bold sm:inline-flex`} />
+            <LocaleSwitcher className={`${iconButton} text-[13px] font-bold max-sm:hidden`} />
 
             {session?.user ? (
               <>
@@ -151,7 +151,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className={`${iconButton} hidden sm:inline-flex`}
+                  className={`${iconButton} max-sm:hidden`}
                   aria-label={t('signOut')}
                 >
                   <LogOut size={18} strokeWidth={1.6} />
@@ -164,7 +164,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
             )}
 
             {isAdmin && (
-              <Link href="/admin" className={`${iconButton} hidden sm:inline-flex`} aria-label={t('adminPanel')}>
+              <Link href="/admin" className={`${iconButton} max-sm:hidden`} aria-label={t('adminPanel')}>
                 <Shield size={19} strokeWidth={1.6} />
               </Link>
             )}

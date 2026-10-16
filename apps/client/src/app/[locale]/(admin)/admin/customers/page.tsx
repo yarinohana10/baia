@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatShekels } from '@/components/admin/order-status';
+import { CUSTOMERS_LIST_QUERY_KEY } from '@/components/admin/customers-list';
 
 type CustomerRow = {
   id: string;
@@ -81,6 +82,11 @@ export default function AdminCustomersPage() {
     if (page > 1) params.set('page', String(page));
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    try {
+      sessionStorage.setItem(CUSTOMERS_LIST_QUERY_KEY, qs);
+    } catch {
+      // Storage unavailable: the detail page's back link just loses the filters.
+    }
   }, [ready, debouncedSearch, page, pathname, router]);
 
   const fetchCustomers = useCallback(
