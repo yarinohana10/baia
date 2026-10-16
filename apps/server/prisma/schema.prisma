@@ -153,6 +153,8 @@ model ProductVariant {
   size          String
   sku           String      @unique
   stockQuantity Int         @default(0)
+  // false = unlimited stock: always purchasable, stockQuantity is ignored and never decremented
+  trackInventory Boolean    @default(true)
   priceOverride Decimal?    @db.Decimal(10, 2)
   salePrice     Decimal?    @db.Decimal(10, 2)
   saleStart     DateTime?
@@ -261,6 +263,11 @@ model Order {
   userId         String?
   user           User?       @relation(fields: [userId], references: [id])
   customerEmail  String
+  // Who receives the parcel; nullable only for orders placed before these were collected.
+  recipientName  String?
+  phone          String?
+  // Storefront language at checkout; used for transactional emails.
+  locale         String      @default("he")
   status         OrderStatus @default(PENDING_PAYMENT)
   subtotal       Decimal     @db.Decimal(10, 2)
   shippingCost   Decimal     @db.Decimal(10, 2)
@@ -292,6 +299,7 @@ model Order {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([status, createdAt])
   @@map("orders")
 }
 
@@ -328,10 +336,15 @@ model OrderItem {
   variantId   String
   variant     ProductVariant @relation(fields: [variantId], references: [id])
   productName String
+  // Hebrew name snapshot (productName is English); null on older orders.
+  productNameHe String?
   color       String
   size        String
   quantity    Int
   unitPrice   Decimal        @db.Decimal(10, 2)
+  // Whether this line decremented variant stock (false for unlimited-stock variants),
+  // so a cancel/refund restores exactly what was taken.
+  stockDeducted Boolean      @default(true)
   createdAt   DateTime       @default(now())
 
   @@map("order_items")

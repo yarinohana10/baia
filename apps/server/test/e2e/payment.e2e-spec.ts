@@ -27,6 +27,17 @@ describe('Payment: ownership, server-side amount, idempotency (e2e)', () => {
     return req.send({ orderId, ...extra });
   };
 
+  it('lets a guest pay with only the order cookie (after a page refresh)', async () => {
+    const { order, token } = await guestOrder();
+    const browser = t.agent();
+    await browser.post(`/v1/orders/${order.id}/access`).send({ token }).expect(200);
+    await t.http().post(`/v1/orders/${order.id}/pay`).expect(404);
+    const res = await browser.post(`/v1/orders/${order.id}/pay`).expect(200);
+    expect(res.body.success).toBe(true);
+    const row = await t.prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    expect(row.status).toBe('CONFIRMED');
+  });
+
   it('rejects a charge without ownership proof (404) and leaves the order pending', async () => {
     const { order } = await guestOrder();
     await charge(order.id).expect(404);

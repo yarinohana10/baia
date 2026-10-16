@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { PAYMENT_PROVIDER } from './payment.interface';
-import { PaymentController } from './payment.controller';
+import { OrderPaymentController, PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import { createPaymentProvider } from './payment-provider.factory';
 import { PAYMENT_WEBHOOK_VERIFIER, createWebhookVerifier } from './webhook/webhook-verifier';
@@ -10,7 +10,7 @@ import { RateLimitGuard } from '../common/rate-limit.guard';
 @Global()
 @Module({
   imports: [OrdersModule],
-  controllers: [PaymentController],
+  controllers: [PaymentController, OrderPaymentController],
   providers: [
     PaymentService,
     RateLimitGuard,

@@ -169,10 +169,25 @@ describe('Orders: ownership & guest access tokens (e2e)', () => {
       const orderA = await userOrder(a.agent);
       const orderB = await userOrder(b.agent);
       const res = await a.agent.get('/v1/orders/my').expect(200);
-      const ids = res.body.map((o: { id: string }) => o.id);
+      expect(res.body).toMatchObject({ total: 1, page: 1, totalPages: 1 });
+      const ids = res.body.orders.map((o: { id: string }) => o.id);
       expect(ids).toEqual([orderA.id]);
       expect(ids).not.toContain(orderB.id);
-      expect(res.body[0].accessTokenHash).toBeUndefined();
+      expect(res.body.orders[0].accessTokenHash).toBeUndefined();
+    });
+
+    it('/orders/my is paginated', async () => {
+      const a = await signUp(t);
+      const first = await userOrder(a.agent);
+      const second = await userOrder(a.agent);
+      const page1 = await a.agent.get('/v1/orders/my?limit=1').expect(200);
+      expect(page1.body).toMatchObject({ total: 2, page: 1, totalPages: 2 });
+      expect(page1.body.orders.map((o: { id: string }) => o.id)).toEqual([second.id]);
+      const page2 = await a.agent.get('/v1/orders/my?limit=1&page=2').expect(200);
+      expect(page2.body.orders.map((o: { id: string }) => o.id)).toEqual([first.id]);
+      // Out-of-range limits are clamped rather than rejected.
+      const clamped = await a.agent.get('/v1/orders/my?limit=500&page=-1').expect(200);
+      expect(clamped.body).toMatchObject({ page: 1, totalPages: 1 });
     });
 
     it('/orders/my requires a session', async () => {
@@ -194,6 +209,53 @@ describe('Orders: ownership & guest access tokens (e2e)', () => {
     it('non-admins cannot use admin order routes', async () => {
       const a = await signUp(t);
       await a.agent.get('/v1/admin/orders').expect(403);
+    });
+
+    it('filters the list by search (order number, email, recipient) and status', async () => {
+      const admin = await signUp(t, { admin: true });
+      const { order } = await guestOrder();
+
+      const byNumber = await admin.agent
+        .get('/v1/admin/orders')
+        .query({ search: order.orderNumber.toLowerCase() })
+        .expect(200);
+      expect(byNumber.body.orders.map((o: { id: string }) => o.id)).toEqual([order.id]);
+
+      const byEmail = await admin.agent.get('/v1/admin/orders').query({ search: 'GUEST@EXAMPLE' }).expect(200);
+      expect(byEmail.body.total).toBe(1);
+
+      const byName = await admin.agent.get('/v1/admin/orders').query({ search: 'dana lev' }).expect(200);
+      expect(byName.body.total).toBe(1);
+
+      const none = await admin.agent.get('/v1/admin/orders').query({ search: 'nobody-here' }).expect(200);
+      expect(none.body.total).toBe(0);
+
+      const pending = await admin.agent.get('/v1/admin/orders').query({ status: 'PENDING_PAYMENT' }).expect(200);
+      expect(pending.body.total).toBe(1);
+      const shipped = await admin.agent.get('/v1/admin/orders').query({ status: 'SHIPPED' }).expect(200);
+      expect(shipped.body.total).toBe(0);
+
+      await admin.agent.get('/v1/admin/orders').query({ status: 'FOO' }).expect(400);
+    });
+
+    it('exposes allowedTransitions on admin routes only', async () => {
+      const admin = await signUp(t, { admin: true });
+      const { order } = await guestOrder();
+
+      const list = await admin.agent.get('/v1/admin/orders').expect(200);
+      expect(list.body.orders[0].allowedTransitions.sort()).toEqual(['CANCELLED', 'CONFIRMED']);
+
+      const one = await admin.agent.get(`/v1/admin/orders/${order.id}`).expect(200);
+      expect(one.body.allowedTransitions.sort()).toEqual(['CANCELLED', 'CONFIRMED']);
+
+      const updated = await admin.agent
+        .put(`/v1/admin/orders/${order.id}/status`)
+        .send({ status: 'CANCELLED' })
+        .expect(200);
+      expect(updated.body.allowedTransitions).toEqual([]);
+
+      const customer = await admin.agent.get(`/v1/orders/${order.id}`).expect(200);
+      expect(customer.body.allowedTransitions).toBeUndefined();
     });
   });
 

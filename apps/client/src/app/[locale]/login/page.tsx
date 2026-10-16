@@ -203,7 +203,7 @@ export default function LoginPage() {
                   ) : (
                     <>
                       <span>{t('signIn')}</span>
-                      <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight size={16} className="rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
                     </>
                   )}
                 </span>

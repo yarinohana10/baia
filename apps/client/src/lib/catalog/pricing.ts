@@ -20,11 +20,42 @@ export function activeSalePrice(variants: V[], now = new Date()): number | null 
   return best;
 }
 
-export function totalStock(variants: V[]): number {
-  return variants.reduce((sum, v) => sum + (v.stockQuantity ?? 0), 0);
+/** Per-line cart maximum enforced by the API (MAX_LINE_QUANTITY). */
+export const MAX_LINE_QUANTITY = 99;
+
+type StockLike = { stockQuantity?: number; trackInventory?: boolean };
+
+/** Untracked variants (trackInventory: false) have unlimited stock. */
+export function isUnlimited(v: StockLike): boolean {
+  return v.trackInventory === false;
+}
+
+/** Units a shopper can add to one cart line (unlimited stock is capped at MAX_LINE_QUANTITY). */
+export function availableQty(v: StockLike): number {
+  if (isUnlimited(v)) return MAX_LINE_QUANTITY;
+  return Math.min(MAX_LINE_QUANTITY, Math.max(0, v.stockQuantity ?? 0));
+}
+
+export function isInStock(v: StockLike): boolean {
+  return isUnlimited(v) || (v.stockQuantity ?? 0) > 0;
+}
+
+/** Total units in stock; Infinity when any variant has unlimited stock. */
+export function totalStock(variants: StockLike[]): number {
+  return variants.reduce(
+    (sum, v) => sum + (isUnlimited(v) ? Number.POSITIVE_INFINITY : Math.max(0, v.stockQuantity ?? 0)),
+    0,
+  );
 }
 
 export const LOW_STOCK_THRESHOLD = 5;
+
+/** Remaining units to show in an "only N left" hint, or null (never for unlimited stock). */
+export function lowStockCount(v: StockLike): number | null {
+  if (isUnlimited(v)) return null;
+  const qty = v.stockQuantity ?? 0;
+  return qty > 0 && qty <= LOW_STOCK_THRESHOLD ? qty : null;
+}
 export const NEW_PRODUCT_DAYS = 30;
 
 export function isNewProduct(createdAt: string | undefined, now = new Date()): boolean {
@@ -41,7 +72,7 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 
 /** Distinct sizes that still have stock, in a natural order. */
 export function sizesInStock(variants: V[]): string[] {
-  const sizes = [...new Set(variants.filter((v) => (v.stockQuantity ?? 0) > 0).map((v) => v.size).filter((s): s is string => !!s))];
+  const sizes = [...new Set(variants.filter(isInStock).map((v) => v.size).filter((s): s is string => !!s))];
   return sizes.sort((a, b) => {
     const ia = SIZE_ORDER.indexOf(a);
     const ib = SIZE_ORDER.indexOf(b);

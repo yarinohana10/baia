@@ -15,8 +15,9 @@ import { PAYMENT_PROVIDER, type PaymentProvider, type PaymentResult } from './pa
 import type { PaymentWebhookEvent } from './webhook/webhook-verifier';
 
 export const PAYMENT_CURRENCY = 'ILS';
-/** A claim older than this is considered abandoned (process crash mid-charge). */
-export const PAYMENT_CLAIM_TTL_MS = 2 * 60 * 1000;
+export { PAYMENT_CLAIM_TTL_MS } from './payment-claim';
+import { PAYMENT_CLAIM_TTL_MS } from './payment-claim';
+import { shopConflict } from '../common/error-codes';
 
 export type ChargeResponse = {
   success: true;
@@ -128,7 +129,7 @@ export class PaymentService {
       } catch (err) {
         this.logger.error(`refund failed for attempt ${attempt.id}: ${(err as Error)?.message}`);
       }
-      throw new ConflictException('Order is no longer awaiting payment');
+      throw shopConflict('ORDER_NOT_PAYABLE', 'Order is no longer awaiting payment');
     }
 
     await this.notifyConfirmed(orderId);
@@ -191,7 +192,7 @@ export class PaymentService {
     if (paidStatuses.includes(order.status) && order.paymentRef) {
       return { success: true, orderId: order.id, status: order.status, transactionId: order.paymentRef, alreadyPaid: true };
     }
-    throw new ConflictException('Order is not awaiting payment');
+    throw shopConflict('ORDER_NOT_PAYABLE', 'Order is not awaiting payment');
   }
 
   private async notifyConfirmed(orderId: string) {

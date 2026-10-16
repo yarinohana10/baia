@@ -2,6 +2,8 @@ import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService, STORAGE_SERVICE } from '../storage/storage.interface';
 import { randomUUID } from 'crypto';
+import { Prisma } from '../generated/prisma';
+import { UpdateSiteConfigDto } from './dto/update-site-config.dto';
 
 @Injectable()
 export class SiteConfigService {
@@ -34,18 +36,18 @@ export class SiteConfigService {
     return config;
   }
 
-  async update(data: {
-    shippingCost?: number;
-    freeShippingThreshold?: number;
-    heroImageUrl?: string;
-    heroTitleHe?: string;
-    heroTitleEn?: string;
-    heroSubtitleHe?: string;
-    heroSubtitleEn?: string;
-    heroCtaUrl?: string;
-  }) {
-    const updateData: any = { ...data };
+  /** Creates the singleton row on first use so updates never 404 on a fresh database. */
+  private async ensureRow() {
+    const existing = await this.prisma.siteConfig.findUnique({ where: { id: 'default' } });
+    if (!existing) await this.prisma.siteConfig.create({ data: { id: 'default' } });
+  }
 
+  async update(data: UpdateSiteConfigDto) {
+    const updateData: Prisma.SiteConfigUpdateInput = {};
+    const textKeys = ['heroTitleHe', 'heroTitleEn', 'heroSubtitleHe', 'heroSubtitleEn', 'heroCtaUrl'] as const;
+    for (const key of textKeys) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
     if (data.shippingCost !== undefined) {
       updateData.shippingCost = data.shippingCost;
     }
@@ -53,6 +55,7 @@ export class SiteConfigService {
       updateData.freeShippingThreshold = data.freeShippingThreshold;
     }
 
+    await this.ensureRow();
     return this.prisma.siteConfig.update({
       where: { id: 'default' },
       data: updateData,
@@ -68,17 +71,6 @@ export class SiteConfigService {
     const config = await this.prisma.siteConfig.findUnique({
       where: { id: 'default' },
     });
-
-    // Delete old hero image upload if exists
-    if (config?.heroImageUploadId) {
-      const oldUpload = await this.prisma.upload.findUnique({
-        where: { id: config.heroImageUploadId },
-      });
-      if (oldUpload) {
-        await this.storage.delete(oldUpload.s3Key);
-        await this.prisma.upload.delete({ where: { id: oldUpload.id } });
-      }
-    }
 
     const ext = originalName.split('.').pop() || 'jpg';
     const uploadIdValue = randomUUID();
@@ -99,16 +91,28 @@ export class SiteConfigService {
         },
       });
 
-      return await this.prisma.siteConfig.update({
+      if (!config) await this.prisma.siteConfig.create({ data: { id: 'default' } });
+      const updated = await this.prisma.siteConfig.update({
         where: { id: 'default' },
         data: {
           heroImageUploadId: upload.id,
           heroImageUrl: this.storage.getUrl(s3Key),
         },
       });
+
+      // Only remove the previous image once the new one is stored and linked.
+      if (config?.heroImageUploadId) await this.removeUpload(config.heroImageUploadId);
+      return updated;
     } catch (err) {
       await this.storage.delete(s3Key).catch(() => {});
       throw err;
     }
+  }
+
+  private async removeUpload(uploadId: string) {
+    const oldUpload = await this.prisma.upload.findUnique({ where: { id: uploadId } });
+    if (!oldUpload) return;
+    await this.prisma.upload.delete({ where: { id: oldUpload.id } }).catch(() => {});
+    await this.storage.delete(oldUpload.s3Key).catch(() => {});
   }
 }

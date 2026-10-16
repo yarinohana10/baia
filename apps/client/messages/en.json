@@ -145,7 +145,16 @@
     "continueShopping": "Continue Shopping",
     "decreaseQuantity": "Decrease quantity",
     "increaseQuantity": "Increase quantity",
-    "removeItem": "Remove item"
+    "removeItem": "Remove item",
+    "viewCart": "View cart",
+    "freeShippingOver": "Free shipping on orders over {amount}",
+    "updating": "Updating…",
+    "issues": {
+      "unavailable": "This item is no longer available. Please remove it from your cart.",
+      "outOfStock": "This item is out of stock. Please remove it from your cart.",
+      "insufficient": "{available, plural, one {Only # left in stock.} other {Only # left in stock.}} Please lower the quantity.",
+      "blocked": "Some items in your cart need your attention before you can check out."
+    }
   },
   "footer": {
     "categoriesTitle": "Categories",
@@ -266,6 +275,12 @@
       "body": "The page you're looking for doesn't exist or has moved. Let's get you back to the shore.",
       "home": "Back to homepage",
       "shop": "Shop new arrivals"
+    },
+    "product": {
+      "notFound": "Product not found.",
+      "sku": "SKU: {sku}",
+      "lowStock": "{count, plural, one {Only # left} other {Only # left}}",
+      "adding": "Adding…"
     }
   },
   "pages": {
@@ -374,7 +389,9 @@
       "coupons": "Coupons",
       "settings": "Settings",
       "customers": "Customers",
-      "soon": "Soon"
+      "soon": "Soon",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -415,7 +432,9 @@
       "noAlerts": "All items are well stocked!",
       "variantLabel": "{color} / {size}",
       "unitsLeft": "{count} left",
-      "outOfStockLabel": "Out of stock"
+      "outOfStockLabel": "Out of stock",
+      "unlimitedStock": "Unlimited stock",
+      "sizesCount": "{count} sizes"
     },
     "products": {
       "title": "Products",
@@ -426,7 +445,7 @@
       "name": "Name",
       "category": "Category",
       "price": "Price",
-      "variants": "Variants",
+      "variants": "Sizes",
       "stock": "Stock",
       "inStock": "In Stock",
       "lowStockBadge": "Low Stock",
@@ -440,7 +459,18 @@
       "removeFeatured": "Remove from featured",
       "markFeatured": "Mark as featured",
       "deactivate": "Deactivate product",
-      "activate": "Activate product"
+      "activate": "Activate product",
+      "unlimited": "Unlimited",
+      "plusUnlimited": "+ unlimited",
+      "noSizes": "No sizes",
+      "editProduct": "Edit {name}",
+      "deleteProduct": "Delete {name}",
+      "deleted": "Product deleted",
+      "archivedNotice": "Product has orders, so it was hidden instead of deleted",
+      "deleteFailed": "Couldn't delete the product. Try again.",
+      "updateFailed": "Couldn't update the product. Try again.",
+      "loadFailed": "Couldn't load products. Try again.",
+      "dismiss": "Dismiss"
     },
     "categories": {
       "title": "Categories",
@@ -461,7 +491,23 @@
       "collapse": "Collapse category",
       "expand": "Expand category",
       "editAction": "Edit category",
-      "deleteAction": "Delete category"
+      "deleteAction": "Delete category",
+      "loadFailed": "Failed to load categories",
+      "createdSuccess": "Category created",
+      "updatedSuccess": "Category updated",
+      "deletedSuccess": "Category deleted",
+      "saveFailed": "Failed to save the category",
+      "deleteFailed": "Failed to delete the category",
+      "parentHasProducts": "The parent category has products. Move them to a subcategory first, since products can only be in categories without subcategories.",
+      "duplicateSlug": "A category with this slug already exists",
+      "invalidSlug": "The slug may contain only lowercase English letters, digits and dashes",
+      "invalidParent": "A category cannot be its own parent or sit under one of its subcategories",
+      "parentNotTopLevel": "Choose a top-level parent category",
+      "cannotNestWithChildren": "A category that has subcategories cannot be moved under another category",
+      "deleteHasProducts": "This category has products. Move or delete them before deleting the category.",
+      "deleteHasChildren": "This category has subcategories. Delete or move them first.",
+      "hasChildrenHint": "This category has subcategories, so it stays at the top level",
+      "parentHint": "Products can only be added to categories without subcategories"
     },
     "orders": {
       "title": "Orders",
@@ -492,7 +538,26 @@
       "shipped": "Shipped",
       "delivered": "Delivered",
       "cancelled": "Cancelled",
-      "refunded": "Refunded"
+      "refunded": "Refunded",
+      "searchPlaceholder": "Search by order number, email or name",
+      "recipient": "Recipient",
+      "phone": "Phone",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "discount": "Discount",
+      "coupon": "Coupon",
+      "current": "current",
+      "finalStatus": "This order's status is final and can't be changed.",
+      "confirmCancel": "Cancel this order? Its stock will be returned to inventory.",
+      "confirmRefund": "Mark this order as refunded? Its stock will be returned to inventory.",
+      "updated": "Order updated",
+      "transitionNotAllowed": "This status change isn't allowed. Reload the order and try again.",
+      "statusChangedMeanwhile": "The order was changed in the meantime. Reload it and try again.",
+      "orderNotFound": "Order not found.",
+      "updateFailed": "Couldn't update the order. Try again.",
+      "loadFailed": "Couldn't load orders. Try again.",
+      "detailFailed": "Couldn't load the order. Try again.",
+      "dismiss": "Dismiss"
     },
     "coupons": {
       "title": "Coupons",
@@ -528,7 +593,21 @@
       "deactivate": "Deactivate coupon",
       "activateCoupon": "Activate coupon",
       "editAction": "Edit coupon",
-      "deleteAction": "Delete coupon"
+      "deleteAction": "Delete coupon",
+      "loadFailed": "Failed to load coupons",
+      "createdSuccess": "Coupon created",
+      "updatedSuccess": "Coupon updated",
+      "deletedSuccess": "Coupon deleted",
+      "deactivatedInstead": "This coupon was used in orders, so it was deactivated instead of deleted",
+      "deleteFailed": "Failed to delete the coupon",
+      "saveFailed": "Failed to save the coupon",
+      "duplicateCode": "A coupon with this code already exists",
+      "invalidCode": "The code must be 3–30 characters: English letters, digits, \"-\" or \"_\"",
+      "invalidPercentage": "A percentage discount must be between 1 and 100",
+      "invalidFixedValue": "A fixed discount must be greater than 0",
+      "invalidMinCart": "The minimum cart value must be 0 or more",
+      "invalidMaxUses": "Max uses must be a whole number of at least 1",
+      "invalidExpiry": "The expiry date is not valid"
     },
     "settings": {
       "title": "Settings",
@@ -555,7 +634,10 @@
       "titleEn": "Title (English)",
       "subtitleEn": "Subtitle (English)",
       "ctaLinkUrl": "CTA Link URL",
-      "loading": "Loading settings..."
+      "loading": "Loading settings...",
+      "invalidCtaUrl": "The link must start with / (e.g. /category/men) or be a full http(s) address",
+      "invalidAmount": "Shipping amounts must be numbers of 0 or more",
+      "textTooLong": "One of the texts is too long"
     },
     "productForm": {
       "newProduct": "New Product",
@@ -570,18 +652,13 @@
       "category": "Category",
       "selectCategory": "Select category",
       "featured": "Featured on homepage",
-      "variants": "Variants",
-      "addVariant": "Add variant",
       "color": "Color",
       "size": "Size",
       "sku": "SKU",
-      "stock": "Stock",
       "price": "Price ₪",
       "salePrice": "Sale Price ₪",
       "saleStart": "Sale Start",
       "saleEnd": "Sale End",
-      "removeVariant": "Remove variant",
-      "deleteVariant": "Delete this variant?",
       "images": "Images",
       "uploadImages": "Upload images",
       "deleteImage": "Delete image",
@@ -625,12 +702,9 @@
       "imageLimit": "You can add up to {max} images",
       "sizeSet": "Size chart",
       "customSizes": "Custom sizes",
-      "customSizesHint": "Type any size for each variant",
-      "customSize": "Custom size…",
+      "customSizesHint": "Add your own sizes for each color below",
       "customSizePlaceholder": "e.g. 36 or One size",
-      "quickAddColor": "Quick add: a color in all sizes",
       "colorPlaceholder": "e.g. Black",
-      "addAllSizes": "Add all sizes",
       "fixErrors": "Please fix the highlighted fields",
       "conflictBanner": "Some values are already in use",
       "errors": {
@@ -652,7 +726,37 @@
         "categoryNotFound": "This category no longer exists",
         "notFound": "Not found",
         "invalidValue": "Invalid value",
-        "categoryHasSubcategories": "Choose a subcategory (for example Men › Swim Shorts)"
+        "categoryHasSubcategories": "Choose a subcategory (for example Men › Swim Shorts)",
+        "noSizes": "Tick at least one size, or save the product as hidden",
+        "colorDuplicate": "This color is already listed"
+      },
+      "stock": {
+        "title": "Sizes & stock",
+        "intro": "Choose which sizes you carry in each color and how many units you have of each. Stock goes down automatically with every order and comes back if an order is cancelled.",
+        "sizeChartHint": "Pick a size chart, then tick the sizes you carry below.",
+        "summary": "{sizes, plural, =0 {No sizes selected} one {1 size available} other {# sizes available}} · {units} units in stock",
+        "summaryUnlimited": "{count} unlimited",
+        "noSizesWarning": "No sizes selected yet, so customers can't buy this product. Tick the sizes you have below and enter how many units of each.",
+        "zeroStockWarning": "{count, plural, one {1 ticked size has} other {# ticked sizes have}} 0 units and will show as sold out.",
+        "removeColor": "Remove color",
+        "addColor": "Add another color",
+        "selectAll": "Tick all sizes",
+        "clearAll": "Clear",
+        "setAllQuantity": "Units for every ticked size",
+        "apply": "Apply",
+        "allUnlimited": "Unlimited stock for all sizes",
+        "tableLabel": "Sizes and stock for {color}",
+        "quantity": "Units in stock",
+        "unlimited": "Unlimited",
+        "unlimitedHint": "Unlimited - always available",
+        "notAvailable": "Not available",
+        "availableSize": "Size {size} available",
+        "quantityFor": "Units in stock for size {size}",
+        "unlimitedFor": "Unlimited stock for size {size}",
+        "moreOptions": "SKU, price & sale",
+        "soldOut": "Sold out",
+        "lowStock": "Low stock",
+        "addCustomSize": "Add size"
       }
     }
   },
@@ -666,7 +770,49 @@
   "checkout": {
     "paymentFailed": "Payment was not completed. Your order is saved — you can try again.",
     "failed": "Checkout failed. Please try again.",
-    "retryPayment": "Retry Payment"
+    "retryPayment": "Retry Payment",
+    "contact": "Contact",
+    "email": "Email",
+    "fullName": "Full name",
+    "phone": "Phone",
+    "phoneHint": "Digits only, e.g. 050-1234567",
+    "shippingAddress": "Shipping Address",
+    "city": "City",
+    "street": "Street",
+    "number": "Number",
+    "apartment": "Apartment",
+    "zip": "ZIP code",
+    "coupon": "Coupon code",
+    "apply": "Apply",
+    "removeCoupon": "Remove coupon",
+    "discountApplied": "Coupon {code} applied: -{amount}",
+    "discount": "Discount",
+    "orderSummary": "Order Summary",
+    "placeOrder": "Place Order",
+    "processing": "Processing…",
+    "secureNote": "Secure checkout with encrypted payment",
+    "empty": "Your cart is empty.",
+    "loading": "Loading your cart…",
+    "backToCart": "Back to cart",
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "network": "We couldn't reach the store. Check your connection and try again.",
+      "invalidDetails": "Some of the details are missing or invalid. Please check them and try again.",
+      "tooManyRequests": "Too many attempts. Please wait a minute and try again.",
+      "paymentDeclined": "The payment was declined. Your order is saved — you can try again.",
+      "cartEmpty": "Your cart is empty.",
+      "variantUnavailable": "{product} (size {size}) is no longer available. Please remove it from your cart.",
+      "variantUnavailableGeneric": "This item is no longer available.",
+      "outOfStock": "There isn't enough stock of {product} (size {size}). Please update your cart.",
+      "outOfStockAvailable": "{available, plural, one {Only # left in stock.} other {Only # left in stock.}}",
+      "outOfStockGeneric": "This item is out of stock.",
+      "couponInvalid": "This coupon code isn't valid.",
+      "couponInactive": "This coupon is no longer active.",
+      "couponExpired": "This coupon has expired.",
+      "couponLimitReached": "This coupon has reached its usage limit.",
+      "couponMinTotal": "This coupon requires a minimum order of {min}.",
+      "orderNotPayable": "This order expired because it wasn't paid within 60 minutes, and its items were released back to stock. You can add them to your cart and place the order again."
+    }
   },
   "orderConfirmation": {
     "thankYou": "Thank You!",
@@ -695,5 +841,20 @@
       "CANCELLED": "Cancelled",
       "REFUNDED": "Refunded"
     }
+  },
+  "orders": {
+    "title": "My Orders",
+    "empty": "No orders yet.",
+    "startShopping": "Start Shopping",
+    "itemCount": "{count, plural, one {# item} other {# items}}",
+    "loadError": "We couldn't load your orders. Please try again.",
+    "retry": "Try again",
+    "loadMore": "Load more orders",
+    "loadingMore": "Loading…",
+    "viewOrder": "View order {number}",
+    "phone": "Phone",
+    "tracking": "Tracking number",
+    "completePayment": "Complete payment",
+    "paying": "Processing…"
   }
 }

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Put,
@@ -13,6 +14,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { SiteConfigService } from './site-config.service';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { Request } from 'express';
+import { strictValidationPipe } from '../common/validation';
+import { UpdateSiteConfigDto } from './dto/update-site-config.dto';
 
 @Controller()
 export class SiteConfigController {
@@ -31,30 +34,23 @@ export class SiteConfigController {
     return this.siteConfigService.get();
   }
 
-  @Put()
-  update(
-    @Body()
-    body: {
-      shippingCost?: number;
-      freeShippingThreshold?: number;
-      heroImageUrl?: string;
-      heroTitleHe?: string;
-      heroTitleEn?: string;
-      heroSubtitleHe?: string;
-      heroSubtitleEn?: string;
-      heroCtaUrl?: string;
-    },
-  ) {
+  @Put('admin/site-config')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  update(@Body(strictValidationPipe) body: UpdateSiteConfigDto) {
     return this.siteConfigService.update(body);
   }
 
-  @Post('hero-image')
+  @Post('admin/site-config/hero-image')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
   @UseInterceptors(FileInterceptor('file'))
   uploadHeroImage(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @Req() req: Request,
   ) {
-    const userId = (req as any).user?.id;
+    if (!file) throw new BadRequestException('An image file is required (field "file")');
+    const userId = (req as unknown as { user?: { id?: string } }).user?.id;
     return this.siteConfigService.uploadHeroImage(
       file.buffer,
       file.originalname,

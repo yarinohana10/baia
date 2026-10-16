@@ -29,7 +29,7 @@ function keyFor(err: ServerFieldError): string {
       return 'saleDateRange';
     case 'isNotEmpty':
     case 'required':
-      return 'required';
+      return err.field === 'variants' ? 'noSizes' : 'required';
     case 'isPositive':
       return 'mustBePositive';
     case 'min':

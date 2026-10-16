@@ -28,6 +28,7 @@ import {
   UpdateVariantDto,
   VariantDto,
 } from './dto/product.dto';
+import { ADMIN_PAGE_LIMIT, clampInt, MAX_PAGE, PUBLIC_PAGE_LIMIT } from './pagination';
 
 function userIdOf(req?: Request): string | undefined {
   return (req as unknown as { user?: { id?: string } } | undefined)?.user?.id;
@@ -50,8 +51,8 @@ export class ProductsController {
     return this.productsService.findAll({
       categoryId,
       search,
-      page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 20,
+      page: clampInt(page, 1, 1, MAX_PAGE),
+      limit: clampInt(limit, PUBLIC_PAGE_LIMIT.default, 1, PUBLIC_PAGE_LIMIT.max),
       sort,
     });
   }
@@ -71,11 +72,27 @@ export class ProductsController {
   @Get('admin/products')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
+  /**
+   * Backward compatible: without `page` this returns a plain array of every
+   * product (what the current admin products page expects). With `page`
+   * (and optional `limit`, default 50, max 200) it returns
+   * `{ products, total, page, limit, totalPages }`.
+   */
   findAllAdmin(
     @Query('search') search?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.productsService.findAllAdmin({ search, categoryId });
+    if (page === undefined) {
+      return this.productsService.findAllAdmin({ search, categoryId });
+    }
+    return this.productsService.findAllAdminPage({
+      search,
+      categoryId,
+      page: clampInt(page, 1, 1, MAX_PAGE),
+      limit: clampInt(limit, ADMIN_PAGE_LIMIT.default, 1, ADMIN_PAGE_LIMIT.max),
+    });
   }
 
   @Get('admin/products/:id')
@@ -109,6 +126,10 @@ export class ProductsController {
     return this.productsService.update(id, body);
   }
 
+  /**
+   * Returns `{ deleted: true }`, or `{ archived: true }` when the product has
+   * been ordered (it is hidden instead so order history stays intact).
+   */
   @Delete('admin/products/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')

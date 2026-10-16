@@ -3,8 +3,17 @@
 import { useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { useCartStore } from '@/store/cart';
-import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import {
+  canIncrease,
+  cartSubtotal,
+  decreasedQuantity,
+  lineIssue,
+  shippingFor,
+  unitPrice,
+  useCartStore,
+} from '@/store/cart';
+import { formatPrice } from '@/lib/catalog/pricing';
+import { Minus, Plus, Trash2, ShoppingBag, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import {
   Drawer,
@@ -16,32 +25,32 @@ import {
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 
-function getEffectivePrice(item: any) {
-  const base = parseFloat(item.variant.priceOverride || item.variant.product.basePrice);
-  if (item.variant.salePrice) {
-    const now = new Date();
-    const start = item.variant.saleStart ? new Date(item.variant.saleStart) : null;
-    const end = item.variant.saleEnd ? new Date(item.variant.saleEnd) : null;
-    if ((!start || now >= start) && (!end || now <= end)) {
-      return parseFloat(item.variant.salePrice);
-    }
-  }
-  return base;
-}
-
 export function CartDrawer() {
   const locale = useLocale();
   const t = useTranslations('cart');
-  const tCommon = useTranslations('common');
-  const { items, drawerOpen, closeDrawer, fetchCart, updateQuantity, removeItem, itemCount } = useCartStore();
+  const tErrors = useTranslations('checkout.errors');
+  const {
+    items,
+    drawerOpen,
+    shipping,
+    pending,
+    lineErrors,
+    closeDrawer,
+    fetchCart,
+    fetchShipping,
+    updateQuantity,
+    removeItem,
+    itemCount,
+  } = useCartStore();
 
   useEffect(() => {
     fetchCart();
-  }, [fetchCart]);
+    fetchShipping();
+  }, [fetchCart, fetchShipping]);
 
-  const subtotal = items.reduce((sum, item) => {
-    return sum + getEffectivePrice(item) * item.quantity;
-  }, 0);
+  const subtotal = cartSubtotal(items);
+  const shippingCost = shippingFor(subtotal, shipping);
+  const hasIssues = items.some((item) => lineIssue(item));
 
   const count = itemCount();
 
@@ -77,10 +86,17 @@ export function CartDrawer() {
                 const product = item.variant.product;
                 const name = locale === 'he' ? product.nameHe : product.nameEn;
                 const imageUrl = product.images[0]?.url;
-                const price = getEffectivePrice(item);
+                const { price } = unitPrice(item);
+                const issue = lineIssue(item);
+                const busy = !!pending[item.id];
+                const error = lineErrors[item.id];
 
                 return (
-                  <div key={item.id} className="flex gap-3 p-3 bg-gray-50 rounded-xl">
+                  <div
+                    key={item.id}
+                    aria-busy={busy}
+                    className={`flex gap-3 p-3 bg-gray-50 rounded-xl ${issue ? 'ring-1 ring-red-200' : ''} ${busy ? 'opacity-60' : ''}`}
+                  >
                     <Link
                       href={`/product/${product.slug}`}
                       onClick={closeDrawer}
@@ -115,16 +131,19 @@ export function CartDrawer() {
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            type="button"
+                            onClick={() => updateQuantity(item.id, decreasedQuantity(item))}
+                            disabled={busy}
                             aria-label={t('decreaseQuantity')}
-                            className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+                            className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors disabled:text-gray-300"
                           >
                             <Minus size={12} />
                           </button>
                           <span className="w-6 text-center text-xs font-medium">{item.quantity}</span>
                           <button
+                            type="button"
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= item.variant.stockQuantity}
+                            disabled={busy || !canIncrease(item)}
                             aria-label={t('increaseQuantity')}
                             className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors disabled:text-gray-300"
                           >
@@ -132,16 +151,31 @@ export function CartDrawer() {
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold">₪{(price * item.quantity).toFixed(0)}</span>
+                          <span className="text-sm font-semibold">{formatPrice(price * item.quantity)}</span>
                           <button
+                            type="button"
                             onClick={() => removeItem(item.id)}
+                            disabled={busy}
                             aria-label={t('removeItem')}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors disabled:opacity-40"
                           >
                             <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
+                      {issue && (
+                        <p className="text-xs text-red-500 mt-1.5 flex items-start gap-1">
+                          <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                          {issue.kind === 'insufficient'
+                            ? t('issues.insufficient', { available: issue.available })
+                            : t(`issues.${issue.kind}`)}
+                        </p>
+                      )}
+                      {error && (
+                        <p role="alert" className="text-xs text-red-500 mt-1.5">
+                          {tErrors(error.key, error.values)}
+                        </p>
+                      )}
                     </div>
                   </div>
                 );
@@ -151,14 +185,40 @@ export function CartDrawer() {
             <DrawerFooter className="border-t border-gray-100 pt-4 space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">{t('subtotal')}</span>
-                <span className="font-bold text-base">₪{subtotal.toFixed(0)}</span>
+                <span className="font-bold text-base">{formatPrice(subtotal)}</span>
               </div>
+              {shippingCost > 0 && (
+                <p className="text-xs text-gray-400">
+                  {t('freeShippingOver', { amount: formatPrice(shipping.freeThreshold) })}
+                </p>
+              )}
+              {hasIssues ? (
+                <>
+                  <p role="status" className="text-xs text-red-500 flex items-start gap-1.5">
+                    <AlertTriangle size={12} className="shrink-0 mt-0.5" /> {t('issues.blocked')}
+                  </p>
+                  <span
+                    aria-disabled="true"
+                    className="w-full bg-ocean-700 text-white text-center py-3 text-sm font-medium tracking-wider uppercase rounded-lg opacity-40 cursor-not-allowed block"
+                  >
+                    {t('checkout')}
+                  </span>
+                </>
+              ) : (
+                <Link
+                  href="/checkout"
+                  onClick={closeDrawer}
+                  className="w-full bg-ocean-700 text-white text-center py-3 text-sm font-medium tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors block"
+                >
+                  {t('checkout')}
+                </Link>
+              )}
               <Link
                 href="/cart"
                 onClick={closeDrawer}
-                className="w-full bg-ocean-700 text-white text-center py-3 text-sm font-medium tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors block"
+                className="w-full text-center text-sm text-ocean-700 hover:text-ocean-800 transition-colors py-1 block"
               >
-                {t('checkout')}
+                {t('viewCart')}
               </Link>
               <DrawerClose
                 render={

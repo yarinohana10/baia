@@ -10,6 +10,14 @@ const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http:
 
 export const REVALIDATE_SECONDS = 300;
 
+/**
+ * Cache tags on every catalogue fetch below. `POST /api/revalidate` (called by
+ * `revalidateCatalog()` after admin mutations) invalidates all of them, so
+ * hidden products, price changes and settings show up immediately instead of
+ * after REVALIDATE_SECONDS.
+ */
+export const CATALOG_TAGS = ['products', 'categories', 'site-config'] as const;
+
 async function get<T>(path: string, tags: string[], fallback: T): Promise<T> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
@@ -72,6 +80,7 @@ export function toCardProduct(p: Product): CardProduct {
       saleEnd: v.saleEnd,
       priceOverride: v.priceOverride,
       stockQuantity: v.stockQuantity,
+      trackInventory: v.trackInventory,
     })),
   };
 }

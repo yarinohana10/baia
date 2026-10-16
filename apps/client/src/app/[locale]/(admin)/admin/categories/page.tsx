@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
+import { revalidateCatalog } from '@/lib/catalog/revalidate';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,8 +26,48 @@ function autoSlug(name: string) {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .trim();
+    .trim()
+    .replace(/[\s-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+type Feedback = { type: 'success' | 'error'; text: string };
+type ApiFieldError = { field: string; code: string };
+
+function apiErrors(err: unknown): { status?: number; codes: Set<string>; fields: Set<string> } {
+  if (!isAxiosError(err)) return { codes: new Set(), fields: new Set() };
+  const errors: ApiFieldError[] = err.response?.data?.errors ?? [];
+  return {
+    status: err.response?.status,
+    codes: new Set(errors.map((e) => e.code)),
+    fields: new Set(errors.map((e) => e.field)),
+  };
+}
+
+type SaveErrorKey =
+  | 'parentHasProducts'
+  | 'duplicateSlug'
+  | 'invalidSlug'
+  | 'invalidParent'
+  | 'parentNotTopLevel'
+  | 'cannotNestWithChildren'
+  | 'saveFailed';
+
+function saveErrorKey(err: unknown): SaveErrorKey {
+  const { codes, fields } = apiErrors(err);
+  if (codes.has('parentHasProducts')) return 'parentHasProducts';
+  if (fields.has('slug')) return codes.has('unique') ? 'duplicateSlug' : 'invalidSlug';
+  if (codes.has('selfParent') || codes.has('descendantParent') || codes.has('notFound')) return 'invalidParent';
+  if (codes.has('maxDepth')) return 'parentNotTopLevel';
+  if (codes.has('hasSubcategories')) return 'cannotNestWithChildren';
+  return 'saveFailed';
+}
+
+function deleteErrorKey(err: unknown): 'deleteHasProducts' | 'deleteHasChildren' | 'deleteFailed' {
+  const { codes } = apiErrors(err);
+  if (codes.has('hasProducts')) return 'deleteHasProducts';
+  if (codes.has('hasSubcategories')) return 'deleteHasChildren';
+  return 'deleteFailed';
 }
 
 function selectClassName() {
@@ -41,6 +83,7 @@ export default function CategoriesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<Feedback | null>(null);
   const [formData, setFormData] = useState({
     nameHe: '',
     nameEn: '',
@@ -50,23 +93,37 @@ export default function CategoriesPage() {
   });
 
   const fetchCategories = async () => {
-    const res = await api.get('/categories');
-    setCategories(res.data);
+    try {
+      const res = await api.get('/categories');
+      setCategories(res.data);
+    } catch {
+      setMessage({ type: 'error', text: t('loadFailed') });
+    }
   };
 
   useEffect(() => {
     fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A category can't be its own parent or sit under one of its subcategories,
+  // and only top-level categories can be parents (two levels).
+  const editingHasChildren = !!editing && editing.children?.length > 0;
+  const parentOptions = categories.filter(
+    (cat) => !editing || (cat.id !== editing.id && !editing.children?.some((child) => child.id === cat.id)),
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
+    setMessage(null);
 
     try {
       const data = {
         ...formData,
-        parentId: formData.parentId || undefined,
+        // null moves a subcategory back to the top level
+        parentId: formData.parentId || null,
       };
 
       if (editing) {
@@ -75,10 +132,14 @@ export default function CategoriesPage() {
         await api.post('/admin/categories', data);
       }
 
+      setMessage({ type: 'success', text: t(editing ? 'updatedSuccess' : 'createdSuccess') });
       setShowForm(false);
       setEditing(null);
       setFormData({ nameHe: '', nameEn: '', slug: '', parentId: '', sortOrder: 0 });
       fetchCategories();
+      await revalidateCatalog();
+    } catch (err) {
+      setMessage({ type: 'error', text: t(saveErrorKey(err)) });
     } finally {
       setSubmitting(false);
     }
@@ -98,8 +159,19 @@ export default function CategoriesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm(t('deleteConfirm'))) return;
-    await api.delete(`/admin/categories/${id}`);
-    fetchCategories();
+    setMessage(null);
+    try {
+      await api.delete(`/admin/categories/${id}`);
+      setMessage({ type: 'success', text: t('deletedSuccess') });
+      if (editing?.id === id) {
+        setShowForm(false);
+        setEditing(null);
+      }
+      fetchCategories();
+      await revalidateCatalog();
+    } catch (err) {
+      setMessage({ type: 'error', text: t(deleteErrorKey(err)) });
+    }
   };
 
   return (
@@ -117,6 +189,19 @@ export default function CategoriesPage() {
           <Plus size={16} /> {t('addCategory')}
         </Button>
       </div>
+
+      {message && (
+        <div
+          role={message.type === 'error' ? 'alert' : 'status'}
+          className={`mb-6 rounded-xl px-4 py-3 font-body text-sm ${
+            message.type === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-destructive border border-red-200'
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
 
       {/* Form */}
       {showForm && (
@@ -167,15 +252,20 @@ export default function CategoriesPage() {
                   id="category-parentId"
                   value={formData.parentId}
                   onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
+                  disabled={editingHasChildren}
+                  aria-describedby="category-parentId-hint"
                   className={selectClassName()}
                 >
                   <option value="">{t('noneTopLevel')}</option>
-                  {categories.map((cat) => (
+                  {parentOptions.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {locale === 'he' ? cat.nameHe : cat.nameEn}
                     </option>
                   ))}
                 </select>
+                <p id="category-parentId-hint" className="text-xs text-muted-foreground">
+                  {editingHasChildren ? t('hasChildrenHint') : t('parentHint')}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="category-sortOrder">{t('sortOrder')}</Label>

@@ -145,7 +145,16 @@
     "continueShopping": "המשך קניות",
     "decreaseQuantity": "הפחת כמות",
     "increaseQuantity": "הוסף כמות",
-    "removeItem": "הסר פריט"
+    "removeItem": "הסר פריט",
+    "viewCart": "לצפייה בעגלה",
+    "freeShippingOver": "משלוח חינם בהזמנות מעל {amount}",
+    "updating": "מעדכנים…",
+    "issues": {
+      "unavailable": "הפריט הזה כבר לא זמין. יש להסיר אותו מהעגלה.",
+      "outOfStock": "הפריט הזה אזל מהמלאי. יש להסיר אותו מהעגלה.",
+      "insufficient": "{available, plural, one {נותר במלאי פריט אחד בלבד.} other {נותרו במלאי # בלבד.}} יש להפחית את הכמות.",
+      "blocked": "יש פריטים בעגלה שדורשים את תשומת לבך לפני המעבר לתשלום."
+    }
   },
   "footer": {
     "categoriesTitle": "קטגוריות",
@@ -266,6 +275,12 @@
       "body": "העמוד שחיפשתם לא קיים או שעבר למקום אחר. בואו נחזיר אתכם לחוף.",
       "home": "חזרה לדף הבית",
       "shop": "לפריטים החדשים"
+    },
+    "product": {
+      "notFound": "המוצר לא נמצא.",
+      "sku": "מק״ט: {sku}",
+      "lowStock": "{count, plural, one {נותר פריט אחרון} other {נותרו # בלבד}}",
+      "adding": "מוסיפים…"
     }
   },
   "pages": {
@@ -374,7 +389,9 @@
       "coupons": "קופונים",
       "settings": "הגדרות",
       "customers": "לקוחות",
-      "soon": "בקרוב"
+      "soon": "בקרוב",
+      "openMenu": "פתיחת תפריט",
+      "closeMenu": "סגירת תפריט"
     },
     "dashboard": {
       "title": "לוח בקרה",
@@ -415,7 +432,9 @@
       "noAlerts": "כל הפריטים במלאי מלא!",
       "variantLabel": "{color} / {size}",
       "unitsLeft": "נותרו {count}",
-      "outOfStockLabel": "אזל מהמלאי"
+      "outOfStockLabel": "אזל מהמלאי",
+      "unlimitedStock": "מלאי ללא הגבלה",
+      "sizesCount": "{count} מידות"
     },
     "products": {
       "title": "מוצרים",
@@ -426,7 +445,7 @@
       "name": "שם",
       "category": "קטגוריה",
       "price": "מחיר",
-      "variants": "גרסאות",
+      "variants": "מידות",
       "stock": "מלאי",
       "inStock": "במלאי",
       "lowStockBadge": "מלאי נמוך",
@@ -440,7 +459,18 @@
       "removeFeatured": "הסר מהמובחרים",
       "markFeatured": "סמן כמובחר",
       "deactivate": "השבת מוצר",
-      "activate": "הפעל מוצר"
+      "activate": "הפעל מוצר",
+      "unlimited": "ללא הגבלה",
+      "plusUnlimited": "+ ללא הגבלה",
+      "noSizes": "אין מידות",
+      "editProduct": "עריכת {name}",
+      "deleteProduct": "מחיקת {name}",
+      "deleted": "המוצר נמחק",
+      "archivedNotice": "למוצר יש הזמנות, ולכן הוא הוסתר במקום להימחק",
+      "deleteFailed": "לא הצלחנו למחוק את המוצר. נסו שוב.",
+      "updateFailed": "לא הצלחנו לעדכן את המוצר. נסו שוב.",
+      "loadFailed": "לא הצלחנו לטעון את המוצרים. נסו שוב.",
+      "dismiss": "סגירה"
     },
     "categories": {
       "title": "קטגוריות",
@@ -461,7 +491,23 @@
       "collapse": "כווץ קטגוריה",
       "expand": "הרחב קטגוריה",
       "editAction": "ערוך קטגוריה",
-      "deleteAction": "מחק קטגוריה"
+      "deleteAction": "מחק קטגוריה",
+      "loadFailed": "טעינת הקטגוריות נכשלה",
+      "createdSuccess": "הקטגוריה נוצרה",
+      "updatedSuccess": "הקטגוריה עודכנה",
+      "deletedSuccess": "הקטגוריה נמחקה",
+      "saveFailed": "שמירת הקטגוריה נכשלה",
+      "deleteFailed": "מחיקת הקטגוריה נכשלה",
+      "parentHasProducts": "בקטגוריית האב יש מוצרים. יש להעביר אותם קודם לתת-קטגוריה, כי מוצרים יכולים להיות רק בקטגוריות ללא תת-קטגוריות.",
+      "duplicateSlug": "כבר קיימת קטגוריה עם כתובת ה-URL הזו",
+      "invalidSlug": "כתובת ה-URL יכולה להכיל רק אותיות קטנות באנגלית, ספרות ומקפים",
+      "invalidParent": "קטגוריה לא יכולה להיות קטגוריית האב של עצמה או להיות תחת אחת מתת-הקטגוריות שלה",
+      "parentNotTopLevel": "יש לבחור קטגוריית אב ברמה העליונה",
+      "cannotNestWithChildren": "קטגוריה שיש לה תת-קטגוריות לא יכולה לעבור תחת קטגוריה אחרת",
+      "deleteHasProducts": "בקטגוריה הזו יש מוצרים. יש להעביר או למחוק אותם לפני מחיקת הקטגוריה.",
+      "deleteHasChildren": "לקטגוריה הזו יש תת-קטגוריות. יש למחוק או להעביר אותן קודם.",
+      "hasChildrenHint": "לקטגוריה הזו יש תת-קטגוריות, ולכן היא נשארת ברמה העליונה",
+      "parentHint": "אפשר להוסיף מוצרים רק לקטגוריות שאין להן תת-קטגוריות"
     },
     "orders": {
       "title": "הזמנות",
@@ -492,7 +538,26 @@
       "shipped": "נשלח",
       "delivered": "נמסר",
       "cancelled": "בוטל",
-      "refunded": "הוחזר"
+      "refunded": "הוחזר",
+      "searchPlaceholder": "חיפוש לפי מספר הזמנה, אימייל או שם",
+      "recipient": "נמען",
+      "phone": "טלפון",
+      "subtotal": "סכום ביניים",
+      "shipping": "משלוח",
+      "discount": "הנחה",
+      "coupon": "קופון",
+      "current": "נוכחי",
+      "finalStatus": "סטטוס ההזמנה סופי ולא ניתן לשנות אותו.",
+      "confirmCancel": "לבטל את ההזמנה? הפריטים שבה יוחזרו למלאי.",
+      "confirmRefund": "לסמן את ההזמנה כמוחזרת? הפריטים שבה יוחזרו למלאי.",
+      "updated": "ההזמנה עודכנה",
+      "transitionNotAllowed": "אי אפשר לשנות לסטטוס הזה. טענו את ההזמנה מחדש ונסו שוב.",
+      "statusChangedMeanwhile": "ההזמנה השתנתה בינתיים. טענו אותה מחדש ונסו שוב.",
+      "orderNotFound": "ההזמנה לא נמצאה.",
+      "updateFailed": "לא הצלחנו לעדכן את ההזמנה. נסו שוב.",
+      "loadFailed": "לא הצלחנו לטעון את ההזמנות. נסו שוב.",
+      "detailFailed": "לא הצלחנו לטעון את ההזמנה. נסו שוב.",
+      "dismiss": "סגירה"
     },
     "coupons": {
       "title": "קופונים",
@@ -528,7 +593,21 @@
       "deactivate": "השבת קופון",
       "activateCoupon": "הפעל קופון",
       "editAction": "ערוך קופון",
-      "deleteAction": "מחק קופון"
+      "deleteAction": "מחק קופון",
+      "loadFailed": "טעינת הקופונים נכשלה",
+      "createdSuccess": "הקופון נוצר",
+      "updatedSuccess": "הקופון עודכן",
+      "deletedSuccess": "הקופון נמחק",
+      "deactivatedInstead": "הקופון שימש בהזמנות, ולכן הוא הושבת במקום להימחק",
+      "deleteFailed": "מחיקת הקופון נכשלה",
+      "saveFailed": "שמירת הקופון נכשלה",
+      "duplicateCode": "כבר קיים קופון עם הקוד הזה",
+      "invalidCode": "הקוד חייב להכיל 3–30 תווים: אותיות באנגלית, ספרות, \"-\" או \"_\"",
+      "invalidPercentage": "הנחה באחוזים חייבת להיות בין 1 ל-100",
+      "invalidFixedValue": "הנחה בסכום קבוע חייבת להיות גדולה מ-0",
+      "invalidMinCart": "סכום העגלה המינימלי חייב להיות 0 ומעלה",
+      "invalidMaxUses": "מספר השימושים המקסימלי חייב להיות מספר שלם, 1 לפחות",
+      "invalidExpiry": "תאריך התפוגה אינו תקין"
     },
     "settings": {
       "title": "הגדרות",
@@ -555,7 +634,10 @@
       "titleEn": "כותרת (אנגלית)",
       "subtitleEn": "כותרת משנה (אנגלית)",
       "ctaLinkUrl": "קישור CTA",
-      "loading": "טוען הגדרות..."
+      "loading": "טוען הגדרות...",
+      "invalidCtaUrl": "הקישור חייב להתחיל ב-/ (למשל /category/men) או להיות כתובת http(s) מלאה",
+      "invalidAmount": "סכומי המשלוח חייבים להיות מספרים, 0 ומעלה",
+      "textTooLong": "אחד הטקסטים ארוך מדי"
     },
     "productForm": {
       "newProduct": "מוצר חדש",
@@ -570,18 +652,13 @@
       "category": "קטגוריה",
       "selectCategory": "בחר קטגוריה",
       "featured": "מוצג בעמוד הבית",
-      "variants": "גרסאות",
-      "addVariant": "הוסף גרסה",
       "color": "צבע",
       "size": "מידה",
       "sku": "מק\"ט",
-      "stock": "מלאי",
       "price": "מחיר ₪",
       "salePrice": "מחיר מבצע ₪",
       "saleStart": "תחילת מבצע",
       "saleEnd": "סוף מבצע",
-      "removeVariant": "הסר גרסה",
-      "deleteVariant": "למחוק גרסה זו?",
       "images": "תמונות",
       "uploadImages": "העלה תמונות",
       "deleteImage": "מחק תמונה",
@@ -625,12 +702,9 @@
       "imageLimit": "אפשר להוסיף עד {max} תמונות",
       "sizeSet": "טבלת מידות",
       "customSizes": "מידות מותאמות אישית",
-      "customSizesHint": "הקלידו מידה חופשית לכל וריאנט",
-      "customSize": "מידה מותאמת…",
+      "customSizesHint": "הוסיפו למטה מידות משלכם לכל צבע",
       "customSizePlaceholder": "לדוגמה 36 או מידה אחת",
-      "quickAddColor": "הוספה מהירה: צבע בכל המידות",
       "colorPlaceholder": "לדוגמה שחור",
-      "addAllSizes": "הוסף את כל המידות",
       "fixErrors": "יש לתקן את השדות המסומנים",
       "conflictBanner": "חלק מהערכים כבר בשימוש",
       "errors": {
@@ -652,7 +726,37 @@
         "categoryNotFound": "הקטגוריה כבר לא קיימת",
         "notFound": "לא נמצא",
         "invalidValue": "ערך לא תקין",
-        "categoryHasSubcategories": "יש לבחור תת-קטגוריה (למשל גברים › מכנסי ים)"
+        "categoryHasSubcategories": "יש לבחור תת-קטגוריה (למשל גברים › מכנסי ים)",
+        "noSizes": "יש לסמן לפחות מידה אחת, או לשמור את המוצר כמוסתר",
+        "colorDuplicate": "הצבע הזה כבר מופיע"
+      },
+      "stock": {
+        "title": "מידות ומלאי",
+        "intro": "בחרו אילו מידות יש לכם בכל צבע וכמה יחידות יש מכל מידה. המלאי יורד אוטומטית בכל הזמנה וחוזר אם הזמנה מבוטלת.",
+        "sizeChartHint": "בחרו טבלת מידות ואז סמנו למטה את המידות שיש לכם.",
+        "summary": "{sizes, plural, =0 {לא נבחרו מידות} one {מידה אחת זמינה} other {# מידות זמינות}} · {units} יחידות במלאי",
+        "summaryUnlimited": "{count} ללא הגבלה",
+        "noSizesWarning": "עדיין לא נבחרו מידות, ולכן לקוחות לא יוכלו לקנות את המוצר. סמנו למטה את המידות שיש לכם והזינו כמה יחידות יש מכל אחת.",
+        "zeroStockWarning": "{count, plural, one {למידה מסומנת אחת יש} other {ל־# מידות מסומנות יש}} 0 יחידות, והן יוצגו כ'אזל מהמלאי'.",
+        "removeColor": "הסרת הצבע",
+        "addColor": "הוספת צבע נוסף",
+        "selectAll": "סימון כל המידות",
+        "clearAll": "ניקוי",
+        "setAllQuantity": "כמות לכל המידות המסומנות",
+        "apply": "החל",
+        "allUnlimited": "מלאי ללא הגבלה לכל המידות",
+        "tableLabel": "מידות ומלאי עבור {color}",
+        "quantity": "יחידות במלאי",
+        "unlimited": "ללא הגבלה",
+        "unlimitedHint": "ללא הגבלה - תמיד זמין",
+        "notAvailable": "לא זמין",
+        "availableSize": "מידה {size} זמינה",
+        "quantityFor": "יחידות במלאי במידה {size}",
+        "unlimitedFor": "מלאי ללא הגבלה במידה {size}",
+        "moreOptions": "מק\"ט, מחיר ומבצע",
+        "soldOut": "אזל",
+        "lowStock": "מלאי נמוך",
+        "addCustomSize": "הוספת מידה"
       }
     }
   },
@@ -666,7 +770,49 @@
   "checkout": {
     "paymentFailed": "התשלום לא הושלם. ההזמנה שלך נשמרה — אפשר לנסות שוב.",
     "failed": "התשלום נכשל. אנא נסו שוב.",
-    "retryPayment": "ניסיון תשלום חוזר"
+    "retryPayment": "ניסיון תשלום חוזר",
+    "contact": "פרטי התקשרות",
+    "email": "אימייל",
+    "fullName": "שם מלא",
+    "phone": "טלפון",
+    "phoneHint": "ספרות בלבד, למשל 050-1234567",
+    "shippingAddress": "כתובת למשלוח",
+    "city": "עיר",
+    "street": "רחוב",
+    "number": "מספר בית",
+    "apartment": "דירה",
+    "zip": "מיקוד",
+    "coupon": "קוד קופון",
+    "apply": "הפעלה",
+    "removeCoupon": "הסרת הקופון",
+    "discountApplied": "הקופון {code} הופעל: ‎-{amount}",
+    "discount": "הנחה",
+    "orderSummary": "סיכום הזמנה",
+    "placeOrder": "ביצוע הזמנה",
+    "processing": "מעבדים…",
+    "secureNote": "תשלום מאובטח ומוצפן",
+    "empty": "העגלה ריקה.",
+    "loading": "טוענים את העגלה…",
+    "backToCart": "חזרה לעגלה",
+    "errors": {
+      "generic": "משהו השתבש. אנא נסו שוב.",
+      "network": "לא הצלחנו להתחבר לחנות. בדקו את החיבור ונסו שוב.",
+      "invalidDetails": "חלק מהפרטים חסרים או שגויים. בדקו אותם ונסו שוב.",
+      "tooManyRequests": "יותר מדי ניסיונות. המתינו דקה ונסו שוב.",
+      "paymentDeclined": "התשלום נדחה. ההזמנה שלך נשמרה — אפשר לנסות שוב.",
+      "cartEmpty": "העגלה ריקה.",
+      "variantUnavailable": "{product} (מידה {size}) כבר לא זמין. יש להסיר אותו מהעגלה.",
+      "variantUnavailableGeneric": "הפריט הזה כבר לא זמין.",
+      "outOfStock": "אין מספיק מלאי של {product} (מידה {size}). יש לעדכן את העגלה.",
+      "outOfStockAvailable": "{available, plural, one {נותר במלאי פריט אחד בלבד.} other {נותרו במלאי # בלבד.}}",
+      "outOfStockGeneric": "הפריט הזה אזל מהמלאי.",
+      "couponInvalid": "קוד הקופון אינו תקף.",
+      "couponInactive": "הקופון הזה כבר לא פעיל.",
+      "couponExpired": "תוקף הקופון פג.",
+      "couponLimitReached": "הקופון הגיע למספר השימושים המרבי.",
+      "couponMinTotal": "הקופון תקף בהזמנה מינימלית של {min}.",
+      "orderNotPayable": "ההזמנה בוטלה כי לא שולמה תוך 60 דקות, והפריטים חזרו למלאי. אפשר להוסיף אותם שוב לעגלה ולבצע את ההזמנה מחדש."
+    }
   },
   "orderConfirmation": {
     "thankYou": "תודה רבה!",
@@ -695,5 +841,20 @@
       "CANCELLED": "בוטלה",
       "REFUNDED": "הוחזרה"
     }
+  },
+  "orders": {
+    "title": "ההזמנות שלי",
+    "empty": "עדיין אין הזמנות.",
+    "startShopping": "להתחלת הקנייה",
+    "itemCount": "{count, plural, one {פריט אחד} other {# פריטים}}",
+    "loadError": "לא הצלחנו לטעון את ההזמנות. אנא נסו שוב.",
+    "retry": "ניסיון נוסף",
+    "loadMore": "הצגת הזמנות נוספות",
+    "loadingMore": "טוענים…",
+    "viewOrder": "צפייה בהזמנה {number}",
+    "phone": "טלפון",
+    "tracking": "מספר מעקב",
+    "completePayment": "להשלמת התשלום",
+    "paying": "מעבדים…"
   }
 }

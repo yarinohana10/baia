@@ -1,4 +1,5 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { IsEmail, IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { OrderStatus } from '../../generated/prisma';
 import { Transform } from 'class-transformer';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
@@ -10,6 +11,22 @@ export class CreateOrderDto {
   @IsEmail()
   @MaxLength(254)
   customerEmail?: string;
+
+  @Transform(trim)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  recipientName!: string;
+
+  /** Israeli or international number: digits, spaces, dashes, optional leading +. */
+  @Transform(trim)
+  @IsString()
+  @Matches(/^\+?[0-9][0-9\s-]{7,18}$/, { message: 'phone must be a valid phone number' })
+  phone!: string;
+
+  @IsOptional()
+  @IsIn(['he', 'en'])
+  locale?: 'he' | 'en';
 
   @IsOptional()
   @Transform(trim)
@@ -61,12 +78,33 @@ export class OrderAccessDto {
 }
 
 export class UpdateOrderStatusDto {
-  @IsString()
-  @Matches(/^(PENDING_PAYMENT|CONFIRMED|PROCESSING|SHIPPED|DELIVERED|CANCELLED|REFUNDED)$/)
-  status!: string;
+  @IsEnum(OrderStatus)
+  status!: OrderStatus;
 
   @IsOptional()
   @IsString()
   @MaxLength(100)
   trackingNumber?: string;
+}
+
+/** Query string for the admin orders list. Unknown statuses are rejected (400). */
+export class AdminOrdersQueryDto {
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+
+  /** Matches order number, customer email or recipient name (case-insensitive). */
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  limit?: string;
 }
