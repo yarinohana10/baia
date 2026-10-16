@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Link, usePathname } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
@@ -16,6 +17,8 @@ import {
   Search,
   Shield,
   ArrowLeft,
+  Menu,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -49,11 +52,47 @@ export function AdminShell({
   const t = useTranslations('admin');
   const displayName = user.name || user.email.split('@')[0];
   const initials = displayName.slice(0, 2).toUpperCase();
+  // Below lg the sidebar is an overlay drawer.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    closeButtonRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   return (
     <div className="min-h-screen bg-muted/30">
+      {/* Mobile drawer backdrop */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-[35] bg-black/30 lg:hidden"
+          aria-hidden="true"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 start-0 z-40 flex w-72 flex-col border-e border-border bg-card">
+      <aside
+        id="admin-sidebar"
+        className={cn(
+          'fixed inset-y-0 start-0 z-40 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-e border-border bg-card transition-[translate,visibility] duration-200',
+          !menuOpen && 'max-lg:invisible max-lg:ltr:-translate-x-full max-lg:rtl:translate-x-full',
+        )}
+      >
         <div className="flex items-center gap-3 px-6 py-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ocean-700 text-white">
             <Waves size={20} strokeWidth={2} />
@@ -66,6 +105,17 @@ export function AdminShell({
               {t('panelTitle')}
             </p>
           </div>
+          <Button
+            ref={closeButtonRef}
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="ms-auto text-muted-foreground lg:hidden"
+            onClick={() => setMenuOpen(false)}
+            aria-label={t('nav.closeMenu')}
+          >
+            <X size={20} />
+          </Button>
         </div>
 
         <div className="px-4 mb-2">
@@ -73,7 +123,7 @@ export function AdminShell({
             href="/"
             className="flex items-center gap-2 rounded-xl px-4 py-2.5 font-body text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={14} className="rtl:rotate-180" />
             {t('backToStore')}
           </Link>
         </div>
@@ -131,8 +181,21 @@ export function AdminShell({
       </aside>
 
       {/* Main area */}
-      <div className="ps-72">
-        <header className="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card ps-72 pe-6">
+      <div className="lg:ps-72">
+        <header className="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-card ps-4 pe-4 sm:pe-6 lg:ps-72">
+          <Button
+            ref={menuButtonRef}
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-muted-foreground lg:hidden"
+            onClick={() => setMenuOpen(true)}
+            aria-label={t('nav.openMenu')}
+            aria-expanded={menuOpen}
+            aria-controls="admin-sidebar"
+          >
+            <Menu size={20} />
+          </Button>
           <div className="relative max-w-md flex-1">
             <Search
               size={16}
@@ -146,7 +209,7 @@ export function AdminShell({
             />
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="flex shrink-0 items-center gap-3 sm:gap-5">
             <Button
               type="button"
               variant="ghost"
@@ -159,7 +222,7 @@ export function AdminShell({
             </Button>
 
             <div className="flex items-center gap-3">
-              <div className="text-end">
+              <div className="hidden text-end sm:block">
                 <p className="font-body text-sm font-medium text-foreground">{displayName}</p>
                 <p className="font-body text-xs text-muted-foreground">{user.role || 'Admin'}</p>
               </div>
@@ -180,7 +243,7 @@ export function AdminShell({
           </div>
         </header>
 
-        <main className="min-h-screen overflow-y-auto bg-muted/30 px-8 pb-8 pt-24">
+        <main className="min-h-screen overflow-y-auto bg-muted/30 px-4 pb-8 pt-24 sm:px-8">
           {children}
         </main>
       </div>
