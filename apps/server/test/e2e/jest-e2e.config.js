@@ -1,5 +1,3 @@
-import type { Config } from 'jest';
-
 /**
  * DB-backed end-to-end tests (real Postgres, real better-auth sessions).
  * Run with `pnpm --filter @baia/server test:e2e`. Uses TEST_DATABASE_URL
@@ -8,8 +6,12 @@ import type { Config } from 'jest';
  *
  * better-auth is ESM-only; the script sets --experimental-vm-modules so Jest
  * can require() it (needs Node >= 22.12).
+ *
+ * Plain JS (not .ts) so Jest can load it without ts-node on any Node version.
+ *
+ * @type {import('jest').Config}
  */
-const config: Config = {
+module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '../..',
   testRegex: 'test/e2e/.*\\.e2e-spec\\.ts$',
@@ -23,5 +25,3 @@ const config: Config = {
   testTimeout: 30_000,
   moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
 };
-
-export default config;
