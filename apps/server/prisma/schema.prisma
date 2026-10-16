@@ -31,6 +31,7 @@ model User {
   wishlistItems Wishlist[]
   carts         Cart[]
   orders        Order[]
+  addresses     Address[]
 
   @@map("users")
 }
@@ -77,6 +78,29 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@map("verifications")
+}
+
+// ─── Address book ─────────────────────────────────────────────
+
+/// A saved shipping address. Fields mirror the shipping fields on Order.
+/// At most one row per user has isDefault = true (kept by AddressesService).
+model Address {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipientName String
+  phone         String
+  city          String
+  street        String
+  number        String
+  apartment     String?
+  zip           String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@map("addresses")
 }
 
 // ─── Uploads ──────────────────────────────────────────────────

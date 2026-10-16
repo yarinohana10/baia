@@ -15,7 +15,8 @@ export type ShopErrorCode =
   | 'COUPON_EXPIRED'
   | 'COUPON_LIMIT_REACHED'
   | 'COUPON_MIN_TOTAL'
-  | 'ORDER_NOT_PAYABLE';
+  | 'ORDER_NOT_PAYABLE'
+  | 'ADDRESS_LIMIT_REACHED';
 
 type ErrorBody = {
   code?: string;
