@@ -4,7 +4,8 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist/**", "coverage/**", "node_modules/**"] },
+  // src/generated is the Prisma client output (gitignored, produced by `prisma generate`).
+  { ignores: ["dist/**", "coverage/**", "node_modules/**", "src/generated/**"] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
