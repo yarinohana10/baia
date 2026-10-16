@@ -100,8 +100,11 @@ export default function ProductStockEditor({
   const [blocks, setBlocks] = useState<Block[]>(() => {
     const names: string[] = [];
     for (const v of variants) if (!names.some((n) => sameColor(n, v.color))) names.push(v.color);
-    return (names.length ? names : ['']).map((name) => ({ key: crypto.randomUUID(), name }));
+    // Deterministic keys: the form is server-rendered, so random ids would mismatch on hydration
+    return (names.length ? names : ['']).map((name, i) => ({ key: `c${i}`, name }));
   });
+  const nextBlockKey = useRef(0);
+  const newBlock = (): Block => ({ key: `n${(nextBlockKey.current += 1)}`, name: '' });
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [bulkQty, setBulkQty] = useState<Record<string, string>>({});
   const [customSize, setCustomSize] = useState<Record<string, string>>({});
@@ -217,7 +220,7 @@ export default function ProductStockEditor({
         .map((v) => (sameColor(v.color, block.name) ? { ...v, isActive: false } : v)),
     );
     const rest = blocks.filter((b) => b.key !== block.key);
-    setBlocks(rest.length ? rest : [{ key: crypto.randomUUID(), name: '' }]);
+    setBlocks(rest.length ? rest : [newBlock()]);
   };
 
   const addCustomSize = (block: Block) => {
@@ -362,7 +365,7 @@ export default function ProductStockEditor({
 
             {sizes.length > 0 && (
               <div role="table" aria-label={ts('tableLabel', { color: block.name || t('color') })} className="divide-y divide-border rounded-md border border-border">
-                <div role="row" className="hidden grid-cols-[90px_1fr_auto_auto] gap-3 bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground sm:grid">
+                <div role="row" className="hidden grid-cols-[90px_1fr_120px_150px] gap-3 bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground sm:grid">
                   <span role="columnheader">{t('size')}</span>
                   <span role="columnheader">{ts('quantity')}</span>
                   <span role="columnheader">{ts('unlimited')}</span>
@@ -386,7 +389,7 @@ export default function ProductStockEditor({
                       data-testid="size-row"
                       className={cn(!on && 'bg-muted/20', soldOut && 'bg-destructive/5', low && 'bg-amber-50')}
                     >
-                      <div className="grid grid-cols-[90px_1fr_auto] items-center gap-3 px-3 py-2 sm:grid-cols-[90px_1fr_auto_auto]">
+                      <div className="grid grid-cols-[90px_1fr_auto] items-center gap-3 px-3 py-2 sm:grid-cols-[90px_1fr_120px_150px]">
                         <label role="cell" className="flex cursor-pointer items-center gap-2 text-sm font-medium" dir="ltr">
                           <input
                             type="checkbox"
@@ -552,7 +555,8 @@ export default function ProductStockEditor({
         type="button"
         variant="ghost"
         size="sm"
-        onClick={() => setBlocks([...blocks, { key: crypto.randomUUID(), name: '' }])}
+        onClick={() => setBlocks([...blocks, newBlock()])}
+        disabled={blocks.some((b) => !b.name.trim())}
         className="text-ocean-600 hover:text-ocean-700"
       >
         <Plus size={14} /> {ts('addColor')}
