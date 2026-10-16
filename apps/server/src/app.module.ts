@@ -16,6 +16,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { SiteConfigModule } from './site-config/site-config.module';
 import { EmailModule } from './email/email.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AdminUsersModule } from './admin-users/admin-users.module';
     SiteConfigModule,
     EmailModule,
     AdminUsersModule,
+    CustomersModule,
   ],
 })
 export class AppModule {}

@@ -187,7 +187,10 @@
     "newArrivalsTitle": "New Arrivals",
     "newArrivalsDescription": "The latest BAIA swimwear for women, men and kids — fresh from the summer collection.",
     "productFallbackDescription": "{name} by BAIA Swimwear. Premium swimwear designed for Mediterranean summers.",
-    "notFoundTitle": "Page not found"
+    "notFoundTitle": "Page not found",
+    "searchTitle": "Search",
+    "searchResultsTitle": "Search: {query}",
+    "searchDescription": "Search the BAIA swimwear collection."
   },
   "storefront": {
     "announcement": "Free shipping in Israel on orders over ₪249 · Easy 14-day returns",
@@ -281,6 +284,21 @@
       "sku": "SKU: {sku}",
       "lowStock": "{count, plural, one {Only # left} other {Only # left}}",
       "adding": "Adding…"
+    },
+    "search": {
+      "open": "Search",
+      "close": "Close search",
+      "label": "Search products",
+      "placeholder": "Search swimsuits, bikinis, shorts…",
+      "submit": "Search",
+      "clear": "Clear search",
+      "resultsFor": "Results for “{query}”",
+      "emptyTitle": "No results for “{query}”",
+      "emptyBody": "Check the spelling or try a more general term, like a product type. Or browse our collections:",
+      "promptTitle": "What are you looking for?",
+      "promptBody": "Search by product name, in Hebrew or English.",
+      "browse": "Browse collections",
+      "newArrivals": "New arrivals"
     }
   },
   "pages": {
@@ -758,6 +776,39 @@
         "lowStock": "Low stock",
         "addCustomSize": "Add size"
       }
+    },
+    "customers": {
+      "title": "Customers",
+      "searchPlaceholder": "Search by name or email",
+      "name": "Name",
+      "email": "Email",
+      "registered": "Registered",
+      "orders": "Orders",
+      "totalSpent": "Total spent",
+      "actions": "Actions",
+      "view": "View customer",
+      "noCustomers": "No customers yet.",
+      "noMatches": "No customers match your search.",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "loadFailed": "Couldn't load customers. Try again.",
+      "paidNote": "Orders and total spent count paid orders only.",
+      "back": "All customers",
+      "notFound": "Customer not found.",
+      "detailFailed": "Couldn't load the customer. Try again.",
+      "emailVerified": "Email verified",
+      "emailUnverified": "Email not verified",
+      "paidOrders": "Paid orders",
+      "ordersTitle": "Order history",
+      "noOrders": "This customer hasn't placed any orders yet.",
+      "order": "Order",
+      "date": "Date",
+      "items": "Items",
+      "total": "Total",
+      "status": "Status",
+      "openOrder": "Open order {number}",
+      "noName": "No name",
+      "dismiss": "Dismiss"
     }
   },
   "wishlist": {
