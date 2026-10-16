@@ -7,6 +7,7 @@ import {
   Inject,
   NotFoundException,
   Optional,
+  Param,
   Post,
   Req,
   UseGuards,
@@ -51,5 +52,26 @@ export class PaymentController {
     await this.payments.applyWebhookEvent(event);
     // Always 200 for authentic events so the provider does not retry forever.
     return { received: true };
+  }
+}
+
+/**
+ * `POST /orders/:id/pay`: same as `/payment/charge`, but under the order's
+ * path, so a guest's httpOnly order cookie (Path=/v1/orders/:id) is sent.
+ * This lets a guest who refreshed the confirmation page finish paying.
+ */
+@Controller('orders')
+@UseGuards(RateLimitGuard)
+export class OrderPaymentController {
+  constructor(private readonly payments: PaymentService) {}
+
+  @Post(':id/pay')
+  @HttpCode(200)
+  @RateLimit({ limit: 10, windowMs: 60_000 })
+  @Header('Cache-Control', 'no-store')
+  async pay(@Req() req: Request, @Param('id') id: string) {
+    const user = await getOptionalUser(req);
+    const token = extractOrderToken(req, id);
+    return this.payments.charge(id, { user, token }, req.ip);
   }
 }

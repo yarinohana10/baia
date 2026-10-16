@@ -108,9 +108,10 @@ export default function OrderConfirmationPage() {
     setPaying(true);
     setPayError(null);
     try {
+      // Under /orders/:id so the guest's order cookie is sent after a refresh.
       await api.post(
-        '/payment/charge',
-        { orderId: id },
+        `/orders/${encodeURIComponent(id)}/pay`,
+        {},
         guestToken ? { headers: { 'X-Order-Token': guestToken } } : undefined,
       );
       await reload();
@@ -158,7 +159,8 @@ export default function OrderConfirmationPage() {
   const statusLabel = t.has(`status.${order.status}`) ? t(`status.${order.status}`) : order.status;
   const itemName = (item: OrderItem) => (locale === 'he' && item.productNameHe) || item.productName;
   const isOwner = !!session?.user && order.userId === session.user.id;
-  const canPay = pending && (isOwner || !!guestToken);
+  // A guest order only loads with its token or cookie, which also authorise paying.
+  const canPay = pending && (isOwner || !!guestToken || !order.userId);
 
   return (
     <div className="max-w-2xl mx-auto py-16 px-4 text-center">

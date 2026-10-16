@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { api } from '@/lib/api';
+import { revalidateCatalog } from '@/lib/catalog/revalidate';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -371,6 +372,7 @@ export default function ProductForm({ product }: Props) {
     try {
       if (isEdit) await updateProduct();
       else await createProduct();
+      await revalidateCatalog();
       router.push('/admin/products');
     } catch (err) {
       if (!(err instanceof ReportedError)) handleRequestError(err);
