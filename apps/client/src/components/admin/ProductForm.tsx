@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Save, Plus, Trash2, AlertTriangle, ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import { Save, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import ProductImagesManager, { type ImageItem } from './ProductImagesManager';
+import ProductStockEditor, { stockSummary, type SizeSet, type Variant } from './ProductStockEditor';
 import {
   type FieldErrors,
   responseOf,
@@ -27,28 +28,6 @@ type CategoryOption = {
 };
 
 type Category = CategoryOption & { children: CategoryOption[] };
-
-type SizeSet = {
-  id: string;
-  key: string;
-  nameHe: string;
-  nameEn: string;
-  sizes: string[];
-};
-
-type Variant = {
-  id?: string;
-  tempId?: string;
-  color: string;
-  size: string;
-  sku: string;
-  stockQuantity: number;
-  priceOverride: number | string | null;
-  salePrice: number | string | null;
-  saleStart: string | null;
-  saleEnd: string | null;
-  isActive: boolean;
-};
 
 type ServerImage = {
   id: string;
@@ -78,12 +57,10 @@ type ServerProduct = {
 
 type Props = { product?: ServerProduct };
 
-const LOW_STOCK_THRESHOLD = 5;
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const CUSTOM_SIZE = '__custom__';
 /** Field paths rendered next to their inputs; anything else goes in the top banner. */
 const INLINE_FIELD =
-  /^(nameHe|nameEn|slug|basePrice|categoryId|images|variants\.\d+\.(color|size|sku|stockQuantity|priceOverride|salePrice|saleStart|saleEnd)|images\.\d+\.(altTextHe|altTextEn))$/;
+  /^(nameHe|nameEn|slug|basePrice|categoryId|images|variants|variants\.\d+\.(color|size|sku|stockQuantity|trackInventory|priceOverride|salePrice|saleStart|saleEnd)|images\.\d+\.(altTextHe|altTextEn))$/;
 
 function selectClassName(hasError?: boolean) {
   return cn(
@@ -142,6 +119,7 @@ function variantPayload(v: Variant) {
     size: v.size.trim(),
     sku: v.sku.trim(),
     stockQuantity: v.stockQuantity,
+    trackInventory: v.trackInventory !== false,
     priceOverride: toNum(v.priceOverride),
     salePrice: toNum(v.salePrice),
     saleStart: v.saleStart || null,
@@ -175,7 +153,6 @@ export default function ProductForm({ product }: Props) {
   const [variants, setVariants] = useState<Variant[]>(product?.variants || []);
   const [images, setImages] = useState<ImageItem[]>(() => (product?.images ?? []).map(toImageItem));
   const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
-  const [quickColor, setQuickColor] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
@@ -188,12 +165,8 @@ export default function ProductForm({ product }: Props) {
   const initialImageOrder = useRef((product?.images ?? []).map((img) => img.id).join(','));
 
   const catName = (c: CategoryOption) => (locale === 'he' ? c.nameHe : c.nameEn) || c.nameEn;
-  const setName = (s: SizeSet) => (locale === 'he' ? s.nameHe : s.nameEn);
-
-  const currentSizeSet = sizeSets.find((s) => s.id === sizeSetId);
-  const setSizes = useMemo(() => currentSizeSet?.sizes ?? [], [currentSizeSet]);
   const colors = useMemo(
-    () => [...new Set(variants.map((v) => v.color.trim()).filter(Boolean))],
+    () => [...new Set(variants.filter((v) => v.isActive).map((v) => v.color.trim()).filter(Boolean))],
     [variants],
   );
 
@@ -240,10 +213,13 @@ export default function ProductForm({ product }: Props) {
     else if (!(base > 0)) errors.basePrice = t('validation.pricePositive');
     if (!categoryId) errors.categoryId = t('validation.categoryRequired');
 
+    if (isActive && stockSummary(variants).sizes === 0) errors.variants = e('noSizes');
+
     const skus = new Set<string>();
     const combos = new Set<string>();
     variants.forEach((v, i) => {
       const at = (field: string) => `variants.${i}.${field}`;
+      if (!v.isActive && v.id) return; // a saved size that was switched off is kept as-is
       if (!v.color.trim()) errors[at('color')] = e('required');
       if (!v.size.trim()) errors[at('size')] = e('required');
       if (!v.sku.trim()) errors[at('sku')] = e('required');
@@ -254,7 +230,9 @@ export default function ProductForm({ product }: Props) {
         if (combos.has(combo)) errors[at('size')] = e('variantDuplicate');
         combos.add(combo);
       }
-      if (!Number.isInteger(v.stockQuantity) || v.stockQuantity < 0) errors[at('stockQuantity')] = e('mustBeNonNegative');
+      if (v.trackInventory !== false && (!Number.isInteger(v.stockQuantity) || v.stockQuantity < 0)) {
+        errors[at('stockQuantity')] = e('mustBeNonNegative');
+      }
       const override = toNum(v.priceOverride);
       if (override !== null && !(override > 0)) errors[at('priceOverride')] = e('mustBePositive');
       const sale = toNum(v.salePrice);
@@ -272,7 +250,7 @@ export default function ProductForm({ product }: Props) {
   useEffect(() => {
     if (submitted) setClientErrors(validate());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nameEn, nameHe, slug, basePrice, categoryId, variants, submitted]);
+  }, [nameEn, nameHe, slug, basePrice, categoryId, variants, isActive, submitted]);
 
   // Client errors win; a server error is cleared once the admin edits that field
   const fieldErrors: FieldErrors = { ...serverErrors, ...clientErrors };
@@ -399,58 +377,6 @@ export default function ProductForm({ product }: Props) {
     } finally {
       setSaving(false);
     }
-  };
-
-  const newVariant = (patch: Partial<Variant> = {}): Variant => ({
-    tempId: crypto.randomUUID(),
-    color: '',
-    size: setSizes[0] ?? '',
-    sku: '',
-    stockQuantity: 0,
-    priceOverride: null,
-    salePrice: null,
-    saleStart: null,
-    saleEnd: null,
-    isActive: true,
-    ...patch,
-  });
-
-  const addVariant = () => setVariants([...variants, newVariant()]);
-
-  /** Adds one variant per size of the current size set for a color. */
-  const addAllSizes = () => {
-    const color = quickColor.trim();
-    if (!color || setSizes.length === 0) return;
-    const existing = new Set(
-      variants.filter((v) => v.color.trim().toLowerCase() === color.toLowerCase()).map((v) => v.size),
-    );
-    const prefix = slugify(slug || nameEn) || 'sku';
-    const added = setSizes
-      .filter((size) => !existing.has(size))
-      .map((size) => newVariant({ color, size, sku: `${prefix}-${slugify(color)}-${size.toLowerCase()}` }));
-    setVariants([...variants, ...added]);
-    setQuickColor('');
-  };
-
-  const updateVariant = <K extends keyof Variant>(index: number, field: K, value: Variant[K]) => {
-    setVariants(variants.map((v, i) => (i === index ? { ...v, [field]: value } : v)));
-    clearServerError(`variants.${index}.${field}`, ...(field === 'sku' ? ['sku'] : []));
-  };
-
-  const removeVariant = async (index: number) => {
-    const v = variants[index];
-    if (v.id) {
-      if (!confirm(t('deleteVariant'))) return;
-      try {
-        await api.delete(`/admin/variants/${v.id}`);
-      } catch {
-        setError(t('saveFailed'));
-        return;
-      }
-    }
-    setVariants(variants.filter((_, i) => i !== index));
-    // Indices shift, so stale server errors for variants no longer line up
-    setServerErrors((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => !k.startsWith('variants.'))));
   };
 
   const removeImage = (img: ImageItem) => {
@@ -670,7 +596,7 @@ export default function ProductForm({ product }: Props) {
         )}
       </Card>
 
-      {/* Variants */}
+      {/* Sizes & stock */}
       <Card>
         <CardHeader className="pb-0">
           <button
@@ -679,245 +605,31 @@ export default function ProductForm({ product }: Props) {
             className="flex w-full items-center justify-between"
             aria-expanded={showVariants}
           >
-            <CardTitle className="font-serif text-lg">{`${t('variants')} (${variants.length})`}</CardTitle>
+            <CardTitle className="font-serif text-lg">
+              {t('stock.title')} <span className="text-sm font-normal text-muted-foreground">({stockSummary(variants).sizes})</span>
+            </CardTitle>
             {showVariants ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
           </button>
         </CardHeader>
 
         {showVariants && (
-          <CardContent className="space-y-3 pt-4">
-            <div className="grid grid-cols-1 gap-3 rounded-lg bg-muted/50 p-3 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="product-size-set" className="mb-1 text-xs font-medium text-muted-foreground">
-                  {t('sizeSet')}
-                </Label>
-                <select
-                  id="product-size-set"
-                  value={sizeSetId}
-                  onChange={(e) => {
-                    setSizeSetId(e.target.value);
-                    setSizeSetTouched(true);
-                  }}
-                  className={selectClassName()}
-                >
-                  {sizeSets.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {setName(s)}
-                    </option>
-                  ))}
-                  <option value="">{t('customSizes')}</option>
-                </select>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {currentSizeSet ? currentSizeSet.sizes.join(' · ') : t('customSizesHint')}
-                </p>
-              </div>
-              {setSizes.length > 0 && (
-                <div>
-                  <Label htmlFor="quick-color" className="mb-1 text-xs font-medium text-muted-foreground">
-                    {t('quickAddColor')}
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="quick-color"
-                      value={quickColor}
-                      onChange={(e) => setQuickColor(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addAllSizes())}
-                      placeholder={t('colorPlaceholder')}
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={addAllSizes} disabled={!quickColor.trim()} className="shrink-0">
-                      <Layers size={14} /> {t('addAllSizes')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {variants.map((v, i) => {
-              const variantKey = v.id ?? v.tempId ?? `v-${i}`;
-              const err = (field: string) => fieldErrors[`variants.${i}.${field}`];
-              const isCustomSize = setSizes.length === 0 || !setSizes.includes(v.size);
-              return (
-                <div
-                  key={variantKey}
-                  data-testid="variant-row"
-                  className={cn(
-                    'space-y-2 rounded-lg border p-3',
-                    v.stockQuantity > 0 && v.stockQuantity <= LOW_STOCK_THRESHOLD
-                      ? 'border-amber-300 bg-amber-50'
-                      : v.stockQuantity === 0
-                        ? 'border-destructive/20 bg-destructive/5'
-                        : 'border-border',
-                  )}
-                >
-                  <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-[1fr_110px_1fr_90px_100px_32px]">
-                    <div>
-                      <Label htmlFor={`${variantKey}-color`} className="mb-0.5 text-xs text-muted-foreground font-body">
-                        {t('color')}
-                      </Label>
-                      <Input
-                        id={`${variantKey}-color`}
-                        type="text"
-                        value={v.color}
-                        onChange={(e) => updateVariant(i, 'color', e.target.value)}
-                        aria-invalid={!!err('color')}
-                      />
-                      <FieldError message={err('color')} />
-                    </div>
-                    <div>
-                      <Label htmlFor={`${variantKey}-size`} className="mb-0.5 text-xs text-muted-foreground font-body">
-                        {t('size')}
-                      </Label>
-                      {setSizes.length > 0 && (
-                        <select
-                          id={`${variantKey}-size`}
-                          value={isCustomSize ? CUSTOM_SIZE : v.size}
-                          onChange={(e) => updateVariant(i, 'size', e.target.value === CUSTOM_SIZE ? '' : e.target.value)}
-                          className={selectClassName(!!err('size') && !isCustomSize)}
-                          aria-invalid={!!err('size') && !isCustomSize}
-                        >
-                          {setSizes.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                          <option value={CUSTOM_SIZE}>{t('customSize')}</option>
-                        </select>
-                      )}
-                      {isCustomSize && (
-                        <Input
-                          id={setSizes.length > 0 ? `${variantKey}-size-custom` : `${variantKey}-size`}
-                          type="text"
-                          dir="ltr"
-                          value={v.size}
-                          maxLength={20}
-                          placeholder={t('customSizePlaceholder')}
-                          aria-label={t('customSize')}
-                          onChange={(e) => updateVariant(i, 'size', e.target.value)}
-                          aria-invalid={!!err('size')}
-                          className={cn(setSizes.length > 0 && 'mt-1')}
-                        />
-                      )}
-                      <FieldError message={err('size')} />
-                    </div>
-                    <div>
-                      <Label htmlFor={`${variantKey}-sku`} className="mb-0.5 text-xs text-muted-foreground font-body">
-                        {t('sku')}
-                      </Label>
-                      <Input
-                        id={`${variantKey}-sku`}
-                        type="text"
-                        dir="ltr"
-                        value={v.sku}
-                        onChange={(e) => updateVariant(i, 'sku', e.target.value)}
-                        aria-invalid={!!err('sku')}
-                      />
-                      <FieldError message={err('sku')} />
-                    </div>
-                    <div>
-                      <Label htmlFor={`${variantKey}-stock`} className="mb-0.5 text-xs text-muted-foreground font-body">
-                        {t('stock')}
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id={`${variantKey}-stock`}
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={v.stockQuantity}
-                          onChange={(e) => updateVariant(i, 'stockQuantity', e.target.value === '' ? 0 : Number(e.target.value))}
-                          aria-invalid={!!err('stockQuantity')}
-                        />
-                        {v.stockQuantity > 0 && v.stockQuantity <= LOW_STOCK_THRESHOLD && (
-                          <AlertTriangle size={12} className="absolute end-2 top-1/2 -translate-y-1/2 text-amber-500" />
-                        )}
-                      </div>
-                      <FieldError message={err('stockQuantity')} />
-                    </div>
-                    <div>
-                      <Label htmlFor={`${variantKey}-price`} className="mb-0.5 text-xs text-muted-foreground font-body">
-                        {t('price')}
-                      </Label>
-                      <Input
-                        id={`${variantKey}-price`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={v.priceOverride ?? ''}
-                        placeholder={basePrice}
-                        onChange={(e) => updateVariant(i, 'priceOverride', e.target.value || null)}
-                        aria-invalid={!!err('priceOverride')}
-                      />
-                      <FieldError message={err('priceOverride')} />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => removeVariant(i)}
-                      aria-label={t('removeVariant')}
-                      className="mt-5 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-
-                  {/* Sale price row */}
-                  <div className="grid grid-cols-1 gap-3 border-t border-dashed border-border pt-1 sm:grid-cols-3">
-                    <div>
-                      <Label htmlFor={`${variantKey}-sale-price`} className="mb-0.5 text-xs text-destructive font-body">
-                        {t('salePrice')}
-                      </Label>
-                      <Input
-                        id={`${variantKey}-sale-price`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={v.salePrice ?? ''}
-                        onChange={(e) => updateVariant(i, 'salePrice', e.target.value || null)}
-                        aria-invalid={!!err('salePrice')}
-                      />
-                      <FieldError message={err('salePrice')} />
-                    </div>
-                    <div>
-                      <Label htmlFor={`${variantKey}-sale-start`} className="mb-0.5 text-xs text-destructive font-body">
-                        {t('saleStart')}
-                      </Label>
-                      <Input
-                        id={`${variantKey}-sale-start`}
-                        type="date"
-                        value={v.saleStart ? v.saleStart.split('T')[0] : ''}
-                        onChange={(e) => updateVariant(i, 'saleStart', e.target.value || null)}
-                        aria-invalid={!!err('saleStart')}
-                      />
-                      <FieldError message={err('saleStart')} />
-                    </div>
-                    <div>
-                      <Label htmlFor={`${variantKey}-sale-end`} className="mb-0.5 text-xs text-destructive font-body">
-                        {t('saleEnd')}
-                      </Label>
-                      <Input
-                        id={`${variantKey}-sale-end`}
-                        type="date"
-                        value={v.saleEnd ? v.saleEnd.split('T')[0] : ''}
-                        onChange={(e) => updateVariant(i, 'saleEnd', e.target.value || null)}
-                        aria-invalid={!!err('saleEnd')}
-                      />
-                      <FieldError message={err('saleEnd')} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={addVariant}
-              className="mt-2 text-ocean-600 hover:text-ocean-700"
-            >
-              <Plus size={14} /> {t('addVariant')}
-            </Button>
+          <CardContent className="pt-4">
+            <ProductStockEditor
+              variants={variants}
+              onChange={setVariants}
+              sizeSets={sizeSets}
+              sizeSetId={sizeSetId}
+              onSizeSetChange={(id) => {
+                setSizeSetId(id);
+                setSizeSetTouched(true);
+              }}
+              locale={locale}
+              skuPrefix={slug || nameEn}
+              basePrice={basePrice}
+              errors={fieldErrors}
+              onFieldEdited={clearServerError}
+              selectClassName={selectClassName}
+            />
           </CardContent>
         )}
       </Card>
