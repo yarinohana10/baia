@@ -67,9 +67,19 @@ describe('Admin catalog: site config, coupons, categories, products (e2e)', () =
   beforeAll(async () => {
     t = await createApp();
   });
-  afterAll(async () => t.close());
+  // resetDb() does not touch site_config/uploads; other suites rely on the
+  // default shipping config, so leave no trace.
+  const cleanSiteConfig = async () => {
+    await t.prisma.siteConfig.deleteMany();
+    await t.prisma.upload.deleteMany({ where: { s3Key: { startsWith: 'site/' } } });
+  };
+  afterAll(async () => {
+    await cleanSiteConfig();
+    await t.close();
+  });
   beforeEach(async () => {
     await resetDb(t.prisma);
+    await cleanSiteConfig();
     storage.delete.mockClear();
   });
 
