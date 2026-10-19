@@ -16,6 +16,11 @@ import { authRouter } from '../../src/auth/auth.router';
 import { RateLimitGuard } from '../../src/common/rate-limit.guard';
 import { EmailModule } from '../../src/email/email.module';
 import { AddressesModule } from '../../src/addresses/addresses.module';
+import { ContactModule } from '../../src/contact/contact.module';
+import { NewsletterModule } from '../../src/newsletter/newsletter.module';
+import { CancellationsModule } from '../../src/cancellations/cancellations.module';
+import { PickupPointsModule } from '../../src/pickup-points/pickup-points.module';
+import { AdminNotificationsModule } from '../../src/admin-notifications/admin-notifications.module';
 
 /** Only the modules under test (keeps storage/uploads/S3 out of the picture). */
 @Module({
@@ -30,6 +35,11 @@ import { AddressesModule } from '../../src/addresses/addresses.module';
     OrdersModule,
     PaymentModule,
     AddressesModule,
+    ContactModule,
+    NewsletterModule,
+    CancellationsModule,
+    PickupPointsModule,
+    AdminNotificationsModule,
   ],
 })
 class E2eModule {}
@@ -102,7 +112,7 @@ export async function createTestApp(): Promise<TestApp> {
 export async function resetDb(prisma: PrismaService) {
   RateLimitGuard.reset();
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE addresses, payment_attempts, order_items, orders, cart_items, carts, wishlists, product_images, product_variants, products, categories, coupons, sessions, accounts, verifications, users RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE cancellation_requests, contact_messages, newsletter_subscribers, pickup_points, site_config, addresses, payment_attempts, order_items, orders, cart_items, carts, wishlists, product_images, product_variants, products, categories, coupons, sessions, accounts, verifications, users RESTART IDENTITY CASCADE',
   );
 }
 

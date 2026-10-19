@@ -44,15 +44,30 @@ export class SiteConfigService {
 
   async update(data: UpdateSiteConfigDto) {
     const updateData: Prisma.SiteConfigUpdateInput = {};
-    const textKeys = ['heroTitleHe', 'heroTitleEn', 'heroSubtitleHe', 'heroSubtitleEn', 'heroCtaUrl'] as const;
-    for (const key of textKeys) {
-      if (data[key] !== undefined) updateData[key] = data[key];
-    }
-    if (data.shippingCost !== undefined) {
-      updateData.shippingCost = data.shippingCost;
-    }
-    if (data.freeShippingThreshold !== undefined) {
-      updateData.freeShippingThreshold = data.freeShippingThreshold;
+    const keys = [
+      'heroTitleHe',
+      'heroTitleEn',
+      'heroSubtitleHe',
+      'heroSubtitleEn',
+      'heroCtaUrl',
+      'shippingCost',
+      'freeShippingThreshold',
+      'pickupPointCost',
+      'courierEtaDays',
+      'pickupEtaDays',
+      'businessName',
+      'companyId',
+      'businessAddress',
+      'businessPhone',
+      'contactEmail',
+      'whatsappNumber',
+      'accessibilityCoordinatorName',
+      'accessibilityCoordinatorPhone',
+      'accessibilityCoordinatorEmail',
+      'selfCancelWindowHours',
+    ] as const;
+    for (const key of keys) {
+      if (data[key] !== undefined) (updateData as Record<string, unknown>)[key] = data[key];
     }
 
     await this.ensureRow();

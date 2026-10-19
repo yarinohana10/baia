@@ -1,5 +1,7 @@
 import type { EmailLocale, RenderedEmail } from '../email.types';
-import { renderLayout, renderText, type LayoutParts } from './layout';
+import { greeting, render } from './helpers';
+import { customerTemplates, type CustomerTemplateData } from './customer';
+import { orderTemplates, type OrderTemplateData } from './orders';
 
 /**
  * Data each template expects. To add a new email (e.g. order confirmation):
@@ -7,7 +9,7 @@ import { renderLayout, renderText, type LayoutParts } from './layout';
  *   2. add a renderer to `templates` below,
  *   3. call `emailService.sendTemplate('order-confirmation', { to, locale, data })`.
  */
-export interface EmailTemplateData {
+export interface EmailTemplateData extends CustomerTemplateData, OrderTemplateData {
   'verify-email': { name?: string | null; url: string; expiresInHours: number };
   'reset-password': { name?: string | null; url: string; expiresInMinutes: number };
   welcome: { name?: string | null; shopUrl: string };
@@ -27,16 +29,6 @@ export interface EmailTemplateData {
 export type EmailTemplateName = keyof EmailTemplateData;
 
 export type EmailTemplate<D> = (data: D, locale: EmailLocale) => RenderedEmail;
-
-function render(parts: LayoutParts, subject: string): RenderedEmail {
-  return { subject, html: renderLayout(parts), text: renderText(parts) };
-}
-
-function greeting(locale: EmailLocale, name?: string | null): string {
-  const n = name?.trim();
-  if (locale === 'he') return n ? `שלום ${n},` : 'שלום,';
-  return n ? `Hi ${n},` : 'Hi,';
-}
 
 const verifyEmail: EmailTemplate<EmailTemplateData['verify-email']> = (data, locale) => {
   if (locale === 'he') {
@@ -176,6 +168,8 @@ export const templates: { [K in EmailTemplateName]: EmailTemplate<EmailTemplateD
   'reset-password': resetPassword,
   welcome,
   'order-confirmation': orderConfirmation,
+  ...customerTemplates,
+  ...orderTemplates,
 };
 
 export function renderTemplate<K extends EmailTemplateName>(
