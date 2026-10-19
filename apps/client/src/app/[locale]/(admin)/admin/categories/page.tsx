@@ -104,6 +104,13 @@ export default function CategoriesPage() {
     setImagePreview(file ? URL.createObjectURL(file) : null);
   };
 
+  // Free the last preview's object URL when the page unmounts.
+  const previewRef = useRef<string | null>(null);
+  previewRef.current = imagePreview;
+  useEffect(() => () => {
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+  }, []);
+
   const resetForm = () => {
     setFormData(EMPTY_FORM);
     chooseImage(null);

@@ -29,7 +29,6 @@ export function CookieConsent() {
 
   return (
     <section
-      role="region"
       aria-label={t('label')}
       className="fixed inset-x-3 bottom-3 z-[45] mx-auto max-w-xl rounded-2xl border border-gray-200 bg-white p-4 shadow-xl shadow-black/10 print:hidden sm:inset-x-auto sm:end-6 sm:bottom-6 sm:mx-0 sm:p-5"
     >

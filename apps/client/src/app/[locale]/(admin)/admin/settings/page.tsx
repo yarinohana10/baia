@@ -44,18 +44,22 @@ export default function SettingsPage() {
   const heroFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Ignore the response if the page was left before it arrived.
+    let cancelled = false;
     async function fetchConfig() {
       try {
         const res = await api.get('/admin/site-config');
-        const data = res.data;
-        setConfig(data);
+        if (!cancelled) setConfig(res.data);
       } catch {
-        setMessage({ type: 'error', text: t('loadFailed') });
+        if (!cancelled) setMessage({ type: 'error', text: t('loadFailed') });
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     fetchConfig();
+    return () => {
+      cancelled = true;
+    };
   }, [t]);
 
   async function handleSave() {
