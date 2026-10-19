@@ -63,6 +63,23 @@ export type SiteConfig = {
   heroSubtitleHe: string | null;
   heroSubtitleEn: string | null;
   heroCtaUrl: string | null;
+  /** Delivery: shippingCost is the courier price. */
+  pickupPointCost: string | null;
+  courierEtaDays: string;
+  pickupEtaDays: string;
+  /** Business details for the footer and legal pages (placeholders until registered). */
+  businessName: string;
+  companyId: string;
+  businessAddress: string;
+  businessPhone: string;
+  contactEmail: string;
+  /** Digits in international format; null hides the WhatsApp button. */
+  whatsappNumber: string | null;
+  accessibilityCoordinatorName: string;
+  accessibilityCoordinatorPhone: string;
+  accessibilityCoordinatorEmail: string;
+  /** Hours after payment in which a customer can cancel instantly. */
+  selfCancelWindowHours: number;
 };
 
 export type SortOption = 'newest' | 'price-asc' | 'price-desc';
