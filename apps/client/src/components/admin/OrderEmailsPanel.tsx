@@ -8,6 +8,12 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
+/** Built once, in the store's time zone. */
+const EMAIL_TIME_FORMAT = {
+  he: new Intl.DateTimeFormat('he-IL', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jerusalem' }),
+  en: new Intl.DateTimeFormat('en-IL', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jerusalem' }),
+};
+
 type EmailLogRow = {
   id: string;
   template: string;
@@ -92,10 +98,7 @@ export function OrderEmailsPanel({
     }
   }, [sending, t, customerEmail, orderId]);
 
-  const dateTimeFormat = new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-IL', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  });
+  const dateTimeFormat = EMAIL_TIME_FORMAT[locale === 'he' ? 'he' : 'en'];
   const rows = data?.orderId === orderId ? data.rows : null;
   const templateLabel = (name: string) => (t.has(`templates.${name}`) ? t(`templates.${name}`) : name);
 

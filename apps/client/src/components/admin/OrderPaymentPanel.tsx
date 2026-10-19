@@ -8,6 +8,12 @@ import { cn } from '@/lib/utils';
 import { paymentSummary, type OrderPaymentFields } from '@/lib/payment';
 import { formatShekels } from '@/components/admin/order-status';
 
+/** Built once, in the store's time zone. */
+const ATTEMPT_TIME_FORMAT = {
+  he: new Intl.DateTimeFormat('he-IL', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'Asia/Jerusalem' }),
+  en: new Intl.DateTimeFormat('en-IL', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'Asia/Jerusalem' }),
+};
+
 type Attempt = {
   id: string;
   provider: string;
@@ -58,10 +64,7 @@ export function OrderPaymentPanel({ orderId, refreshKey }: { orderId: string; re
     };
   }, [orderId, refreshKey]);
 
-  const dateTimeFormat = new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-IL', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
-  });
+  const dateTimeFormat = ATTEMPT_TIME_FORMAT[locale === 'he' ? 'he' : 'en'];
   const payments = data?.orderId === orderId ? data.payments : null;
   const summary = payments ? paymentSummary(payments) : null;
   const errorLabel = (code: string) => (t.has(`admin.error.${code}`) ? t(`admin.error.${code}`) : code);

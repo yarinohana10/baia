@@ -5,6 +5,11 @@ import { Breadcrumbs } from './Breadcrumbs';
 import { businessInfo, fillTemplate, LEGAL_UPDATED_AT, type BusinessInfo } from '@/lib/site';
 import type { SiteConfig } from '@/lib/catalog/types';
 
+const LEGAL_DATE_FORMAT = {
+  he: new Intl.DateTimeFormat('he-IL', { dateStyle: 'long', timeZone: 'Asia/Jerusalem' }),
+  en: new Intl.DateTimeFormat('en-GB', { dateStyle: 'long', timeZone: 'Asia/Jerusalem' }),
+};
+
 /** One legal section as stored in messages/<locale>/legal.json (raw, with `{placeholders}`). */
 export type LegalSection = {
   id: string;
@@ -72,9 +77,7 @@ export async function LegalPage({
   children?: React.ReactNode;
 }) {
   const [t, tLegal] = await Promise.all([getTranslations('storefront'), getTranslations('legal')]);
-  const updated = new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-GB', { dateStyle: 'long' }).format(
-    new Date(`${LEGAL_UPDATED_AT}T12:00:00Z`),
-  );
+  const updated = LEGAL_DATE_FORMAT[locale === 'he' ? 'he' : 'en'].format(new Date(`${LEGAL_UPDATED_AT}T12:00:00Z`));
 
   const toc = (
     <ol className="space-y-1 text-sm">

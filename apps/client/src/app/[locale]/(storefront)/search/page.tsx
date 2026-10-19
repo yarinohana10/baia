@@ -12,6 +12,8 @@ import { PAGE_SIZE, activeFilterCount, clearFilters, listingHref, parseListingQu
 import type { Facets } from '@/lib/catalog/types';
 import { pageMetadata } from '@/lib/seo';
 
+const NO_FACETS: Facets = { sizes: [], colors: [], price: { min: null, max: null } };
+
 type Props = {
   params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -37,12 +39,11 @@ export default async function SearchPage({ params, searchParams }: Props) {
   const query = parseListingQuery(await searchParams);
   const basePath = '/search';
 
-  const noFacets: Facets = { sizes: [], colors: [], price: { min: null, max: null } };
   const [{ products, total, totalPages }, facets, categories, t, tCat] = await Promise.all([
     query.q
       ? getProducts({ search: query.q, page: query.page, limit: PAGE_SIZE, sort: query.sort, filters: query })
       : Promise.resolve({ products: [], total: 0, totalPages: 0 }),
-    query.q ? getFacets({ search: query.q }) : Promise.resolve(noFacets),
+    query.q ? getFacets({ search: query.q }) : Promise.resolve(NO_FACETS),
     getCategories(),
     getTranslations('storefront.search'),
     getTranslations('storefront.category'),

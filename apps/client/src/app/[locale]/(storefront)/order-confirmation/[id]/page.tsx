@@ -25,6 +25,12 @@ import {
   XCircle,
 } from 'lucide-react';
 
+/** Built once, in the store's time zone, so server and browser render the same text. */
+const ORDER_DATE_FORMAT = {
+  he: new Intl.DateTimeFormat('he-IL', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jerusalem' }),
+  en: new Intl.DateTimeFormat('en-IL', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jerusalem' }),
+};
+
 type Order = CustomerOrder;
 
 /**
@@ -122,7 +128,7 @@ export default function OrderConfirmationPage() {
   const trackLink = trackingUrl(order.trackingNumber);
   // Fresh from checkout (paid or awaiting payment): thank the shopper; otherwise it is a status page.
   const justPlaced = pending || (paid && order.status === 'CONFIRMED');
-  const dateFormat = new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-IL', { dateStyle: 'medium', timeStyle: 'short' });
+  const dateFormat = ORDER_DATE_FORMAT[locale === 'he' ? 'he' : 'en'];
 
   return (
     <div className="max-w-2xl mx-auto py-16 px-4">

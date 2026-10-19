@@ -15,6 +15,12 @@ import { cn } from '@/lib/utils';
 import { ApplePayForm, BitForm, CardForm } from '@/components/storefront/payment/PaymentForms';
 import { AlertTriangle, CheckCircle2, CreditCard, FlaskConical, Lock, SearchX, Smartphone, Wallet } from 'lucide-react';
 
+const PAYMENT_TABS: { key: PaymentMethod; icon: React.ReactNode }[] = [
+  { key: 'card', icon: <CreditCard size={16} aria-hidden="true" /> },
+  { key: 'bit', icon: <Smartphone size={16} aria-hidden="true" /> },
+  { key: 'apple_pay', icon: <Wallet size={16} aria-hidden="true" /> },
+];
+
 const DECLINE_CODES: DeclineCode[] = ['card_declined', 'insufficient_funds', 'provider_error', 'declined'];
 const PAID_STATUSES = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
 
@@ -171,12 +177,7 @@ export default function PaymentPage() {
     );
   }
 
-  const tabs: { key: PaymentMethod; icon: React.ReactNode }[] = [
-    { key: 'card', icon: <CreditCard size={16} aria-hidden="true" /> },
-    { key: 'bit', icon: <Smartphone size={16} aria-hidden="true" /> },
-    { key: 'apple_pay', icon: <Wallet size={16} aria-hidden="true" /> },
-  ];
-  const availableTabs = tabs.filter((tab) => config.methods.includes(tab.key));
+  const availableTabs = PAYMENT_TABS.filter((tab) => config.methods.includes(tab.key));
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4 sm:px-6">
