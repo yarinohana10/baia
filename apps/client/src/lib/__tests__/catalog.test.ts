@@ -29,6 +29,15 @@ describe('listing query', () => {
       '/category/men?type=x&sort=price-desc&page=3',
     );
   });
+
+  it('normalises the search term and keeps it in listing hrefs', () => {
+    expect(parseListingQuery({ q: '  בגד   ים ' }).q).toBe('בגד ים');
+    expect(parseListingQuery({ q: '   ' }).q).toBeUndefined();
+    expect(parseListingQuery({ q: 'x'.repeat(300) }).q).toHaveLength(100);
+    expect(listingHref('/search', { q: 'bikini top', sort: 'price-asc', page: 2 })).toBe(
+      '/search?q=bikini+top&sort=price-asc&page=2',
+    );
+  });
 });
 
 describe('pricing helpers', () => {

@@ -233,7 +233,10 @@
     "newArrivalsTitle": "חדש באתר",
     "newArrivalsDescription": "בגדי הים החדשים של BAIA לנשים, גברים וילדים — ישר מקולקציית הקיץ.",
     "productFallbackDescription": "{name} מבית BAIA בגדי ים. בגדי ים פרימיום בהשראת הקיץ הים-תיכוני.",
-    "notFoundTitle": "העמוד לא נמצא"
+    "notFoundTitle": "העמוד לא נמצא",
+    "searchTitle": "חיפוש",
+    "searchResultsTitle": "חיפוש: {query}",
+    "searchDescription": "חיפוש בקולקציית בגדי הים של BAIA."
   },
   "storefront": {
     "announcement": "משלוח חינם בהזמנה מעל ₪249 · החזרות קלות עד 14 יום",
@@ -327,6 +330,21 @@
       "sku": "מק״ט: {sku}",
       "lowStock": "{count, plural, one {נותר פריט אחרון} other {נותרו # בלבד}}",
       "adding": "מוסיפים…"
+    },
+    "search": {
+      "open": "חיפוש",
+      "close": "סגירת החיפוש",
+      "label": "חיפוש מוצרים",
+      "placeholder": "חיפוש בגדי ים, ביקיני, מכנסונים…",
+      "submit": "חיפוש",
+      "clear": "ניקוי החיפוש",
+      "resultsFor": "תוצאות עבור „{query}”",
+      "emptyTitle": "לא מצאנו תוצאות עבור „{query}”",
+      "emptyBody": "כדאי לבדוק את האיות או לנסות מילה כללית יותר, כמו סוג המוצר. אפשר גם לעבור לקולקציות שלנו:",
+      "promptTitle": "מה מחפשים היום?",
+      "promptBody": "אפשר לחפש לפי שם המוצר, בעברית או באנגלית.",
+      "browse": "לקולקציות",
+      "newArrivals": "חדש באתר"
     }
   },
   "pages": {
@@ -804,6 +822,39 @@
         "lowStock": "מלאי נמוך",
         "addCustomSize": "הוספת מידה"
       }
+    },
+    "customers": {
+      "title": "לקוחות",
+      "searchPlaceholder": "חיפוש לפי שם או אימייל",
+      "name": "שם",
+      "email": "אימייל",
+      "registered": "תאריך הרשמה",
+      "orders": "הזמנות",
+      "totalSpent": "סה״כ רכישות",
+      "actions": "פעולות",
+      "view": "צפייה בלקוח",
+      "noCustomers": "עדיין אין לקוחות.",
+      "noMatches": "אין לקוחות שתואמים לחיפוש.",
+      "previousPage": "העמוד הקודם",
+      "nextPage": "העמוד הבא",
+      "loadFailed": "לא הצלחנו לטעון את הלקוחות. נסו שוב.",
+      "paidNote": "ההזמנות וסה״כ הרכישות כוללים רק הזמנות ששולמו.",
+      "back": "כל הלקוחות",
+      "notFound": "הלקוח לא נמצא.",
+      "detailFailed": "לא הצלחנו לטעון את הלקוח. נסו שוב.",
+      "emailVerified": "האימייל אומת",
+      "emailUnverified": "האימייל לא אומת",
+      "paidOrders": "הזמנות ששולמו",
+      "ordersTitle": "היסטוריית הזמנות",
+      "noOrders": "הלקוח עדיין לא ביצע הזמנות.",
+      "order": "הזמנה",
+      "date": "תאריך",
+      "items": "פריטים",
+      "total": "סה״כ",
+      "status": "סטטוס",
+      "openOrder": "פתיחת הזמנה {number}",
+      "noName": "ללא שם",
+      "dismiss": "סגירה"
     }
   },
   "wishlist": {
