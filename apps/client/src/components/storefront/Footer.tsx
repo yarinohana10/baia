@@ -1,9 +1,12 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { Truck, ShieldCheck, RotateCcw, Mail, Clock } from 'lucide-react';
-import { CONTACT_EMAIL } from '@/lib/site';
+import { Truck, ShieldCheck, RotateCcw, Mail, Clock, Phone, MapPin, PackageSearch, XCircle } from 'lucide-react';
+import type { SiteConfig } from '@/lib/catalog/types';
+import { businessInfo, telHref, whatsappHref } from '@/lib/site';
 import type { NavItem } from './Header';
 import { Wordmark } from './Wordmark';
+import { NewsletterForm } from './NewsletterForm';
+import { WhatsAppGlyph } from './WhatsAppGlyph';
 
 function FooterColumn({ title, links }: { title: string; links: NavItem[] }) {
   return (
@@ -22,14 +25,18 @@ function FooterColumn({ title, links }: { title: string; links: NavItem[] }) {
   );
 }
 
-export function Footer({ categories }: { categories: NavItem[] }) {
+export function Footer({ categories, config }: { categories: NavItem[]; config: SiteConfig | null }) {
   const t = useTranslations('footer');
   const tCommon = useTranslations('common');
   const tNav = useTranslations('nav');
   const tContact = useTranslations('pages.contact');
+  const tWhatsapp = useTranslations('legal.whatsapp');
+
+  const info = businessInfo(config);
+  const whatsapp = whatsappHref(info.whatsappNumber, tWhatsapp('prefill'));
 
   const perks = [
-    { icon: Truck, title: t('freeShipping'), body: t('freeShippingSub') },
+    { icon: Truck, title: t('freeShipping', { threshold: info.freeShippingThreshold }), body: t('freeShippingSub') },
     { icon: RotateCcw, title: t('easyReturns'), body: t('easyReturnsSub') },
     { icon: ShieldCheck, title: t('securePayment'), body: t('securePaymentSub') },
   ];
@@ -38,8 +45,15 @@ export function Footer({ categories }: { categories: NavItem[] }) {
   const care: NavItem[] = [
     { label: t('shippingPolicy'), href: '/shipping' },
     { label: t('returnsExchanges'), href: '/returns' },
+    { label: t('trackOrder'), href: '/order-status' },
+    { label: t('cancelOrder'), href: '/cancel-order' },
     { label: t('contactUs'), href: '/contact' },
     { label: t('aboutUs'), href: '/about' },
+  ];
+  const legal: NavItem[] = [
+    { label: t('terms'), href: '/terms' },
+    { label: t('privacy'), href: '/privacy' },
+    { label: t('accessibility'), href: '/accessibility' },
   ];
   const account: NavItem[] = [
     { label: tCommon('login'), href: '/login' },
@@ -47,6 +61,10 @@ export function Footer({ categories }: { categories: NavItem[] }) {
     { label: t('myOrders'), href: '/account/orders' },
     { label: tCommon('wishlist'), href: '/wishlist' },
   ];
+
+  const quickLink =
+    'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white';
+  const quickLinkGhost = `${quickLink} text-white ring-1 ring-white/25 hover:bg-white/10`;
 
   return (
     <footer className="bg-ocean-800 text-white">
@@ -67,53 +85,100 @@ export function Footer({ categories }: { categories: NavItem[] }) {
         </ul>
       </div>
 
+      {/* Quick service links - order cancellation must be easy to find (חוק הגנת הצרכן). */}
+      <nav aria-label={t('careTitle')} className="border-b border-white/10">
+        <div className="container-page flex flex-wrap items-center gap-3 py-5">
+          <Link href="/cancel-order" className={`${quickLink} bg-white text-ocean-800 hover:bg-ocean-100`}>
+            <XCircle size={16} strokeWidth={1.8} aria-hidden="true" />
+            {t('cancelOrder')}
+          </Link>
+          <Link href="/order-status" className={quickLinkGhost}>
+            <PackageSearch size={16} strokeWidth={1.8} aria-hidden="true" />
+            {t('trackOrder')}
+          </Link>
+          <Link href="/returns" className={quickLinkGhost}>
+            <RotateCcw size={16} strokeWidth={1.8} aria-hidden="true" />
+            {t('returnsExchanges')}
+          </Link>
+          {whatsapp && (
+            <a href={whatsapp} target="_blank" rel="noopener noreferrer" className={quickLinkGhost}>
+              <WhatsAppGlyph size={16} />
+              {t('whatsappLabel')}
+            </a>
+          )}
+          <p className="w-full text-xs text-white/55 sm:ms-auto sm:w-auto">{t('cancelOrderSub')}</p>
+        </div>
+      </nav>
+
       {/* Main */}
       <div className="container-page py-14">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
-          {/* Brand + contact */}
-          <div className="col-span-2 lg:col-span-1 max-w-sm">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-4 lg:grid-cols-[1.6fr_1fr_1fr_1fr_1fr]">
+          {/* Brand + newsletter */}
+          <div className="col-span-2 md:col-span-4 lg:col-span-1 max-w-sm">
             <Link href="/" aria-label="BAIA Swimwear" className="inline-block">
               <Wordmark tone="light" />
             </Link>
             <p className="mt-5 text-sm leading-relaxed text-white/65">{t('brandDescription')}</p>
 
-            <ul className="mt-6 space-y-3 text-sm">
-              <li className="flex items-center gap-3">
-                <Mail size={16} strokeWidth={1.6} aria-hidden="true" className="text-ocean-200 shrink-0" />
-                <span className="sr-only">{tContact('emailLabel')}: </span>
-                <a href={`mailto:${CONTACT_EMAIL}`} dir="ltr" className="text-white/80 hover:text-white transition-colors">
-                  {CONTACT_EMAIL}
-                </a>
-              </li>
-              <li className="flex items-center gap-3">
-                <Clock size={16} strokeWidth={1.6} aria-hidden="true" className="text-ocean-200 shrink-0" />
-                <span className="sr-only">{tContact('hoursLabel')}: </span>
-                <span className="text-white/80">{tContact('hours')}</span>
-              </li>
-            </ul>
-
             <div className="mt-8 rounded-xl bg-white/5 p-5 ring-1 ring-white/10">
               <p className="text-sm font-semibold">{t('newsletterTitle')}</p>
               <p className="mt-1 text-xs leading-relaxed text-white/60">{t('newsletterBody')}</p>
-              <Link
-                href="/register"
-                className="mt-4 inline-block bg-white text-ocean-800 px-5 py-2.5 text-[12px] font-bold tracking-[0.1em] uppercase rounded-lg hover:bg-ocean-100 transition-colors"
-              >
-                {t('clubCta')}
-              </Link>
+              <NewsletterForm />
             </div>
           </div>
 
           <FooterColumn title={t('shopTitle')} links={shop} />
           <FooterColumn title={t('careTitle')} links={care} />
+          <FooterColumn title={t('legalTitle')} links={legal} />
           <FooterColumn title={t('accountTitle')} links={account} />
+        </div>
+      </div>
+
+      {/* Business details */}
+      <div className="border-t border-white/10">
+        <div className="container-page py-8">
+          <h2 className="sr-only">{t('businessTitle')}</h2>
+          <address className="not-italic grid gap-x-8 gap-y-3 text-sm text-white/75 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+            <p className="font-semibold text-white">
+              {info.businessName}
+              <span className="mx-2 text-white/30" aria-hidden="true">·</span>
+              <span className="font-normal text-white/75">
+                {info.companyId ? t('companyId', { id: info.companyId }) : t('companyIdSoon')}
+              </span>
+            </p>
+            <p className="flex items-center gap-2">
+              <MapPin size={15} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-ocean-200" />
+              <span className="sr-only">{t('addressLabel')}: </span>
+              {info.businessAddress}
+            </p>
+            <p className="flex items-center gap-2">
+              <Phone size={15} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-ocean-200" />
+              <span className="sr-only">{t('phoneLabel')}: </span>
+              <a href={telHref(info.businessPhone)} dir="ltr" className="transition-colors hover:text-white">
+                {info.businessPhone}
+              </a>
+            </p>
+            <p className="flex min-w-0 items-center gap-2">
+              <Mail size={15} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-ocean-200" />
+              <span className="sr-only">{t('emailLabel')}: </span>
+              <a href={`mailto:${info.contactEmail}`} dir="ltr" className="break-all transition-colors hover:text-white">
+                {info.contactEmail}
+              </a>
+            </p>
+            <p className="flex items-center gap-2">
+              <Clock size={15} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-ocean-200" />
+              <span className="sr-only">{tContact('hoursLabel')}: </span>
+              {tContact('hours')}
+            </p>
+          </address>
         </div>
       </div>
 
       {/* Bottom bar */}
       <div className="border-t border-white/10">
-        <div className="container-page flex flex-col items-center justify-between gap-3 py-6 text-xs text-white/50 sm:flex-row">
+        <div className="container-page flex flex-col items-center justify-between gap-3 py-6 text-center text-xs text-white/50 sm:flex-row sm:text-start">
           <p>{t('copyright', { year: new Date().getFullYear() })}</p>
+          <p>{t('vatNote')}</p>
           <p className="flex items-center gap-1.5">
             <ShieldCheck size={14} strokeWidth={1.6} aria-hidden="true" />
             {t('secureCheckoutNote')}

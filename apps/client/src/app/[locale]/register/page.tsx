@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { authErrorKey, signUp, signIn } from '@/lib/auth-client';
+import { setMyMarketingConsent } from '@/lib/newsletter';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
@@ -62,6 +63,11 @@ export default function RegisterPage() {
       if (result.error) {
         setError(t(authErrorKey(result.error)));
       } else {
+        if (newsletter) {
+          // Explicit opt-in only (box is never pre-ticked). Best effort: a failure
+          // here must not block the new account - it can be changed in the account page.
+          await setMyMarketingConsent(true, { source: 'register', locale }).catch(() => undefined);
+        }
         window.location.href = `/${locale}`;
       }
     } catch {
@@ -246,6 +252,21 @@ export default function RegisterPage() {
                 {t('newsletterSignup')}
               </label>
             </div>
+
+            <p className="font-body text-xs leading-relaxed text-[#3f484c]">
+              {t.rich('termsNotice', {
+                terms: (chunks) => (
+                  <Link href="/terms" target="_blank" className="font-semibold text-[#005d72] underline underline-offset-2 hover:text-[#007791]">
+                    {chunks}
+                  </Link>
+                ),
+                privacy: (chunks) => (
+                  <Link href="/privacy" target="_blank" className="font-semibold text-[#005d72] underline underline-offset-2 hover:text-[#007791]">
+                    {chunks}
+                  </Link>
+                ),
+              })}
+            </p>
 
             {/* Actions */}
             <div className="pt-4 space-y-6">

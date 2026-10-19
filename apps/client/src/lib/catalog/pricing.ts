@@ -49,12 +49,30 @@ export function totalStock(variants: StockLike[]): number {
 }
 
 export const LOW_STOCK_THRESHOLD = 5;
+/** Storefront "only N left" nudge kicks in at this many units (tracked stock only). */
+export const SHOPPER_LOW_STOCK_THRESHOLD = 3;
 
 /** Remaining units to show in an "only N left" hint, or null (never for unlimited stock). */
-export function lowStockCount(v: StockLike): number | null {
+export function lowStockCount(v: StockLike, threshold = LOW_STOCK_THRESHOLD): number | null {
   if (isUnlimited(v)) return null;
   const qty = v.stockQuantity ?? 0;
-  return qty > 0 && qty <= LOW_STOCK_THRESHOLD ? qty : null;
+  return qty > 0 && qty <= threshold ? qty : null;
+}
+
+/**
+ * What a shopper pays for a variant now and the compare-at price when a sale
+ * is live (`original` is null otherwise).
+ */
+export function variantPrice(v: V, basePrice: string, now = new Date()): { current: number; original: number | null } {
+  const regular = parseFloat(v.priceOverride || basePrice);
+  if (isSaleActive(v, now)) return { current: parseFloat(v.salePrice!), original: regular };
+  return { current: regular, original: null };
+}
+
+/** Whole-percent discount for a sale badge (0 when there is no discount). */
+export function discountPercent(current: number, original: number | null): number {
+  if (!original || original <= current) return 0;
+  return Math.round(((original - current) / original) * 100);
 }
 export const NEW_PRODUCT_DAYS = 30;
 

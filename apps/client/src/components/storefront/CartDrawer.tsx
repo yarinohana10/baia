@@ -8,11 +8,11 @@ import {
   cartSubtotal,
   decreasedQuantity,
   lineIssue,
-  shippingFor,
   unitPrice,
   useCartStore,
 } from '@/store/cart';
 import { formatPrice } from '@/lib/catalog/pricing';
+import { FreeShippingProgress } from '@/components/storefront/FreeShippingProgress';
 import { Minus, Plus, Trash2, ShoppingBag, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import {
@@ -49,7 +49,6 @@ export function CartDrawer() {
   }, [fetchCart, fetchShipping]);
 
   const subtotal = cartSubtotal(items);
-  const shippingCost = shippingFor(subtotal, shipping);
   const hasIssues = items.some((item) => lineIssue(item));
 
   const count = itemCount();
@@ -187,11 +186,7 @@ export function CartDrawer() {
                 <span className="text-gray-500">{t('subtotal')}</span>
                 <span className="font-bold text-base">{formatPrice(subtotal)}</span>
               </div>
-              {shippingCost > 0 && (
-                <p className="text-xs text-gray-400">
-                  {t('freeShippingOver', { amount: formatPrice(shipping.freeThreshold) })}
-                </p>
-              )}
+              <FreeShippingProgress subtotal={subtotal} threshold={shipping.freeThreshold} />
               {hasIssues ? (
                 <>
                   <p role="status" className="text-xs text-red-500 flex items-start gap-1.5">

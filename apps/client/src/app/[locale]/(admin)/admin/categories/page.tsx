@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
 import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
@@ -10,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, ImagePlus, X } from 'lucide-react';
 
 type Category = {
   id: string;
@@ -19,8 +20,14 @@ type Category = {
   slug: string;
   sortOrder: number;
   parentId: string | null;
+  sizeSetId?: string | null;
+  image?: string | null;
   children: Category[];
 };
+
+type SizeSetOption = { id: string; nameHe: string; nameEn: string };
+
+const EMPTY_FORM = { nameHe: '', nameEn: '', slug: '', parentId: '', sizeSetId: '', sortOrder: 0 };
 
 function autoSlug(name: string) {
   return name
@@ -84,13 +91,23 @@ export default function CategoriesPage() {
   const [editing, setEditing] = useState<Category | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<Feedback | null>(null);
-  const [formData, setFormData] = useState({
-    nameHe: '',
-    nameEn: '',
-    slug: '',
-    parentId: '',
-    sortOrder: 0,
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [sizeSets, setSizeSets] = useState<SizeSetOption[]>([]);
+  // Image chosen in the form; uploaded after the category is saved (it needs an id).
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const chooseImage = (file: File | null) => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(file);
+    setImagePreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const resetForm = () => {
+    setFormData(EMPTY_FORM);
+    chooseImage(null);
+  };
 
   const fetchCategories = async () => {
     try {
@@ -103,6 +120,10 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
+    api
+      .get('/size-sets')
+      .then((res) => setSizeSets(res.data))
+      .catch(() => setSizeSets([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -124,18 +145,33 @@ export default function CategoriesPage() {
         ...formData,
         // null moves a subcategory back to the top level
         parentId: formData.parentId || null,
+        // null = inherit the parent's size set
+        sizeSetId: formData.sizeSetId || null,
       };
 
-      if (editing) {
-        await api.put(`/admin/categories/${editing.id}`, data);
-      } else {
-        await api.post('/admin/categories', data);
+      const saved = editing
+        ? await api.put(`/admin/categories/${editing.id}`, data)
+        : await api.post('/admin/categories', data);
+
+      let imageFailed = false;
+      if (imageFile) {
+        try {
+          const form = new FormData();
+          form.append('file', imageFile, imageFile.name);
+          await api.post(`/admin/categories/${saved.data.id}/image`, form);
+        } catch {
+          imageFailed = true;
+        }
       }
 
-      setMessage({ type: 'success', text: t(editing ? 'updatedSuccess' : 'createdSuccess') });
+      setMessage(
+        imageFailed
+          ? { type: 'error', text: t('imageFailed') }
+          : { type: 'success', text: t(editing ? 'updatedSuccess' : 'createdSuccess') },
+      );
       setShowForm(false);
       setEditing(null);
-      setFormData({ nameHe: '', nameEn: '', slug: '', parentId: '', sortOrder: 0 });
+      resetForm();
       fetchCategories();
       await revalidateCatalog();
     } catch (err) {
@@ -152,9 +188,24 @@ export default function CategoriesPage() {
       nameEn: cat.nameEn,
       slug: cat.slug,
       parentId: cat.parentId || '',
+      sizeSetId: cat.sizeSetId || '',
       sortOrder: cat.sortOrder,
     });
+    chooseImage(null);
     setShowForm(true);
+  };
+
+  const removeImage = async () => {
+    if (!editing?.image || !confirm(t('removeImageConfirm'))) return;
+    try {
+      await api.delete(`/admin/categories/${editing.id}/image`);
+      setEditing({ ...editing, image: null });
+      setMessage({ type: 'success', text: t('imageRemoved') });
+      fetchCategories();
+      await revalidateCatalog();
+    } catch {
+      setMessage({ type: 'error', text: t('saveFailed') });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -181,7 +232,7 @@ export default function CategoriesPage() {
         <Button
           onClick={() => {
             setEditing(null);
-            setFormData({ nameHe: '', nameEn: '', slug: '', parentId: '', sortOrder: 0 });
+            resetForm();
             setShowForm(true);
           }}
           className="gap-2 bg-ocean-700 text-white hover:bg-ocean-800"
@@ -278,6 +329,73 @@ export default function CategoriesPage() {
                   }
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="category-sizeSetId">{t('sizeSet')}</Label>
+                <select
+                  id="category-sizeSetId"
+                  value={formData.sizeSetId}
+                  onChange={(e) => setFormData({ ...formData, sizeSetId: e.target.value })}
+                  aria-describedby="category-sizeSetId-hint"
+                  className={selectClassName()}
+                >
+                  <option value="">{t('sizeSetInherit')}</option>
+                  {sizeSets.map((set) => (
+                    <option key={set.id} value={set.id}>
+                      {locale === 'he' ? set.nameHe : set.nameEn}
+                    </option>
+                  ))}
+                </select>
+                <p id="category-sizeSetId-hint" className="text-xs text-muted-foreground">
+                  {t('sizeSetHint')}
+                </p>
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <span className="text-sm font-medium" id="category-image-label">
+                  {t('image')}
+                </span>
+                <div className="flex items-center gap-4">
+                  <div className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                    {(imagePreview || editing?.image) && (
+                      <Image
+                        src={imagePreview || editing!.image!}
+                        alt=""
+                        fill
+                        sizes="80px"
+                        unoptimized={!!imagePreview}
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+                        className="sr-only"
+                        id="category-image"
+                        aria-labelledby="category-image-label"
+                        onChange={(e) => chooseImage(e.target.files?.[0] ?? null)}
+                      />
+                      <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1.5">
+                        <ImagePlus size={14} /> {editing?.image || imagePreview ? t('replaceImage') : t('chooseImage')}
+                      </Button>
+                      {imagePreview ? (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => chooseImage(null)} className="gap-1.5">
+                          <X size={14} /> {t('cancel')}
+                        </Button>
+                      ) : (
+                        editing?.image && (
+                          <Button type="button" variant="ghost" size="sm" onClick={removeImage} className="gap-1.5 text-destructive">
+                            <Trash2 size={14} /> {t('removeImage')}
+                          </Button>
+                        )
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{imagePreview ? t('imagePending') : t('imageHint')}</p>
+                  </div>
+                </div>
+              </div>
               <div className="flex items-end gap-3">
                 <Button
                   type="submit"
@@ -292,6 +410,7 @@ export default function CategoriesPage() {
                   onClick={() => {
                     setShowForm(false);
                     setEditing(null);
+                    chooseImage(null);
                   }}
                   className="px-6"
                 >
@@ -361,6 +480,11 @@ function CategoryRow({
             </Button>
           ) : (
             <span className="w-5" />
+          )}
+          {category.image ? (
+            <Image src={category.image} alt="" width={28} height={28} className="size-7 rounded object-cover" />
+          ) : (
+            <span className="size-7 rounded bg-muted" aria-hidden="true" />
           )}
           <span className="text-sm font-medium text-foreground">
             {locale === 'he' ? category.nameHe : category.nameEn}

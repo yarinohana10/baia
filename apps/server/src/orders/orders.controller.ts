@@ -22,13 +22,21 @@ import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
 import { strictValidationPipe } from '../common/validation';
 import { secureCookieOptions } from '../common/cookies';
 import { readGuestCartKeyHash, type CartOwner } from '../cart/cart-identity';
-import { AdminOrdersQueryDto, CreateOrderDto, OrderAccessDto, UpdateOrderStatusDto } from './dto/order.dto';
+import {
+  AdminOrdersExportQueryDto,
+  AdminOrdersQueryDto,
+  CreateOrderDto,
+  OrderAccessDto,
+  OrderLookupDto,
+  UpdateOrderStatusDto,
+} from './dto/order.dto';
 import { allowedTransitions } from './order-status';
 import type { OrderStatus } from '../generated/prisma';
 import {
   ORDER_ACCESS_COOKIE_MAX_AGE_MS,
   extractOrderToken,
   orderAccessCookieName,
+  orderTokenExpiry,
 } from './order-access';
 
 const MINUTE = 60_000;
@@ -64,6 +72,9 @@ export class OrdersController {
       phone: body.phone,
       locale: body.locale,
       couponCode: body.couponCode,
+      deliveryMethod: body.deliveryMethod,
+      pickupPointId: body.pickupPointId,
+      marketingConsent: body.marketingConsent,
       shippingCity: body.shippingCity,
       shippingStreet: body.shippingStreet,
       shippingNumber: body.shippingNumber,
@@ -73,6 +84,36 @@ export class OrdersController {
 
     // accessToken is returned exactly once and only for guest orders.
     return accessToken ? { ...order, accessToken } : order;
+  }
+
+  /**
+   * Shipping options (price + ETA per delivery method) for the caller's
+   * current cart. The order total is always recomputed at POST /orders.
+   */
+  @Get('checkout/quote')
+  @RateLimit({ limit: 60, windowMs: MINUTE })
+  @Header('Cache-Control', 'no-store')
+  async quote(@Req() req: Request) {
+    const user = await getOptionalUser(req);
+    const guestKeyHash = user ? undefined : readGuestCartKeyHash(req);
+    const owner: CartOwner | null = user ? { userId: user.id } : guestKeyHash ? { guestKeyHash } : null;
+    return this.ordersService.quote(owner);
+  }
+
+  /**
+   * Order lookup by order number + email (order-status / cancel-order
+   * pages). Strictly rate-limited; every mismatch is the same 404. On a match
+   * it returns a signed access token: the client navigates to
+   * /order-confirmation/:id#token=..., which exchanges it for the scoped
+   * cookie exactly like the post-checkout flow (see order-access.ts).
+   */
+  @Post('orders/lookup')
+  @HttpCode(200)
+  @RateLimit({ limit: 10, windowMs: 15 * MINUTE })
+  @Header('Cache-Control', 'no-store')
+  async lookup(@Body() body: OrderLookupDto) {
+    const { orderId, accessToken } = await this.ordersService.lookup(body.orderNumber, body.email);
+    return { order: await this.ordersService.findForCustomer(orderId), accessToken };
   }
 
   // Customer: my orders (bound to the session user only)
@@ -103,8 +144,11 @@ export class OrdersController {
     const user = await getOptionalUser(req);
     const access = await this.ordersService.assertAccess(id, { user, token: body.token }, { allowAdmin: false });
 
-    if (access.accessTokenExpiresAt) {
-      const remaining = access.accessTokenExpiresAt.getTime() - Date.now();
+    // Owners with a session need no cookie; token holders get one that never
+    // outlives the token (creation token or signed link).
+    const expiresAt = orderTokenExpiry(access, body.token);
+    if (expiresAt) {
+      const remaining = expiresAt.getTime() - Date.now();
       res.cookie(
         orderAccessCookieName(id),
         body.token,
@@ -114,7 +158,7 @@ export class OrdersController {
         }),
       );
     }
-    return this.ordersService.findById(id);
+    return this.ordersService.findForCustomer(id);
   }
 
   @Get('orders/:id')
@@ -140,13 +184,37 @@ export class OrdersController {
     });
   }
 
+  /** Orders CSV for a date range (dashboard "Export"). */
+  @Get('admin/orders/export')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  @Header('Cache-Control', 'no-store')
+  async exportCsv(@Query() query: AdminOrdersExportQueryDto, @Res() res: Response) {
+    const parse = (v: string | undefined, endOfDay: boolean) => {
+      if (!v) return undefined;
+      const d = new Date(v.length === 10 ? `${v}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z` : v);
+      if (Number.isNaN(d.getTime())) throw new BadRequestException('Invalid date');
+      return d;
+    };
+    const csv = await this.ordersService.exportCsv({
+      from: parse(query.from, false),
+      to: parse(query.to, true),
+      status: query.status,
+    });
+    const name = `orders-${query.from ?? 'all'}-${query.to ?? new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${name.replace(/[^A-Za-z0-9._-]/g, '')}"`);
+    res.send(csv);
+  }
+
   @Get('admin/orders/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
   async findById(@Param('id') id: string) {
-    return withTransitions(await this.ordersService.findById(id));
+    return withTransitions(await this.ordersService.findForAdmin(id));
   }
 
+  /** Status change. SHIPPED / DELIVERED / CANCELLED / REFUNDED email the customer. */
   @Put('admin/orders/:id/status')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')

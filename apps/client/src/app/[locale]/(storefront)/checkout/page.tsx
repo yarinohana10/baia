@@ -8,8 +8,12 @@ import { useSession } from '@/lib/auth-client';
 import { addressesApi, PHONE_PATTERN, sameAddress, streetLine, type Address, type AddressInput } from '@/lib/addresses';
 import { formatPrice } from '@/lib/catalog/pricing';
 import { errorCode, shopErrorMessage, type ErrorMessage } from '@/lib/shop-errors';
-import { cartSubtotal, lineIssue, shippingFor, useCartStore } from '@/store/cart';
-import { ShieldCheck, Truck, CreditCard, AlertTriangle, X } from 'lucide-react';
+import { cartSubtotal, etaFor, lineIssue, shippingFor, useCartStore, type DeliveryMethod } from '@/store/cart';
+import { formatEta } from '@/lib/orders';
+import { cn } from '@/lib/utils';
+import { FreeShippingProgress } from '@/components/storefront/FreeShippingProgress';
+import { PickupPointPicker, type PickupPoint } from '@/components/storefront/orders/PickupPointPicker';
+import { ShieldCheck, Truck, CreditCard, AlertTriangle, X, MapPin, Home, Package } from 'lucide-react';
 
 const inputClass =
   'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none';
@@ -23,6 +27,7 @@ export default function CheckoutPage() {
   const t = useTranslations('cart');
   const tCheckout = useTranslations('checkout');
   const tErrors = useTranslations('checkout.errors');
+  const tDelivery = useTranslations('delivery');
   const { items, loaded, shipping, fetchCart, fetchShipping } = useCartStore();
   const { data: session } = useSession();
 
@@ -34,6 +39,11 @@ export default function CheckoutPage() {
   const [number, setNumber] = useState('');
   const [apartment, setApartment] = useState('');
   const [zip, setZip] = useState('');
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('COURIER');
+  const [pickupPoint, setPickupPoint] = useState<PickupPoint | null>(null);
+  const [pickupMissing, setPickupMissing] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [saveAddress, setSaveAddress] = useState(true);
   const prefilledFromAddress = useRef(false);
@@ -98,7 +108,8 @@ export default function CheckoutPage() {
 
   const addressInput: AddressInput = { recipientName, phone, city, street, number, apartment, zip };
   const matchedAddress = savedAddresses.find((a) => sameAddress(a, addressInput)) ?? null;
-  const offerSaveAddress = !!sessionUserId && !matchedAddress;
+  const isPickup = deliveryMethod === 'PICKUP_POINT';
+  const offerSaveAddress = !!sessionUserId && !matchedAddress && !isPickup;
 
   const chooseSavedAddress = (id: string) => {
     const address = savedAddresses.find((a) => a.id === id);
@@ -115,7 +126,7 @@ export default function CheckoutPage() {
   };
 
   const subtotal = cartSubtotal(items);
-  const shippingCost = shippingFor(subtotal, shipping);
+  const shippingCost = shippingFor(subtotal, shipping, deliveryMethod);
   const discount = appliedCoupon?.discount ?? 0;
   const total = Math.max(0, subtotal + shippingCost - discount);
   const hasIssues = items.some((item) => lineIssue(item));
@@ -173,6 +184,11 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting || (!pendingOrder && hasIssues)) return;
+    if (!pendingOrder && isPickup && !pickupPoint) {
+      setPickupMissing(true);
+      document.getElementById('checkout-delivery')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     setError(null);
     setSubmitting(true);
 
@@ -186,11 +202,17 @@ export default function CheckoutPage() {
           phone: phone.trim(),
           locale: locale === 'en' ? 'en' : 'he',
           couponCode: appliedCoupon?.code,
-          shippingCity: city,
-          shippingStreet: street,
-          shippingNumber: number,
-          shippingApartment: apartment || undefined,
-          shippingZip: zip || undefined,
+          deliveryMethod,
+          marketingConsent,
+          ...(isPickup
+            ? { pickupPointId: pickupPoint?.id }
+            : {
+                shippingCity: city,
+                shippingStreet: street,
+                shippingNumber: number,
+                shippingApartment: apartment || undefined,
+                shippingZip: zip || undefined,
+              }),
         });
         // Guests get a one-time access token; signed-in users are matched by session.
         order = { id: res.data.id, token: res.data.accessToken };
@@ -211,6 +233,7 @@ export default function CheckoutPage() {
       }
       // Stock or availability changed: re-sync so the affected lines are flagged.
       if (code === 'OUT_OF_STOCK' || code === 'VARIANT_UNAVAILABLE' || code === 'CART_EMPTY') void fetchCart();
+      if (code === 'PICKUP_POINT_UNAVAILABLE') setPickupPoint(null);
       setError(shopErrorMessage(err, locale));
       setSubmitting(false);
       return;
@@ -277,7 +300,12 @@ export default function CheckoutPage() {
     );
   }
 
-  const canSubmit = !submitting && (pendingOrder !== null || !hasIssues);
+  const canSubmit = !submitting && (pendingOrder !== null || (!hasIssues && termsAccepted));
+  const locked = pendingOrder !== null;
+  const methodPrice = (method: DeliveryMethod) => {
+    const cost = shippingFor(subtotal, shipping, method);
+    return cost === 0 ? t('freeShipping') : formatPrice(cost);
+  };
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
@@ -313,8 +341,12 @@ export default function CheckoutPage() {
                   id="checkout-email"
                   type="email"
                   autoComplete="email"
+                  dir="ltr"
+                  maxLength={254}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  aria-describedby="checkout-email-hint"
+                  disabled={locked}
                   className={inputClass}
                   required
                 />
@@ -335,9 +367,89 @@ export default function CheckoutPage() {
                 />
               </div>
             </div>
+            <p id="checkout-email-hint" className="text-xs text-gray-500">
+              {tCheckout('emailHint')}
+            </p>
           </section>
 
-          {/* Shipping */}
+          {/* Delivery method */}
+          <section id="checkout-delivery" className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+            <h2 className="font-medium text-gray-800 flex items-center gap-2">
+              <Package size={16} /> {tDelivery('title')}
+            </h2>
+            <div role="radiogroup" aria-label={tDelivery('title')} className="grid gap-3 sm:grid-cols-2">
+              {(['COURIER', 'PICKUP_POINT'] as const).map((method) => {
+                const selected = deliveryMethod === method;
+                const Icon = method === 'COURIER' ? Home : MapPin;
+                const free = shippingFor(subtotal, shipping, method) === 0;
+                return (
+                  <button
+                    key={method}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    disabled={locked}
+                    onClick={() => {
+                      setDeliveryMethod(method);
+                      setPickupMissing(false);
+                    }}
+                    className={cn(
+                      'flex items-start gap-3 rounded-xl border p-4 text-start transition-colors disabled:cursor-not-allowed',
+                      selected ? 'border-ocean-600 bg-ocean-50/60 ring-1 ring-ocean-600' : 'border-gray-200 hover:border-ocean-300',
+                      locked && !selected && 'opacity-50',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+                        selected ? 'bg-ocean-700 text-white' : 'bg-gray-100 text-gray-500',
+                      )}
+                    >
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-gray-900">
+                          {method === 'COURIER' ? tDelivery('courier') : tDelivery('pickup')}
+                        </span>
+                        <span className={cn('text-sm font-medium', free ? 'text-green-600' : 'text-gray-900')}>
+                          {methodPrice(method)}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block text-xs text-gray-500">
+                        {method === 'COURIER' ? tDelivery('courierDescription') : tDelivery('pickupDescription')}
+                      </span>
+                      <span className="mt-1 block text-xs text-gray-400">
+                        {tDelivery('eta', { days: formatEta(etaFor(shipping, method)) })}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {isPickup && (
+              <div className="space-y-2 border-t border-gray-100 pt-4">
+                <p className="text-xs font-medium text-gray-500">{tDelivery('choosePoint')}</p>
+                <PickupPointPicker
+                  value={pickupPoint}
+                  onChange={(point) => {
+                    setPickupPoint(point);
+                    setPickupMissing(false);
+                  }}
+                  disabled={locked}
+                  invalid={pickupMissing}
+                />
+                {pickupMissing && (
+                  <p role="alert" className="text-xs text-red-500">{tDelivery('pointRequired')}</p>
+                )}
+                <p className="text-xs text-gray-400">{tDelivery('pickupNotice')}</p>
+              </div>
+            )}
+          </section>
+
+          {/* Shipping address (courier only) */}
+          {!isPickup && (
           <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
             <h2 className="font-medium text-gray-800 flex items-center gap-2">
               <Truck size={16} /> {tCheckout('shippingAddress')}
@@ -411,11 +523,12 @@ export default function CheckoutPage() {
                 />
               </div>
               <div>
-                <label htmlFor="checkout-apartment" className={labelClass}>{tCheckout('apartment')}</label>
+                <label htmlFor="checkout-apartment" className={labelClass}>{tDelivery('apartmentFloor')}</label>
                 <input
                   id="checkout-apartment"
                   type="text"
-                  maxLength={20}
+                  maxLength={60}
+                  placeholder={tDelivery('apartmentPlaceholder')}
                   value={apartment}
                   onChange={(e) => setApartment(e.target.value)}
                   className={inputClass}
@@ -446,6 +559,7 @@ export default function CheckoutPage() {
               </label>
             )}
           </section>
+          )}
 
           {/* Coupon */}
           <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
@@ -530,12 +644,18 @@ export default function CheckoutPage() {
               <span className="text-gray-500">{t('subtotal')}</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">{t('shipping')}</span>
+            <div className="flex justify-between gap-3 text-sm">
+              <span className="text-gray-500">
+                {t('shipping')}
+                <span className="block text-xs text-gray-400">
+                  {isPickup ? tDelivery('pickup') : tDelivery('courier')}
+                </span>
+              </span>
               <span className={shippingCost === 0 ? 'text-green-600' : ''}>
                 {shippingCost === 0 ? t('freeShipping') : formatPrice(shippingCost)}
               </span>
             </div>
+            <FreeShippingProgress subtotal={subtotal} threshold={shipping.freeThreshold} />
             {discount > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">{tCheckout('discount')}</span>
@@ -546,6 +666,44 @@ export default function CheckoutPage() {
               <span>{t('total')}</span>
               <span>{formatPrice(total)}</span>
             </div>
+            <p className="text-xs text-gray-400">{tDelivery('vatIncluded')}</p>
+          </div>
+
+          <div className="space-y-3 border-t border-gray-200 pt-4">
+            <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={marketingConsent}
+                onChange={(e) => setMarketingConsent(e.target.checked)}
+                disabled={locked}
+                className="mt-0.5 accent-ocean-700"
+              />
+              <span>{tCheckout('marketingConsent')}</span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={termsAccepted || locked}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                disabled={locked}
+                required
+                className="mt-0.5 accent-ocean-700"
+              />
+              <span>
+                {tCheckout.rich('termsConsent', {
+                  terms: (chunks) => (
+                    <Link href="/terms" target="_blank" className="underline text-ocean-700 hover:text-ocean-800">
+                      {chunks}
+                    </Link>
+                  ),
+                  privacy: (chunks) => (
+                    <Link href="/privacy" target="_blank" className="underline text-ocean-700 hover:text-ocean-800">
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+              </span>
+            </label>
           </div>
 
           {hasIssues && !pendingOrder && (
@@ -575,6 +733,9 @@ export default function CheckoutPage() {
           </button>
 
           <p className="text-xs text-center text-gray-400">{tCheckout('secureNote')}</p>
+          <p className="text-xs text-center text-gray-400">
+            {tDelivery('cancelPolicy', { hours: shipping.selfCancelWindowHours ?? 48 })}
+          </p>
         </div>
       </form>
     </div>

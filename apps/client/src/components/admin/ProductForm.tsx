@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Save, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import ProductImagesManager, { type ImageItem } from './ProductImagesManager';
 import ProductStockEditor, { stockSummary, type SizeSet, type Variant } from './ProductStockEditor';
+import { ProductContentFields, contentPayload, emptyContent, type ProductContent } from './ProductContentFields';
 import {
   type FieldErrors,
   responseOf,
@@ -46,6 +47,12 @@ type ServerProduct = {
   nameEn: string;
   descriptionHe?: string | null;
   descriptionEn?: string | null;
+  fabricHe?: string | null;
+  fabricEn?: string | null;
+  careHe?: string | null;
+  careEn?: string | null;
+  fitHe?: string | null;
+  fitEn?: string | null;
   slug: string;
   basePrice: string;
   categoryId: string;
@@ -61,7 +68,7 @@ type Props = { product?: ServerProduct };
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** Field paths rendered next to their inputs; anything else goes in the top banner. */
 const INLINE_FIELD =
-  /^(nameHe|nameEn|slug|basePrice|categoryId|images|variants|variants\.\d+\.(color|size|sku|stockQuantity|trackInventory|priceOverride|salePrice|saleStart|saleEnd)|images\.\d+\.(altTextHe|altTextEn))$/;
+  /^(nameHe|nameEn|slug|(fabric|care|fit)(He|En)|basePrice|categoryId|images|variants|variants\.\d+\.(color|size|sku|stockQuantity|trackInventory|priceOverride|salePrice|saleStart|saleEnd)|images\.\d+\.(altTextHe|altTextEn))$/;
 
 function selectClassName(hasError?: boolean) {
   return cn(
@@ -140,6 +147,7 @@ export default function ProductForm({ product }: Props) {
   const [nameEn, setNameEn] = useState(product?.nameEn || '');
   const [descHe, setDescHe] = useState(product?.descriptionHe || '');
   const [descEn, setDescEn] = useState(product?.descriptionEn || '');
+  const [content, setContent] = useState<ProductContent>(() => emptyContent(product));
   const [slug, setSlug] = useState(product?.slug || '');
   const [basePrice, setBasePrice] = useState(product ? parseFloat(product.basePrice).toString() : '');
   const [categoryId, setCategoryId] = useState(product?.categoryId || '');
@@ -291,6 +299,7 @@ export default function ProductForm({ product }: Props) {
     nameEn: nameEn.trim(),
     descriptionHe: descHe.trim() || null,
     descriptionEn: descEn.trim() || null,
+    ...contentPayload(content),
     slug: slug.trim(),
     basePrice: parseFloat(basePrice),
     categoryId,
@@ -567,6 +576,21 @@ export default function ProductForm({ product }: Props) {
               {t('featured')}
             </Label>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Product-page content: fabric, care, fit */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif text-lg">{t('content.title')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ProductContentFields
+            value={content}
+            onChange={setContent}
+            errors={fieldErrors}
+            onFieldEdited={clearServerError}
+          />
         </CardContent>
       </Card>
 

@@ -16,6 +16,18 @@ import {
   VariantDto,
 } from './dto/product.dto';
 import { compareSizes } from './size-sets';
+import { availableStock } from '../common/stock';
+import {
+  CatalogFilters,
+  EFFECTIVE_PRICE_JOIN,
+  EFFECTIVE_PRICE_SQL,
+  filterConditions,
+  hasPriceFilter,
+  IN_STOCK_SQL,
+  ListingScope,
+  scopeConditions,
+  variantWhere,
+} from './catalog-filters';
 
 type ImageWithUpload = {
   id: string;
@@ -98,28 +110,32 @@ export class ProductsService {
 
   // ─── Queries ─────────────────────────────────────
 
+  /** Category plus its direct children (listings include subcategory products). */
+  private async categoryScope(categoryId?: string): Promise<string[] | null> {
+    if (!categoryId) return null;
+    const childCategories = await this.prisma.category.findMany({
+      where: { parentId: categoryId },
+      select: { id: true },
+    });
+    return [categoryId, ...childCategories.map((c) => c.id)];
+  }
+
   async findAll(params?: {
     categoryId?: string;
     search?: string;
     page?: number;
     limit?: number;
     sort?: string;
+    filters?: CatalogFilters;
   }) {
-    const { categoryId, search, sort = 'newest' } = params || {};
+    const { categoryId, search, sort = 'newest', filters = {} } = params || {};
     const page = Math.max(1, Math.trunc(params?.page ?? 1) || 1);
     const limit = Math.min(100, Math.max(1, Math.trunc(params?.limit ?? 20) || 20));
 
     const where: Prisma.ProductWhereInput = { isActive: true };
-    let categoryIds: string[] | null = null;
-
-    if (categoryId) {
-      const childCategories = await this.prisma.category.findMany({
-        where: { parentId: categoryId },
-        select: { id: true },
-      });
-
-      categoryIds = [categoryId, ...childCategories.map((c) => c.id)];
-      where.categoryId = childCategories.length > 0 ? { in: categoryIds } : categoryId;
+    const categoryIds = await this.categoryScope(categoryId);
+    if (categoryIds) {
+      where.categoryId = categoryIds.length > 1 ? { in: categoryIds } : categoryId;
     }
 
     if (search) {
@@ -128,6 +144,8 @@ export class ProductsService {
         { nameHe: { contains: search, mode: 'insensitive' } },
       ];
     }
+    const variantFilter = variantWhere(filters);
+    if (variantFilter) Object.assign(where, variantFilter);
 
     const include = {
       category: true,
@@ -135,15 +153,20 @@ export class ProductsService {
       images: IMAGE_INCLUDE,
     } as const;
     const skip = (page - 1) * limit;
+    const priceSort = sort === 'price-asc' || sort === 'price-desc';
+    const priceFilter = hasPriceFilter(filters);
 
     let products;
-    if (sort === 'price-asc' || sort === 'price-desc') {
-      // Sort by what the shopper actually pays: the lowest effective price
-      // across active variants (live sale price, else override, else base).
-      const ids = await this.idsByEffectivePrice({
-        categoryIds,
-        search,
-        direction: sort === 'price-asc' ? 'ASC' : 'DESC',
+    let total: number;
+    if (priceSort || priceFilter) {
+      // Effective prices (live sale price, else override, else base) are only
+      // known in SQL, so ids, order and count come from a raw query and the
+      // rows are then loaded with Prisma in that order.
+      const scope = { categoryIds, search };
+      const ids = await this.filteredIds({
+        scope,
+        filters,
+        order: priceSort ? (sort === 'price-asc' ? 'price-asc' : 'price-desc') : 'newest',
         skip,
         limit,
       });
@@ -152,16 +175,17 @@ export class ProductsService {
         : [];
       const byId = new Map(rows.map((r) => [r.id, r]));
       products = ids.map((id) => byId.get(id)).filter((p): p is (typeof rows)[number] => !!p);
+      total = priceFilter ? await this.filteredCount(scope, filters) : await this.prisma.product.count({ where });
     } else {
       products = await this.prisma.product.findMany({
         where,
         include,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         skip,
         take: limit,
       });
+      total = await this.prisma.product.count({ where });
     }
-    const total = await this.prisma.product.count({ where });
 
     return {
       products: products.map((p) => this.resolveProductImages(p)),
@@ -172,44 +196,126 @@ export class ProductsService {
     };
   }
 
-  /** Active product ids ordered by minimum effective price (same filters as findAll). */
-  private async idsByEffectivePrice(params: {
-    categoryIds: string[] | null;
-    search?: string;
-    direction: 'ASC' | 'DESC';
+  /** Active product ids for a listing, filtered and ordered in SQL. */
+  private async filteredIds(params: {
+    scope: ListingScope;
+    filters: CatalogFilters;
+    order: 'newest' | 'price-asc' | 'price-desc';
     skip: number;
     limit: number;
   }): Promise<string[]> {
-    const conditions = [Prisma.sql`p."isActive" = true`];
-    if (params.categoryIds) {
-      conditions.push(Prisma.sql`p."categoryId" IN (${Prisma.join(params.categoryIds)})`);
-    }
-    if (params.search) {
-      const pattern = `%${params.search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-      conditions.push(Prisma.sql`(p."nameEn" ILIKE ${pattern} OR p."nameHe" ILIKE ${pattern})`);
-    }
-    const direction = Prisma.raw(params.direction);
-    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+    const conditions = [...scopeConditions(params.scope), ...filterConditions(params.filters)];
+    const orderBy =
+      params.order === 'newest'
+        ? Prisma.sql`p."createdAt" DESC, p.id`
+        : Prisma.sql`${EFFECTIVE_PRICE_SQL} ${Prisma.raw(params.order === 'price-asc' ? 'ASC' : 'DESC')}, p."createdAt" DESC, p.id`;
+    const rows = await this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
       SELECT p.id
       FROM products p
-      LEFT JOIN LATERAL (
-        SELECT MIN(
-          CASE
-            WHEN v."salePrice" IS NOT NULL
-              AND (v."saleStart" IS NULL OR v."saleStart" <= NOW())
-              AND (v."saleEnd" IS NULL OR v."saleEnd" >= NOW())
-            THEN v."salePrice"
-            ELSE COALESCE(v."priceOverride", p."basePrice")
-          END
-        ) AS min_price
-        FROM product_variants v
-        WHERE v."productId" = p.id AND v."isActive" = true
-      ) ep ON true
+      ${EFFECTIVE_PRICE_JOIN}
       WHERE ${Prisma.join(conditions, ' AND ')}
-      ORDER BY COALESCE(ep.min_price, p."basePrice") ${direction}, p."createdAt" DESC, p.id
+      ORDER BY ${orderBy}
       LIMIT ${params.limit} OFFSET ${params.skip}
-    `;
+    `);
     return rows.map((r) => r.id);
+  }
+
+  private async filteredCount(scope: ListingScope, filters: CatalogFilters): Promise<number> {
+    const conditions = [...scopeConditions(scope), ...filterConditions(filters)];
+    const rows = await this.prisma.$queryRaw<{ count: number }[]>(Prisma.sql`
+      SELECT COUNT(*)::int AS count
+      FROM products p
+      ${EFFECTIVE_PRICE_JOIN}
+      WHERE ${Prisma.join(conditions, ' AND ')}
+    `);
+    return Number(rows[0]?.count ?? 0);
+  }
+
+  /**
+   * Filter options for a listing scope (category incl. children, search):
+   * - sizes: only sizes in stock right now, in size-set order, with the number
+   *   of products offering each
+   * - colors: colors of active variants with product counts
+   * - price: min/max effective price
+   * Facets ignore the shopper's current filters, so options never disappear
+   * while filtering.
+   */
+  async facets(params: { categoryId?: string; search?: string }) {
+    const scope: ListingScope = { categoryIds: await this.categoryScope(params.categoryId), search: params.search };
+    const where = Prisma.join(scopeConditions(scope), ' AND ');
+
+    const [sizeRows, colorRows, priceRows, sizeSets] = await Promise.all([
+      this.prisma.$queryRaw<{ value: string; count: number }[]>(Prisma.sql`
+        SELECT v.size AS value, COUNT(DISTINCT p.id)::int AS count
+        FROM products p
+        JOIN product_variants v ON v."productId" = p.id
+        WHERE ${where} AND v."isActive" = true AND ${IN_STOCK_SQL}
+        GROUP BY v.size
+      `),
+      this.prisma.$queryRaw<{ value: string; count: number }[]>(Prisma.sql`
+        SELECT v.color AS value, COUNT(DISTINCT p.id)::int AS count
+        FROM products p
+        JOIN product_variants v ON v."productId" = p.id
+        WHERE ${where} AND v."isActive" = true
+        GROUP BY v.color
+      `),
+      this.prisma.$queryRaw<{ min: unknown; max: unknown }[]>(Prisma.sql`
+        SELECT MIN(${EFFECTIVE_PRICE_SQL}) AS min, MAX(${EFFECTIVE_PRICE_SQL}) AS max
+        FROM products p
+        ${EFFECTIVE_PRICE_JOIN}
+        WHERE ${where}
+      `),
+      this.prisma.sizeSet.findMany({ orderBy: { sortOrder: 'asc' }, select: { sizes: true } }),
+    ]);
+
+    const order = [...new Set(sizeSets.flatMap((s) => s.sizes))];
+    const price = priceRows[0];
+    const asNumber = (v: unknown) => (v === null || v === undefined ? null : toNumber(v as DecimalLike));
+    return {
+      sizes: sizeRows
+        .map((r) => ({ value: r.value, count: Number(r.count) }))
+        .sort((a, b) => compareSizes(a.value, b.value, order)),
+      colors: colorRows
+        .map((r) => ({ value: r.value, count: Number(r.count) }))
+        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value)),
+      price: { min: asNumber(price?.min), max: asNumber(price?.max) },
+    };
+  }
+
+  /**
+   * "You may also like": active products from the same category first, then
+   * from sibling categories under the same parent; in-stock before sold-out,
+   * newest first within each group.
+   */
+  async related(slug: string, limit = 8) {
+    const product = await this.prisma.product.findUnique({
+      where: { slug },
+      select: { id: true, isActive: true, categoryId: true, category: { select: { parentId: true } } },
+    });
+    if (!product || !product.isActive) throw new NotFoundException('Product not found');
+
+    const parentId = product.category?.parentId ?? null;
+    const siblingIds = parentId
+      ? (await this.prisma.category.findMany({ where: { parentId }, select: { id: true } })).map((c) => c.id)
+      : [];
+    const categoryIds = [...new Set([product.categoryId, ...siblingIds, ...(parentId ? [parentId] : [])])];
+
+    const candidates = await this.prisma.product.findMany({
+      where: { isActive: true, id: { not: product.id }, categoryId: { in: categoryIds } },
+      include: { variants: { where: { isActive: true } }, images: IMAGE_INCLUDE },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take: 60,
+    });
+
+    const rank = (p: (typeof candidates)[number]) => ({
+      sameCategory: p.categoryId === product.categoryId ? 0 : 1,
+      soldOut: p.variants.some((v) => availableStock(v) > 0) ? 0 : 1,
+    });
+    return candidates
+      .map((p, index) => ({ p, index, r: rank(p) }))
+      .sort((a, b) => a.r.sameCategory - b.r.sameCategory || a.r.soldOut - b.r.soldOut || a.index - b.index)
+      .slice(0, limit)
+      .map(({ p }) => this.resolveProductImages(p));
   }
 
   private adminWhere(params?: { search?: string; categoryId?: string }) {
@@ -523,6 +629,12 @@ export class ProductsService {
             nameEn: dto.nameEn,
             descriptionHe: dto.descriptionHe ?? null,
             descriptionEn: dto.descriptionEn ?? null,
+            fabricHe: dto.fabricHe ?? null,
+            fabricEn: dto.fabricEn ?? null,
+            careHe: dto.careHe ?? null,
+            careEn: dto.careEn ?? null,
+            fitHe: dto.fitHe ?? null,
+            fitEn: dto.fitEn ?? null,
             slug: dto.slug,
             basePrice: new Prisma.Decimal(dto.basePrice),
             categoryId: dto.categoryId,
@@ -581,7 +693,7 @@ export class ProductsService {
   async update(id: string, dto: UpdateProductDto) {
     const existing = await this.prisma.product.findUnique({
       where: { id },
-      include: { variants: { select: { id: true } } },
+      include: { variants: { select: { id: true, isActive: true } } },
     });
     if (!existing) throw new NotFoundException('Product not found');
 
@@ -598,6 +710,18 @@ export class ProductsService {
         errors.push({ field: `variants.${i}.id`, code: 'notFound', message: 'Variant does not belong to this product' });
       }
     });
+    // Same rule as create: a visible product needs at least one active size.
+    // Checked when visibility or sizes change (e.g. "show in store" from the list).
+    if (dto.isActive === true || (dto.variants && (dto.isActive ?? existing.isActive))) {
+      const active = new Map(existing.variants.map((v) => [v.id, v.isActive]));
+      variants.forEach((v, i) => {
+        if (v.id) active.set(v.id, v.isActive ?? active.get(v.id) ?? true);
+        else active.set(`new-${i}`, v.isActive ?? true);
+      });
+      if (![...active.values()].some(Boolean)) {
+        errors.push({ field: 'variants', code: 'required', message: 'Add at least one size with stock, or save the product as hidden' });
+      }
+    }
     if (errors.length) throw fieldValidationException(errors);
 
     const conflicts = await this.uniquenessErrors({ slug: dto.slug, excludeProductId: id, variants });
@@ -607,6 +731,7 @@ export class ProductsService {
     const scalarKeys = [
       'nameHe', 'nameEn', 'descriptionHe', 'descriptionEn', 'slug',
       'categoryId', 'isFeatured', 'isActive', 'sizeSetId',
+      'fabricHe', 'fabricEn', 'careHe', 'careEn', 'fitHe', 'fitEn',
     ] as const;
     for (const key of scalarKeys) {
       if (dto[key] !== undefined) (data as Record<string, unknown>)[key] = dto[key];

@@ -18,11 +18,13 @@ const DEFAULT_SIZES = '(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw';
 
 export default function ProductCard({ product, priority = false, sizes = DEFAULT_SIZES }: Props) {
   const locale = useLocale();
-  const t = useTranslations('product');
+  const t = useTranslations('productCard');
   const name = locale === 'he' ? product.nameHe : product.nameEn;
   const basePrice = parseFloat(product.basePrice);
   const salePrice = activeSalePrice(product.variants);
   const imageUrl = product.images[0]?.url;
+  // Second photo (e.g. back view / on model) swaps in on hover where hover exists.
+  const hoverUrl = product.images[1]?.url;
   const discountPct = salePrice ? Math.round(((basePrice - salePrice) / basePrice) * 100) : 0;
   // Unlimited-stock variants count as Infinity, so they never show as sold out.
   const outOfStock = totalStock(product.variants) === 0;
@@ -39,7 +41,9 @@ export default function ProductCard({ product, priority = false, sizes = DEFAULT
               fill
               priority={priority}
               sizes={sizes}
-              className="object-contain object-center group-hover:scale-105 transition-transform duration-500"
+              className={`object-contain object-center transition-[transform,opacity] duration-500 ${
+                hoverUrl ? '[@media(hover:hover)]:group-hover:opacity-0' : 'group-hover:scale-105'
+              } ${outOfStock ? 'opacity-70' : ''}`}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-ocean-50">
@@ -47,19 +51,31 @@ export default function ProductCard({ product, priority = false, sizes = DEFAULT
             </div>
           )}
 
-          {outOfStock && (
-            <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
-              <span className="bg-gray-900/80 text-white text-xs font-semibold px-4 py-2 rounded-full tracking-wider uppercase">
-                {t('outOfStock')}
-              </span>
-            </div>
+          {imageUrl && hoverUrl && (
+            <Image
+              src={hoverUrl}
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes={sizes}
+              loading="lazy"
+              className="hidden object-contain object-center opacity-0 transition-opacity duration-500 [@media(hover:hover)]:block [@media(hover:hover)]:group-hover:opacity-100"
+            />
           )}
 
-          {salePrice && !outOfStock && (
-            <div className="absolute top-3 start-3 bg-red-500 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full tracking-wider">
-              -{discountPct}%
-            </div>
-          )}
+          <div className="absolute top-3 start-3 z-10 flex flex-col items-start gap-1.5">
+            {outOfStock && (
+              <span className="rounded-full bg-charcoal/85 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white">
+                {t('soldOut')}
+              </span>
+            )}
+            {salePrice && !outOfStock && discountPct > 0 && (
+              <span className="rounded-full bg-coral px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white">
+                <span className="sr-only">{t('sale')} </span>
+                <span dir="ltr">{t('salePercent', { pct: discountPct })}</span>
+              </span>
+            )}
+          </div>
 
           <WishlistButton
             product={product}

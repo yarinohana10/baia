@@ -177,7 +177,7 @@ export class PaymentService {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.order.updateMany({
         where: { id: orderId, status: 'PENDING_PAYMENT' },
-        data: { status: 'CONFIRMED', paymentRef: providerRef, paymentClaimedAt: null },
+        data: { status: 'CONFIRMED', paymentRef: providerRef, paymentClaimedAt: null, paidAt: new Date() },
       });
       await tx.paymentAttempt.update({
         where: { id: attemptId },

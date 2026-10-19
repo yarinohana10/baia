@@ -1,17 +1,17 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { SlidersHorizontal } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { ListingHeader } from '@/components/storefront/ListingHeader';
 import { ProductGrid } from '@/components/storefront/ProductGrid';
-import { SortSelect } from '@/components/storefront/SortSelect';
+import { ListingFilters } from '@/components/storefront/filters/ListingFilters';
+import { FilteredEmpty } from '@/components/storefront/filters/FilteredEmpty';
 import { Pagination } from '@/components/storefront/Pagination';
 import { EmptyCategory } from '@/components/storefront/EmptyCategory';
 import { suggestedCollections } from '@/lib/catalog/collections';
 import { JsonLd } from '@/components/storefront/JsonLd';
-import { getCategories, getCategory, getProducts, toCardProduct } from '@/lib/catalog/server';
-import { PAGE_SIZE, listingHref, parseListingQuery } from '@/lib/catalog/query';
+import { getCategories, getCategory, getFacets, getProducts, toCardProduct } from '@/lib/catalog/server';
+import { PAGE_SIZE, activeFilterCount, clearFilters, listingHref, parseListingQuery } from '@/lib/catalog/query';
 import { absoluteUrl, breadcrumbJsonLd, pageMetadata } from '@/lib/seo';
 import type { Category } from '@/lib/catalog/types';
 
@@ -37,7 +37,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     images: category.image ? [{ url: category.image, alt: name }] : undefined,
   });
   // Filtered/sorted/paginated variants consolidate onto the clean category URL.
-  if (query.type || query.sort !== 'newest' || query.page > 1) {
+  if (query.type || query.sort !== 'newest' || query.page > 1 || activeFilterCount(query) > 0) {
     meta.robots = { index: false, follow: true };
   }
   return meta;
@@ -58,12 +58,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
   const children = category.children ?? [];
   const activeChild = query.type ? children.find((c) => c.slug === query.type) : undefined;
-  const { products, total, totalPages } = await getProducts({
-    categoryId: activeChild?.id ?? category.id,
-    page: query.page,
-    limit: PAGE_SIZE,
-    sort: query.sort,
-  });
+  const scopeId = activeChild?.id ?? category.id;
+  const [{ products, total, totalPages }, facets] = await Promise.all([
+    getProducts({ categoryId: scopeId, page: query.page, limit: PAGE_SIZE, sort: query.sort, filters: query }),
+    getFacets({ categoryId: scopeId }),
+  ]);
+  const filtered = activeFilterCount(query) > 0;
 
   const name = nameOf(category, locale);
   const parent: Category | undefined = category.parentId
@@ -99,12 +99,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         <ListingHeader title={name} countLabel={tSeo('count', { count: total })} />
 
         {/* Sub-categories */}
-        {children.length > 0 && (total > 0 || activeChild) && (
+        {children.length > 0 && (total > 0 || activeChild || filtered) && (
           <nav aria-label={tSeo('filterLabel')} className="mb-8">
             <ul className="flex flex-wrap gap-2">
               <li>
                 <Link
-                  href={listingHref(basePath, { sort: query.sort })}
+                  href={listingHref(basePath, { ...clearFilters(query), type: undefined })}
                   aria-current={!activeChild ? 'page' : undefined}
                   className={`${pill} inline-block ${pillState(!activeChild)}`}
                 >
@@ -114,7 +114,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
               {children.map((child) => (
                 <li key={child.id}>
                   <Link
-                    href={listingHref(basePath, { type: child.slug, sort: query.sort })}
+                    href={listingHref(basePath, { ...clearFilters(query), type: child.slug })}
                     aria-current={activeChild?.id === child.id ? 'page' : undefined}
                     className={`${pill} inline-block ${pillState(activeChild?.id === child.id)}`}
                   >
@@ -126,21 +126,25 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           </nav>
         )}
 
-        {products.length === 0 ? (
+        {products.length === 0 && !filtered ? (
           <EmptyCategory name={activeChild ? nameOf(activeChild, locale) : name} suggestions={suggestions} />
         ) : (
           <>
-            {/* Sort bar */}
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <SlidersHorizontal size={14} aria-hidden="true" />
-                <span>{tSeo('count', { count: total })}</span>
-              </div>
-              {total > 1 && <SortSelect basePath={basePath} query={query} />}
-            </div>
-
-            <ProductGrid products={products.map(toCardProduct)} priorityCount={4} />
-            <Pagination basePath={basePath} query={query} totalPages={totalPages} />
+            <ListingFilters
+              basePath={basePath}
+              query={query}
+              facets={facets}
+              total={total}
+              countLabel={tSeo('count', { count: total })}
+            />
+            {products.length === 0 ? (
+              <FilteredEmpty clearHref={listingHref(basePath, clearFilters(query))} />
+            ) : (
+              <>
+                <ProductGrid products={products.map(toCardProduct)} priorityCount={4} />
+                <Pagination basePath={basePath} query={query} totalPages={totalPages} />
+              </>
+            )}
           </>
         )}
       </div>

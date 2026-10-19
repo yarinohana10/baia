@@ -1,32 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AnalyticsService, REVENUE_STATUSES } from '../src/analytics/analytics.service';
+import { AnalyticsService, REVENUE_STATUSES, dayKey } from '../src/analytics/analytics.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createMockPrismaService } from './helpers';
 
-/**
- * Get today's map key as the service would generate it:
- * `startOfDay().toISOString().split('T')[0]`.
- */
+/** Today's day key, in the store's timezone (Israel), as the service builds it. */
 function todayMapKey(): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString().split('T')[0];
+  return dayKey(new Date());
 }
 
 function yesterdayMapKey(): string {
   const d = new Date();
-  d.setHours(0, 0, 0, 0);
+  d.setHours(12, 0, 0, 0);
   d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
+  return dayKey(d);
 }
 
-/**
- * Create a mock date that will produce the same ISO date string
- * as the `startOfDay()` helper in the service.
- * The trick: use a Date built from the same ISO key so `toISOString()` matches.
- */
+/** Noon Israel time on the given day, so it falls in that day's bucket. */
 function mockDateForMapKey(mapKey: string): Date {
-  return new Date(mapKey + 'T12:00:00.000Z');
+  return new Date(mapKey + 'T12:00:00+03:00');
 }
 
 describe('AnalyticsService', () => {

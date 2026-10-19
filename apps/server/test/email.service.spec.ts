@@ -22,6 +22,42 @@ describe('EmailService', () => {
     expect(r.html).toContain('&lt;script&gt;');
   });
 
+  it('renders the sign-up welcome with the verify button', () => {
+    const he = renderTemplate(
+      'welcome-verify',
+      { name: 'דנה', url: 'https://x/he/verify-email?token=t', expiresInHours: 24, shopUrl: 'https://x/he' },
+      'he',
+    );
+    expect(he.subject).toBe('ברוכים הבאים ל-BAIA - נשאר רק לאמת את המייל');
+    expect(he.html).toContain('https://x/he/verify-email?token=t');
+    expect(he.html).toContain('dir="rtl"');
+  });
+
+  it('renders contact emails with escaped, single-line subjects', () => {
+    const r = renderTemplate(
+      'contact-notification',
+      {
+        name: 'Dana\r\nBcc: evil@x',
+        email: 'dana@example.com',
+        subject: '<b>Size</b>\nquestion',
+        message: 'line one\n<script>x</script>',
+        locale: 'en',
+        adminUrl: 'https://x/he/admin/messages',
+      },
+      'he',
+    );
+    expect(r.subject).not.toMatch(/[\r\n]/);
+    expect(r.subject.startsWith('פנייה חדשה מהאתר')).toBe(true);
+    expect(r.html).not.toContain('<script>');
+    expect(r.html).toContain('line one');
+
+    const reply = renderTemplate('contact-auto-reply', { name: 'Dana', message: 'hi', shopUrl: 'https://x/en' }, 'en');
+    expect(reply.subject).toBe('We received your message - BAIA');
+    expect(renderTemplate('contact-auto-reply', { name: 'דנה', message: 'hi', shopUrl: 'https://x' }, 'he').subject).toBe(
+      'קיבלנו את פנייתך - BAIA',
+    );
+  });
+
   it('sends templated mail through the transport with the default from address', async () => {
     const transport = new MemoryEmailTransport();
     const service = new EmailService(transport, 'BAIA <no-reply@test>');

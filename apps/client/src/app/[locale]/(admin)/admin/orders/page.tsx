@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import { Eye, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { Eye, ChevronLeft, ChevronRight, Search, X, MapPin, Home, Undo2, Mail } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import { ORDER_STATUS_COLORS as statusColors, formatShekels as money } from '@/components/admin/order-status';
 
 const ORDER_STATUSES = [
@@ -55,9 +56,29 @@ type AdminOrder = {
   shippingApartment?: string | null;
   shippingZip?: string | null;
   createdAt: string;
+  paidAt?: string | null;
+  shippedAt?: string | null;
+  cancelledAt?: string | null;
+  deliveryMethod?: 'COURIER' | 'PICKUP_POINT';
+  pickupPointName?: string | null;
+  marketingConsent?: boolean;
   items: OrderItem[];
   allowedTransitions?: string[];
+  cancellationRequests?: {
+    id: string;
+    status: string;
+    reason: string;
+    createdAt: string;
+    feeAmount?: string;
+    refundAmount?: string | null;
+    adminNote?: string | null;
+  }[];
+  cancellation?: { canSelfCancel: boolean; selfCancelDeadline: string | null };
 };
+
+const PAID_STATUSES = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+/** Status changes that email the customer. */
+const EMAILED_STATUSES = ['SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'];
 
 type Notice = { kind: 'success' | 'error'; text: string } | null;
 
@@ -78,6 +99,8 @@ function useDebounced<T>(value: T, delayMs: number): T {
 
 export default function AdminOrdersPage() {
   const t = useTranslations('admin.orders');
+  const tx = useTranslations('admin.ordersExtra');
+  const tReasons = useTranslations('cancellation.reasons');
   const locale = useLocale();
   const intlLocale = locale === 'he' ? 'he-IL' : 'en-IL';
   const dateFormat = useMemo(
@@ -114,6 +137,8 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [newStatus, setNewStatus] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [refundOnCancel, setRefundOnCancel] = useState(true);
+  const trackingInputRef = useRef<HTMLInputElement>(null);
   const [updating, setUpdating] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
@@ -147,10 +172,13 @@ export default function AdminOrdersPage() {
     };
   }, [fetchOrders]);
 
-  // Deep link from the customer page: /admin/orders?q=<order number>.
+  // Deep links: /admin/orders?q=<order number> (customer page, emails) and ?status=CONFIRMED (alerts).
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get('q');
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
     if (q) setSearch(q);
+    const status = params.get('status');
+    if (status && ORDER_STATUSES.includes(status)) setStatusFilter(status);
   }, []);
 
   // New search terms start from the first page.
@@ -192,23 +220,45 @@ export default function AdminOrdersPage() {
 
   const handleStatusUpdate = async () => {
     if (!selectedOrder || !newStatus || updatingRef.current) return;
-    if (newStatus !== selectedOrder.status && RESTOCK_STATUSES.includes(newStatus)) {
-      const ok = confirm(newStatus === 'CANCELLED' ? t('confirmCancel') : t('confirmRefund'));
-      if (!ok) return;
+    const changing = newStatus !== selectedOrder.status;
+    const paidOrder = PAID_STATUSES.includes(selectedOrder.status);
+    if (changing && newStatus === 'SHIPPED' && !trackingNumber.trim()) {
+      trackingInputRef.current?.focus();
+      if (!confirm(tx('shipWithoutTracking'))) return;
+    }
+    if (changing && RESTOCK_STATUSES.includes(newStatus)) {
+      const question =
+        newStatus === 'CANCELLED'
+          ? paidOrder && refundOnCancel
+            ? tx('confirmCancelRefund', { amount: money(selectedOrder.total) })
+            : t('confirmCancel')
+          : t('confirmRefund');
+      if (!confirm(question)) return;
     }
     updatingRef.current = true;
     setUpdating(true);
     setDialogError(null);
 
     try {
-      await api.put(`/admin/orders/${selectedOrder.id}/status`, {
-        status: newStatus,
-        trackingNumber,
-      });
+      if (changing && newStatus === 'CANCELLED') {
+        // Cancels (restock), refunds through the payment provider when asked,
+        // closes any open cancellation request and emails the customer.
+        const res = await api.post(`/admin/orders/${selectedOrder.id}/cancel`, { refund: paidOrder && refundOnCancel });
+        if (res.data?.refundFailed) {
+          setNotice({ kind: 'error', text: tx('refundFailed', { number: selectedOrder.orderNumber }) });
+        }
+      } else {
+        await api.put(`/admin/orders/${selectedOrder.id}/status`, {
+          status: newStatus,
+          trackingNumber,
+        });
+      }
       closeDetail();
       setNewStatus('');
       setTrackingNumber('');
-      setNotice({ kind: 'success', text: `${t('updated')}: ${selectedOrder.orderNumber}` });
+      setNotice((current) =>
+        current?.kind === 'error' ? current : { kind: 'success', text: `${t('updated')}: ${selectedOrder.orderNumber}` },
+      );
       fetchOrders();
     } catch (err) {
       setDialogError(errorMessage(err, t('updateFailed')));
@@ -229,6 +279,7 @@ export default function AdminOrdersPage() {
       setSelectedOrder(res.data);
       setNewStatus(res.data.status);
       setTrackingNumber(res.data.trackingNumber || '');
+      setRefundOnCancel(true);
     } catch (err) {
       setNotice({ kind: 'error', text: errorMessage(err, t('detailFailed')) });
     } finally {
@@ -359,12 +410,43 @@ export default function AdminOrdersPage() {
                 </p>
                 <p><span className="text-muted-foreground">{t('date')}:</span> {dateTimeFormat.format(new Date(selectedOrder.createdAt))}</p>
                 <p>
-                  <span className="text-muted-foreground">{t('address')}:</span>{' '}
-                  {selectedOrder.shippingStreet} {selectedOrder.shippingNumber}
-                  {selectedOrder.shippingApartment ? `, ${t('apt')} ${selectedOrder.shippingApartment}` : ''},{' '}
-                  {selectedOrder.shippingCity}
-                  {selectedOrder.shippingZip ? ` ${selectedOrder.shippingZip}` : ''}
+                  <span className="text-muted-foreground">{tx('delivery')}:</span>{' '}
+                  {selectedOrder.deliveryMethod === 'PICKUP_POINT' ? tx('pickup') : tx('courier')}
                 </p>
+                {selectedOrder.deliveryMethod === 'PICKUP_POINT' ? (
+                  <p>
+                    <span className="text-muted-foreground">{tx('pickupPoint')}:</span>{' '}
+                    {selectedOrder.pickupPointName ? `${selectedOrder.pickupPointName} — ` : ''}
+                    {selectedOrder.shippingStreet}, {selectedOrder.shippingCity}
+                  </p>
+                ) : (
+                  <p>
+                    <span className="text-muted-foreground">{t('address')}:</span>{' '}
+                    {selectedOrder.shippingStreet} {selectedOrder.shippingNumber}
+                    {selectedOrder.shippingApartment ? `, ${t('apt')} ${selectedOrder.shippingApartment}` : ''},{' '}
+                    {selectedOrder.shippingCity}
+                    {selectedOrder.shippingZip ? ` ${selectedOrder.shippingZip}` : ''}
+                  </p>
+                )}
+                {selectedOrder.paidAt && (
+                  <p><span className="text-muted-foreground">{tx('paidAt')}:</span> {dateTimeFormat.format(new Date(selectedOrder.paidAt))}</p>
+                )}
+                {selectedOrder.shippedAt && (
+                  <p><span className="text-muted-foreground">{tx('shippedAt')}:</span> {dateTimeFormat.format(new Date(selectedOrder.shippedAt))}</p>
+                )}
+                {selectedOrder.cancelledAt && (
+                  <p><span className="text-muted-foreground">{tx('cancelledAt')}:</span> {dateTimeFormat.format(new Date(selectedOrder.cancelledAt))}</p>
+                )}
+                <p className="flex items-center gap-1.5">
+                  <Mail size={12} className="text-muted-foreground" />
+                  <span className="text-muted-foreground">{tx('marketing')}:</span>{' '}
+                  {selectedOrder.marketingConsent ? tx('marketingYes') : tx('marketingNo')}
+                </p>
+                {selectedOrder.cancellation?.canSelfCancel && selectedOrder.cancellation.selfCancelDeadline && (
+                  <p className="text-xs text-amber-700">
+                    {tx('selfCancelUntil', { date: dateTimeFormat.format(new Date(selectedOrder.cancellation.selfCancelDeadline)) })}
+                  </p>
+                )}
                 {selectedOrder.paymentRef && (
                   <p><span className="text-muted-foreground">{t('payment')}:</span> {selectedOrder.paymentRef}</p>
                 )}
@@ -412,6 +494,29 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
+              {(selectedOrder.cancellationRequests ?? []).length > 0 && (
+                <div className="border-t border-border pt-3 space-y-2 text-sm">
+                  <p className="flex items-center gap-1.5 font-medium">
+                    <Undo2 size={14} className="text-ocean-700" /> {tx('cancellationRequests')}
+                  </p>
+                  {selectedOrder.cancellationRequests!.map((r) => (
+                    <div key={r.id} className="rounded-lg bg-muted/60 px-3 py-2 text-xs space-y-0.5">
+                      <p>
+                        <span className="font-medium">{tx(`requestStatus.${r.status}`)}</span> ·{' '}
+                        {tReasons.has(r.reason) ? tReasons(r.reason) : r.reason} · {dateTimeFormat.format(new Date(r.createdAt))}
+                      </p>
+                      {r.refundAmount && <p>{tx('refundedAmount', { amount: money(r.refundAmount) })}</p>}
+                      {r.adminNote && <p className="text-muted-foreground">{r.adminNote}</p>}
+                    </div>
+                  ))}
+                  {selectedOrder.cancellationRequests!.some((r) => r.status === 'REQUESTED') && (
+                    <Link href="/admin/cancellations" className="inline-block text-xs text-ocean-700 hover:underline">
+                      {tx('handleRequest')}
+                    </Link>
+                  )}
+                </div>
+              )}
+
               <div className="border-t border-border pt-3 space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="order-status">{t('updateStatus')}</Label>
@@ -435,9 +540,31 @@ export default function AdminOrdersPage() {
                     <p id="order-status" className="text-sm text-muted-foreground">{t('finalStatus')}</p>
                   )}
                 </div>
+                {newStatus !== selectedOrder.status && EMAILED_STATUSES.includes(newStatus) && (
+                  <p className="text-xs text-muted-foreground">{tx('customerEmailed')}</p>
+                )}
+                {newStatus === 'CANCELLED' &&
+                  newStatus !== selectedOrder.status &&
+                  PAID_STATUSES.includes(selectedOrder.status) && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={refundOnCancel}
+                        onChange={(e) => setRefundOnCancel(e.target.checked)}
+                        className="accent-ocean-700"
+                      />
+                      {tx('refundOnCancel', { amount: money(selectedOrder.total) })}
+                    </label>
+                  )}
                 <div className="space-y-1.5">
-                  <Label htmlFor="order-tracking-number">{t('trackingNumber')}</Label>
+                  <Label htmlFor="order-tracking-number">
+                    {t('trackingNumber')}
+                    {newStatus === 'SHIPPED' && newStatus !== selectedOrder.status && (
+                      <span className="text-xs font-normal text-ocean-700"> · {tx('trackingForShipping')}</span>
+                    )}
+                  </Label>
                   <Input
+                    ref={trackingInputRef}
                     id="order-tracking-number"
                     type="text"
                     dir="ltr"
@@ -445,6 +572,8 @@ export default function AdminOrdersPage() {
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
                     placeholder="IL123456789"
+                    disabled={newStatus === 'CANCELLED' && newStatus !== selectedOrder.status}
+                    aria-invalid={newStatus === 'SHIPPED' && newStatus !== selectedOrder.status && !trackingNumber.trim()}
                   />
                 </div>
                 {dialogError && (
@@ -469,12 +598,13 @@ export default function AdminOrdersPage() {
       {/* Table */}
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr className="bg-muted border-b border-border">
                 <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('order')}</th>
                 <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('customer')}</th>
                 <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('items')}</th>
+                <th className="text-start px-4 py-3 font-medium text-muted-foreground">{tx('delivery')}</th>
                 <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('total')}</th>
                 <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('status')}</th>
                 <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('date')}</th>
@@ -484,7 +614,7 @@ export default function AdminOrdersPage() {
             <tbody>
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t('noOrders')}</td>
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">{t('noOrders')}</td>
                 </tr>
               ) : (
                 orders.map((order) => (
@@ -494,12 +624,24 @@ export default function AdminOrdersPage() {
                       {order.recipientName && <div className="text-foreground">{order.recipientName}</div>}
                       <div className={cn(order.recipientName && 'text-xs')}>{order.customerEmail}</div>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{order.items.length}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{order.items.reduce((sum, i) => sum + i.quantity, 0)}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      <span className="inline-flex items-center gap-1">
+                        {order.deliveryMethod === 'PICKUP_POINT' ? <MapPin size={12} /> : <Home size={12} />}
+                        {order.deliveryMethod === 'PICKUP_POINT' ? tx('pickupShort') : tx('courierShort')}
+                      </span>
+                      <div className="truncate max-w-[140px]">{order.shippingCity}</div>
+                    </td>
                     <td className="px-4 py-3 font-medium">{money(order.total)}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full uppercase tracking-wider ${statusColors[order.status] || ''}`}>
                         {statusLabel(order.status)}
                       </span>
+                      {(order.cancellationRequests ?? []).some((r) => r.status === 'REQUESTED') && (
+                        <span className="mt-1 flex w-fit items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
+                          <Undo2 size={10} /> {tx('openRequestBadge')}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
                       {dateFormat.format(new Date(order.createdAt))}

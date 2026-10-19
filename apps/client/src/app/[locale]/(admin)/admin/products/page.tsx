@@ -122,7 +122,9 @@ export default function ProductsPage() {
       await api.put(`/admin/products/${product.id}`, data);
       await revalidateCatalog();
     } catch (err) {
-      setNotice({ kind: 'error', text: t('updateFailed') + serverMessage(err) });
+      const fields: unknown = isAxiosError(err) ? err.response?.data?.errors : undefined;
+      const noSizes = Array.isArray(fields) && fields.some((e) => e?.field === 'variants');
+      setNotice({ kind: 'error', text: noSizes ? t('activateNoSizes') : t('updateFailed') + serverMessage(err) });
     }
     fetchProducts();
   };

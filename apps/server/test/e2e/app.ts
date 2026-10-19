@@ -49,6 +49,7 @@ export class SpyPaymentProvider implements PaymentProvider {
   readonly name = 'spy';
   calls: Parameters<PaymentProvider['charge']>[0][] = [];
   refunds: string[] = [];
+  refundAmounts: (number | undefined)[] = [];
   delayMs = 0;
   nextResult: PaymentResult | null = null;
 
@@ -60,14 +61,16 @@ export class SpyPaymentProvider implements PaymentProvider {
     return result;
   }
 
-  async refund(transactionId: string): Promise<PaymentResult> {
+  async refund(transactionId: string, amount?: number): Promise<PaymentResult> {
     this.refunds.push(transactionId);
+    this.refundAmounts.push(amount);
     return { success: true, transactionId: `refund_${transactionId}` };
   }
 
   reset() {
     this.calls = [];
     this.refunds = [];
+    this.refundAmounts = [];
     this.delayMs = 0;
     this.nextResult = null;
   }

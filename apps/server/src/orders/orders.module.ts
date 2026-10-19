@@ -7,16 +7,18 @@ import { RateLimitGuard } from '../common/rate-limit.guard';
 import { ORDER_NOTIFIER } from './order-notifier';
 import { EmailOrderNotifier } from './email-order-notifier';
 import { PendingOrderSweeper } from './pending-order-sweeper';
+import { OrderMailer } from './order-mailer';
 
 @Module({
   imports: [AuthModule, CouponsModule],
   controllers: [OrdersController],
   providers: [
     OrdersService,
+    OrderMailer,
     PendingOrderSweeper,
     RateLimitGuard,
     { provide: ORDER_NOTIFIER, useClass: EmailOrderNotifier },
   ],
-  exports: [OrdersService, ORDER_NOTIFIER],
+  exports: [OrdersService, OrderMailer, ORDER_NOTIFIER],
 })
 export class OrdersModule {}

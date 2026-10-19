@@ -1,0 +1,90 @@
+'use client';
+
+import { useState, type FormEvent } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { Search } from 'lucide-react';
+import { useRouter } from '@/i18n/navigation';
+import { api } from '@/lib/api';
+import { shopErrorMessage, type ErrorMessage } from '@/lib/shop-errors';
+import { orderPageHref } from '@/lib/orders';
+
+export const lookupFieldClass =
+  'mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-ocean-500 focus:outline-none';
+export const lookupLabelClass = 'block text-sm font-semibold text-gray-900';
+
+/**
+ * Order number + email → POST /orders/lookup → the order page, carrying the
+ * signed access token in the URL fragment (exchanged there for the scoped cookie).
+ */
+export function OrderLookupForm() {
+  const t = useTranslations('orderStatusPage');
+  const tErrors = useTranslations('checkout.errors');
+  const locale = useLocale();
+  const router = useRouter();
+  const [orderNumber, setOrderNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<ErrorMessage | null>(null);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await api.post('/orders/lookup', { orderNumber: orderNumber.trim(), email: email.trim() });
+      router.push(orderPageHref(res.data.order.id, res.data.accessToken));
+    } catch (err) {
+      setError(shopErrorMessage(err, locale));
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-5">
+      <label className={lookupLabelClass}>
+        {t('orderNumber')}
+        <input
+          name="orderNumber"
+          required
+          maxLength={40}
+          dir="ltr"
+          autoComplete="off"
+          placeholder="BA-XXXXXXXX-XXXXXX"
+          value={orderNumber}
+          onChange={(e) => setOrderNumber(e.target.value)}
+          className={`${lookupFieldClass} font-mono uppercase`}
+        />
+      </label>
+      <label className={lookupLabelClass}>
+        {t('email')}
+        <input
+          name="email"
+          type="email"
+          required
+          maxLength={254}
+          dir="ltr"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={lookupFieldClass}
+        />
+      </label>
+      {error && (
+        <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+          {tErrors(error.key, error.values)}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={submitting}
+        aria-busy={submitting}
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-ocean-700 py-3 text-sm tracking-wider text-white transition-colors hover:bg-ocean-800 disabled:opacity-40 sm:w-auto sm:px-10"
+      >
+        <Search size={15} aria-hidden="true" />
+        {submitting ? t('searching') : t('submit')}
+      </button>
+      <p className="text-xs text-gray-500">{t('hint')}</p>
+    </form>
+  );
+}

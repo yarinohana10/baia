@@ -6,6 +6,13 @@ import { OrderStatus, Role } from '../generated/prisma';
 export const REVENUE_STATUSES: OrderStatus[] = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
 const revenueStatus = { in: REVENUE_STATUSES };
 
+/** The store's calendar day (Israel time) as YYYY-MM-DD, whatever the server's timezone. */
+const STORE_TIME_ZONE = 'Asia/Jerusalem';
+const dayKeyFormat = new Intl.DateTimeFormat('en-CA', { timeZone: STORE_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
+export function dayKey(date: Date): string {
+  return dayKeyFormat.format(date);
+}
+
 export const MAX_DAYS = 365;
 
 /** Day ranges are clamped to 1–365; non-numbers fall back to 30. */
@@ -116,11 +123,11 @@ export class AnalyticsService {
     for (let i = 0; i < days; i++) {
       const d = new Date(startDate);
       d.setDate(startDate.getDate() + i);
-      dayMap.set(d.toISOString().split('T')[0], { orders: 0, revenue: 0 });
+      dayMap.set(dayKey(d), { orders: 0, revenue: 0 });
     }
 
     for (const order of orders) {
-      const key = order.createdAt.toISOString().split('T')[0];
+      const key = dayKey(order.createdAt);
       const entry = dayMap.get(key);
       if (entry) {
         entry.orders++;
@@ -294,11 +301,11 @@ export class AnalyticsService {
     for (let i = 0; i < days; i++) {
       const d = new Date(startDate);
       d.setDate(startDate.getDate() + i);
-      dayMap.set(d.toISOString().split('T')[0], 0);
+      dayMap.set(dayKey(d), 0);
     }
 
     for (const customer of customers) {
-      const key = customer.createdAt.toISOString().split('T')[0];
+      const key = dayKey(customer.createdAt);
       const current = dayMap.get(key);
       if (current !== undefined) {
         dayMap.set(key, current + 1);
@@ -418,11 +425,11 @@ export class AnalyticsService {
     for (let i = 0; i < days; i++) {
       const d = new Date(startDate);
       d.setDate(startDate.getDate() + i);
-      dayMap.set(d.toISOString().split('T')[0], { totalRevenue: 0, count: 0 });
+      dayMap.set(dayKey(d), { totalRevenue: 0, count: 0 });
     }
 
     for (const order of orders) {
-      const key = order.createdAt.toISOString().split('T')[0];
+      const key = dayKey(order.createdAt);
       const entry = dayMap.get(key);
       if (entry) {
         entry.totalRevenue += Number(order.total);

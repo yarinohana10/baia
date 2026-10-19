@@ -69,13 +69,37 @@ export function cartSubtotal(items: CartItem[]): number {
   return items.reduce((sum, item) => sum + unitPrice(item).price * item.quantity, 0);
 }
 
-export type ShippingConfig = { cost: number; freeThreshold: number };
+export type DeliveryMethod = 'COURIER' | 'PICKUP_POINT';
+
+/** `cost` is the courier price; both methods are free from `freeThreshold`. */
+export type ShippingConfig = {
+  cost: number;
+  freeThreshold: number;
+  pickupCost?: number;
+  courierEtaDays?: string;
+  pickupEtaDays?: string;
+  selfCancelWindowHours?: number;
+};
 
 /** Same fallbacks the API uses when no site config row exists. */
-const DEFAULT_SHIPPING: ShippingConfig = { cost: 29.9, freeThreshold: 249 };
+export const DEFAULT_SHIPPING: Required<ShippingConfig> = {
+  cost: 29.9,
+  freeThreshold: 249,
+  pickupCost: 19.9,
+  courierEtaDays: '3-5',
+  pickupEtaDays: '2-4',
+  selfCancelWindowHours: 48,
+};
 
-export function shippingFor(subtotal: number, config: ShippingConfig): number {
-  return subtotal >= config.freeThreshold ? 0 : config.cost;
+export function shippingFor(subtotal: number, config: ShippingConfig, method: DeliveryMethod = 'COURIER'): number {
+  if (subtotal >= config.freeThreshold) return 0;
+  return method === 'PICKUP_POINT' ? (config.pickupCost ?? DEFAULT_SHIPPING.pickupCost) : config.cost;
+}
+
+export function etaFor(config: ShippingConfig, method: DeliveryMethod): string {
+  return method === 'PICKUP_POINT'
+    ? config.pickupEtaDays || DEFAULT_SHIPPING.pickupEtaDays
+    : config.courierEtaDays || DEFAULT_SHIPPING.courierEtaDays;
 }
 
 type CartStore = {
@@ -153,17 +177,25 @@ export const useCartStore = create<CartStore>((set, get) => {
       }
     },
 
-    // Shipping cost and free-shipping threshold come from the admin's site config.
+    // Delivery prices, ETAs and the free-shipping threshold come from the admin's site config.
     fetchShipping: () => {
       shippingRequest ??= api
         .get('/site-config')
         .then((res) => {
-          const cost = parseFloat(res.data?.shippingCost);
-          const freeThreshold = parseFloat(res.data?.freeShippingThreshold);
+          const num = (v: unknown, fallback: number) => {
+            const n = parseFloat(String(v));
+            return Number.isFinite(n) ? n : fallback;
+          };
+          const str = (v: unknown, fallback: string) => (typeof v === 'string' && v.trim() ? v.trim() : fallback);
+          const hours = Number(res.data?.selfCancelWindowHours);
           set({
             shipping: {
-              cost: Number.isFinite(cost) ? cost : DEFAULT_SHIPPING.cost,
-              freeThreshold: Number.isFinite(freeThreshold) ? freeThreshold : DEFAULT_SHIPPING.freeThreshold,
+              cost: num(res.data?.shippingCost, DEFAULT_SHIPPING.cost),
+              freeThreshold: num(res.data?.freeShippingThreshold, DEFAULT_SHIPPING.freeThreshold),
+              pickupCost: num(res.data?.pickupPointCost, DEFAULT_SHIPPING.pickupCost),
+              courierEtaDays: str(res.data?.courierEtaDays, DEFAULT_SHIPPING.courierEtaDays),
+              pickupEtaDays: str(res.data?.pickupEtaDays, DEFAULT_SHIPPING.pickupEtaDays),
+              selfCancelWindowHours: Number.isFinite(hours) && hours >= 0 ? hours : DEFAULT_SHIPPING.selfCancelWindowHours,
             },
           });
         })

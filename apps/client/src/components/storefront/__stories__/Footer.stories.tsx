@@ -10,6 +10,7 @@ const meta: Meta<typeof Footer> = {
     layout: 'fullscreen',
   },
   args: {
+    config: null,
     categories: [
       { label: 'Women', href: '/category/women' },
       { label: 'Men', href: '/category/men' },

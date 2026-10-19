@@ -16,7 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CategoriesService } from './categories.service';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { Request } from 'express';
-import { strictValidationPipe } from '../common/validation';
+import { fieldValidationException, strictValidationPipe } from '../common/validation';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 
 @Controller()
@@ -62,9 +62,12 @@ export class CategoriesController {
   @UseInterceptors(FileInterceptor('file'))
   uploadImage(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @Req() req: Request,
   ) {
+    if (!file?.buffer) {
+      throw fieldValidationException([{ field: 'file', code: 'required', message: 'An image file is required' }]);
+    }
     const userId = (req as any).user?.id;
     return this.categoriesService.uploadImage(
       id,

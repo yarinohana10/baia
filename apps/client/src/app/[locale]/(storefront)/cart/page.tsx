@@ -14,11 +14,13 @@ import {
   useCartStore,
 } from '@/store/cart';
 import { formatPrice } from '@/lib/catalog/pricing';
+import { FreeShippingProgress } from '@/components/storefront/FreeShippingProgress';
 import { Minus, Plus, Trash2, ShoppingBag, AlertTriangle } from 'lucide-react';
 
 export default function CartPage() {
   const t = useTranslations('cart');
   const tErrors = useTranslations('checkout.errors');
+  const tDelivery = useTranslations('delivery');
   const locale = useLocale();
   const { items, loading, loaded, shipping, pending, lineErrors, fetchCart, fetchShipping, updateQuantity, removeItem } =
     useCartStore();
@@ -29,7 +31,8 @@ export default function CartPage() {
   }, [fetchCart, fetchShipping]);
 
   const subtotal = cartSubtotal(items);
-  const shippingCost = shippingFor(subtotal, shipping);
+  // The method is chosen at checkout: show the cheapest option until then.
+  const shippingCost = Math.min(shippingFor(subtotal, shipping, 'COURIER'), shippingFor(subtotal, shipping, 'PICKUP_POINT'));
   const total = subtotal + shippingCost;
   const hasIssues = items.some((item) => lineIssue(item));
 
@@ -177,18 +180,16 @@ export default function CartPage() {
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{t('shipping')}</span>
               <span className={shippingCost === 0 ? 'text-green-600' : ''}>
-                {shippingCost === 0 ? t('freeShipping') : formatPrice(shippingCost)}
+                {shippingCost === 0 ? t('freeShipping') : tDelivery('fromPrice', { amount: formatPrice(shippingCost) })}
               </span>
             </div>
-            {shippingCost > 0 && (
-              <p className="text-xs text-gray-400">
-                {t('freeShippingOver', { amount: formatPrice(shipping.freeThreshold) })}
-              </p>
-            )}
+            {shippingCost > 0 && <p className="text-xs text-gray-400">{tDelivery('chooseAtCheckout')}</p>}
+            <FreeShippingProgress subtotal={subtotal} threshold={shipping.freeThreshold} />
             <div className="border-t border-gray-200 pt-4 flex justify-between font-medium">
               <span>{t('total')}</span>
               <span>{formatPrice(total)}</span>
             </div>
+            <p className="text-xs text-gray-400 -mt-2">{tDelivery('vatIncluded')}</p>
             {hasIssues ? (
               <>
                 <p role="status" className="text-xs text-red-500 flex items-start gap-1.5">

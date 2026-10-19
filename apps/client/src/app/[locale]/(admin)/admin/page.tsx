@@ -17,7 +17,13 @@ import {
   PieChart,
   Receipt,
   AlertTriangle,
+  BellRing,
+  Undo2,
+  Mail,
+  PackageCheck,
+  CheckCircle2,
 } from 'lucide-react';
+import type { AdminCounts } from '@/components/admin/AdminShell';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 
@@ -418,8 +424,75 @@ function InventoryAlerts({ data }: { data: InventoryData }) {
   );
 }
 
+const SALES_DAYS = 30;
+
+/** YYYY-MM-DD in the admin's local time zone. */
+function isoDay(date: Date) {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function NeedsAttention({ counts }: { counts: AdminCounts | null }) {
+  const t = useTranslations('admin.attention');
+  const rows = [
+    { key: 'pendingCancellations', count: counts?.pendingCancellations ?? 0, href: '/admin/cancellations', icon: Undo2 },
+    { key: 'newContactMessages', count: counts?.newContactMessages ?? 0, href: '/admin/messages', icon: Mail },
+    { key: 'ordersToFulfil', count: counts?.ordersToFulfil ?? 0, href: '/admin/orders?status=CONFIRMED', icon: PackageCheck },
+  ] as const;
+  const total = rows.reduce((sum, r) => sum + r.count, 0);
+  return (
+    <Card className="mb-8">
+      <CardHeader className="flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BellRing size={18} className="text-ocean-700" />
+          <CardTitle className="font-serif text-xl">{t('title')}</CardTitle>
+        </div>
+        {counts && counts.newOrders > 0 && (
+          <span className="rounded-full bg-ocean-700 px-2.5 py-1 font-body text-xs text-white">
+            {t('newOrders', { count: counts.newOrders })}
+          </span>
+        )}
+      </CardHeader>
+      <CardContent>
+        {counts && total === 0 ? (
+          <p className="flex items-center gap-2 font-body text-sm text-muted-foreground">
+            <CheckCircle2 size={16} className="text-green-600" /> {t('allClear')}
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {rows.map((row) => (
+              <Link
+                key={row.key}
+                href={row.href}
+                className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
+              >
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                    row.count > 0 ? 'bg-amber-50 text-amber-700' : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  <row.icon size={18} />
+                </div>
+                <div>
+                  <p className="font-serif text-2xl leading-none text-foreground">{counts ? row.count : '–'}</p>
+                  <p className="mt-1 font-body text-xs text-muted-foreground">{t(row.key)}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminDashboard() {
   const t = useTranslations('admin.dashboard');
+  const tx = useTranslations('admin.attention');
+  const tOrders = useTranslations('admin.orders');
+  const [counts, setCounts] = useState<AdminCounts | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(false);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [salesDays, setSalesDays] = useState<SalesDay[]>([]);
   const [ordersByStatus, setOrdersByStatus] = useState<OrderByStatus[]>([]);
@@ -428,6 +501,43 @@ export default function AdminDashboard() {
   const [aovData, setAovData] = useState<AOVData | null>(null);
   const [inventoryData, setInventoryData] = useState<InventoryData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get<AdminCounts>('/admin/notifications/counts')
+      .then((res) => setCounts(res.data))
+      .catch(() => undefined);
+  }, []);
+
+  // Orders CSV for the same range as the sales chart (last 30 days, inclusive).
+  const exportOrders = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setExportError(false);
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - (SALES_DAYS - 1));
+    from.setHours(0, 0, 0, 0);
+    try {
+      // Exact instants, so the range follows the admin's local days.
+      const res = await api.get('/admin/orders/export', {
+        params: { from: from.toISOString(), to: to.toISOString() },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `baia-orders-${isoDay(from)}_${isoDay(to)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      setExportError(true);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -505,6 +615,8 @@ export default function AdminDashboard() {
         <p className="mt-1 font-body text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
+      <NeedsAttention counts={counts} />
+
       {/* KPI Cards */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
@@ -544,10 +656,22 @@ export default function AdminDashboard() {
               <CardTitle className="font-serif text-xl">{t('salesOverview')}</CardTitle>
               <CardDescription>{t('last30days')}</CardDescription>
             </div>
-            <Button type="button" variant="outline" size="sm" className="gap-2">
-              <Download size={14} />
-              {t('export')}
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={exportOrders}
+                disabled={exporting}
+                aria-busy={exporting}
+                title={tx('exportHint')}
+              >
+                <Download size={14} />
+                {exporting ? tx('exporting') : t('export')}
+              </Button>
+              {exportError && <p role="alert" className="font-body text-xs text-destructive">{tx('exportFailed')}</p>}
+            </div>
           </CardHeader>
           <CardContent>
             {salesDays.length > 0 ? (
@@ -577,9 +701,10 @@ export default function AdminDashboard() {
                 <p className="py-8 text-center font-body text-sm text-muted-foreground">{t('noRecentOrders')}</p>
               ) : (
                 overview?.recentOrders.map((order) => (
-                  <div
+                  <Link
                     key={order.id}
-                    className="flex items-start justify-between gap-3 border-b border-border pb-4 last:border-0 last:pb-0"
+                    href={`/admin/orders?q=${encodeURIComponent(order.orderNumber)}`}
+                    className="flex items-start justify-between gap-3 border-b border-border pb-4 last:border-0 last:pb-0 hover:opacity-80"
                   >
                     <div className="min-w-0">
                       <p className="truncate font-body text-sm font-medium text-foreground">{order.orderNumber}</p>
@@ -587,9 +712,13 @@ export default function AdminDashboard() {
                     </div>
                     <div className="shrink-0 text-end">
                       <p className="font-body text-sm font-semibold text-foreground">{formatCurrency(order.total)}</p>
-                      <p className="font-body text-[11px] text-muted-foreground">{timeAgo(order.createdAt, t)}</p>
+                      <p className="font-body text-[11px] text-muted-foreground">
+                        {STATUS_TRANSLATION_KEYS[order.status] ? tOrders(STATUS_TRANSLATION_KEYS[order.status] as 'pendingPayment') : order.status}
+                        {' · '}
+                        {timeAgo(order.createdAt, t)}
+                      </p>
                     </div>
-                  </div>
+                  </Link>
                 ))
               )}
             </div>

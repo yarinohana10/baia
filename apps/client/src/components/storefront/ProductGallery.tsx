@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Expand } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GalleryLightbox } from './product/GalleryLightbox';
 
 export type GalleryImage = {
   id: string;
@@ -26,6 +27,7 @@ type Props = {
  * Product-page image gallery: swipeable main carousel (touch/mouse drag via
  * Embla) with synced thumbnails, prev/next buttons and arrow-key support.
  * Follows the document direction, so in Hebrew "next" is to the left.
+ * Clicking (or Enter on) the main image opens a full-screen lightbox with zoom.
  */
 export default function ProductGallery({ images, productName }: Props) {
   const locale = useLocale();
@@ -39,6 +41,8 @@ export default function ProductGallery({ images, productName }: Props) {
     dragFree: true,
   });
   const [selected, setSelected] = useState(0);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const tPdp = useTranslations('pdp.gallery');
 
   const imagesKey = images.map((img) => img.id).join(',');
 
@@ -94,7 +98,7 @@ export default function ProductGallery({ images, productName }: Props) {
   };
 
   if (images.length === 0) {
-    return <div className="aspect-square rounded-xl bg-gray-100" aria-hidden />;
+    return <div className="aspect-[4/5] rounded-xl bg-gray-100" aria-hidden />;
   }
 
   const multiple = images.length > 1;
@@ -113,7 +117,7 @@ export default function ProductGallery({ images, productName }: Props) {
             {images.map((img, i) => (
               <div
                 key={img.id}
-                className="relative aspect-square min-w-0 shrink-0 grow-0 basis-full"
+                className="relative aspect-[4/5] min-w-0 shrink-0 grow-0 basis-full"
                 role="group"
                 aria-roledescription="slide"
                 aria-label={t('slideOf', { n: i + 1, total: images.length })}
@@ -127,6 +131,14 @@ export default function ProductGallery({ images, productName }: Props) {
                   priority={i === 0}
                   draggable={false}
                   className="select-none object-cover"
+                />
+                {/* Embla swallows the click that ends a swipe, so this only fires on a real tap/click */}
+                <button
+                  type="button"
+                  onClick={() => setLightbox(i)}
+                  tabIndex={i === selected ? 0 : -1}
+                  aria-label={tPdp('open', { n: i + 1 })}
+                  className="absolute inset-0 cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ocean-600"
                 />
               </div>
             ))}
@@ -163,7 +175,24 @@ export default function ProductGallery({ images, productName }: Props) {
             </span>
           </>
         )}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute top-3 end-3 hidden size-9 items-center justify-center rounded-full bg-white/85 text-charcoal shadow transition-opacity md:flex md:opacity-0 md:group-hover:opacity-100"
+        >
+          <Expand size={16} />
+        </span>
       </section>
+
+      <GalleryLightbox
+        images={images}
+        startIndex={lightbox}
+        onClose={(index) => {
+          setLightbox(null);
+          if (index !== selected) mainApi?.scrollTo(index, true);
+        }}
+        altFor={altFor}
+        productName={productName}
+      />
 
       {multiple && (
         <div ref={thumbsRef} className="overflow-hidden">

@@ -130,7 +130,7 @@ describe('ProductsService', () => {
 
       const result = await service.findAll({ sort: 'price-asc', page: 1, limit: 10 });
 
-      const sql = queryRaw.mock.calls[0][0].join('?');
+      const sql = queryRaw.mock.calls[0][0].sql;
       expect(sql).toContain('salePrice');
       expect(sql).toContain('ORDER BY COALESCE(ep.min_price');
       expect(prisma.product.findMany.mock.calls[0][0].where).toEqual({ id: { in: ['cheap', 'dear'] } });

@@ -20,9 +20,18 @@ export interface EmailTemplateData extends CustomerTemplateData, OrderTemplateDa
     shipping: string;
     discount: string | null;
     total: string;
+    /** Courier: the shipping address. Pickup: the pickup point line. */
     address: string;
-    /** Link to the order for signed-in customers; guests get the order number only. */
+    /** Link to the order: the account page for members, a signed guest link otherwise. */
     orderUrl?: string | null;
+    deliveryMethod?: 'COURIER' | 'PICKUP_POINT';
+    /** Business days, e.g. "3-5". */
+    etaDays?: string | null;
+    /** Public order-status page (order number + email). */
+    trackUrl?: string | null;
+    /** Public cancellation page. */
+    cancelUrl?: string | null;
+    cancelWindowHours?: number | null;
   };
 }
 
@@ -140,6 +149,7 @@ const orderConfirmation: EmailTemplate<EmailTemplateData['order-confirmation']> 
     ...(data.discount ? [`${he ? 'הנחה' : 'Discount'}: -${data.discount}`] : []),
     `${he ? 'סה"כ לתשלום' : 'Total'}: ${data.total}`,
   ];
+  const pickup = data.deliveryMethod === 'PICKUP_POINT';
   const subject = he ? `אישור הזמנה ${data.orderNumber} - BAIA` : `Order ${data.orderNumber} confirmed - BAIA`;
   return render(
     {
@@ -147,12 +157,32 @@ const orderConfirmation: EmailTemplate<EmailTemplateData['order-confirmation']> 
       preheader: he ? `ההזמנה ${data.orderNumber} התקבלה` : `We received order ${data.orderNumber}`,
       heading: he ? 'תודה על ההזמנה!' : 'Thank you for your order!',
       paragraphs: [
+        he ? `מספר ההזמנה שלך: ${data.orderNumber}` : `Your order number: ${data.orderNumber}`,
         he
-          ? `ההזמנה ${data.orderNumber} אושרה ואנחנו כבר מכינים אותה למשלוח.`
-          : `Order ${data.orderNumber} is confirmed and we're getting it ready to ship.`,
+          ? `ההזמנה אושרה ואנחנו כבר מכינים אותה ${pickup ? 'למשלוח לנקודת האיסוף' : 'למשלוח'}.`
+          : `Your order is confirmed and we're getting it ready to ship${pickup ? ' to your pickup point' : ''}.`,
         ...lines,
         totals.join(' · '),
-        `${he ? 'כתובת למשלוח' : 'Shipping to'}: ${data.address}`,
+        pickup
+          ? `${he ? 'איסוף מנקודת חלוקה' : 'Pickup point'}: ${data.address}`
+          : `${he ? 'משלוח עד הבית אל' : 'Courier delivery to'}: ${data.address}`,
+        ...(data.etaDays
+          ? [he ? `זמן הגעה משוער: ${data.etaDays} ימי עסקים מרגע המשלוח.` : `Estimated delivery: ${data.etaDays} business days after dispatch.`]
+          : []),
+        ...(data.trackUrl
+          ? [
+              he
+                ? `אפשר לעקוב אחר ההזמנה בכל עת עם מספר ההזמנה וכתובת האימייל: ${data.trackUrl}`
+                : `Track your order any time with your order number and email: ${data.trackUrl}`,
+            ]
+          : []),
+        ...(data.cancelUrl
+          ? [
+              he
+                ? `ניתן לבטל ללא עלות תוך ${data.cancelWindowHours ?? 48} שעות כל עוד ההזמנה לא נשלחה: ${data.cancelUrl}`
+                : `You can cancel free of charge within ${data.cancelWindowHours ?? 48} hours as long as the order hasn't shipped: ${data.cancelUrl}`,
+            ]
+          : []),
       ],
       cta: data.orderUrl ? { label: he ? 'צפייה בהזמנה' : 'View your order', url: data.orderUrl } : undefined,
       footnote: he

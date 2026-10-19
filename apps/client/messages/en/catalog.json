@@ -1,1 +1,176 @@
-{}
+{
+  "pdp": {
+    "breadcrumbLabel": "Breadcrumb",
+    "vatIncluded": "Price includes VAT",
+    "savePercent": "-{pct}%",
+    "saveAmount": "You save {amount}",
+    "originalPrice": "Original price {price}",
+    "salePrice": "Sale price {price}",
+    "color": "Color",
+    "colorOption": "Color {color}",
+    "size": "Size",
+    "sizeOption": "Size {size}",
+    "sizeSoldOut": "Size {size} – sold out",
+    "selectSize": "Select a size",
+    "lowStock": "{count, plural, one {Only 1 left} other {Only # left}}",
+    "quantity": "Quantity",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "addToCart": "Add to bag",
+    "adding": "Adding…",
+    "soldOut": "Sold out",
+    "sku": "SKU: {sku}",
+    "notFound": "Product not found.",
+    "trust": {
+      "label": "Why shop with us",
+      "freeShipping": "Free shipping over {threshold}",
+      "freeCancel": "Free cancellation within {hours} hours",
+      "returns": "14-day returns & exchanges",
+      "securePayment": "Secure payment"
+    },
+    "sections": {
+      "description": "Description",
+      "fabricCare": "Fabric & care",
+      "fabric": "Fabric & composition",
+      "care": "Care instructions",
+      "sizeFit": "Size & fit",
+      "shippingReturns": "Shipping & returns"
+    },
+    "careGeneric": "To keep colour and stretch: rinse in cool fresh water right after the sea or pool, hand wash gently, don't wring, and dry in the shade – never in a dryer.",
+    "fitGeneric": "Fits true to size. Between sizes? We recommend sizing up.",
+    "shipping": {
+      "courier": "Home delivery by courier",
+      "pickup": "Pickup point",
+      "eta": "{days} business days",
+      "freeOver": "Free shipping on orders over {threshold}",
+      "cancel": "Free cancellation within {hours} hours of payment, right from your account.",
+      "returns": "Returns or exchanges within 14 days of delivery.",
+      "hygiene": "For hygiene reasons, swimwear can only be returned with the hygiene liner still in place and unworn beyond trying on.",
+      "shippingLink": "Shipping policy",
+      "returnsLink": "Returns & exchanges",
+      "termsLink": "Terms of use"
+    },
+    "related": "You may also like",
+    "gallery": {
+      "open": "Enlarge image {n}",
+      "lightbox": "Enlarged images of {name}",
+      "close": "Close",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out"
+    },
+    "sizeGuide": {
+      "open": "Size guide",
+      "title": "Size guide",
+      "intro": "All measurements are in centimetres. Measure directly on your body with a soft tape, without pulling it tight.",
+      "howToMeasure": "How to measure",
+      "chartTitle": "Size chart – {chart} (cm)",
+      "charts": {
+        "women": "Women",
+        "men": "Men",
+        "kids": "Kids"
+      },
+      "sizeColumn": "Size",
+      "measurements": {
+        "bust": "Bust",
+        "chest": "Chest",
+        "waist": "Waist",
+        "hips": "Hips",
+        "inseam": "Inseam",
+        "height": "Height"
+      },
+      "steps": {
+        "bust": "Measure around the fullest part of your bust, keeping the tape level with the floor.",
+        "chest": "Measure around the widest part of your chest, just under the armpits.",
+        "waist": "Measure around the narrowest part of your waist, about 2–3 cm above the belly button.",
+        "hips": "Stand with your feet together and measure around the widest part of your hips and seat.",
+        "inseam": "For swim shorts: measure along the inside of your leg, from the crotch to where you'd like the shorts to end.",
+        "height": "Stand barefoot with your back against a wall and measure from the floor to the top of the head."
+      },
+      "fitTipTitle": "Fit tip",
+      "fitTip": "Between sizes? For swimwear, go by your hips for bottoms and your bust for tops. Prefer a less snug fit – size up.",
+      "yourSizes": "This product's sizes are shown in the chart.",
+      "noChart": "This product comes in its own sizes, so there's no general chart. We're happy to help you choose.",
+      "notSure": "Not sure about your size?",
+      "whatsapp": "Message us on WhatsApp",
+      "whatsappMessage": "Hi, I'd like help choosing a size for {name}",
+      "contact": "Contact us",
+      "close": "Close"
+    },
+    "sticky": {
+      "label": "Quick add to bag"
+    }
+  },
+  "productCard": {
+    "soldOut": "Sold out",
+    "sale": "Sale",
+    "salePercent": "-{pct}%"
+  },
+  "filters": {
+    "title": "Filters",
+    "open": "Filter",
+    "label": "Filter products",
+    "size": "Size",
+    "color": "Color",
+    "price": "Price",
+    "availability": "Availability",
+    "inStock": "In stock only",
+    "sizeHint": "Only sizes currently in stock are shown",
+    "from": "From",
+    "to": "To",
+    "minPrice": "Minimum price",
+    "maxPrice": "Maximum price",
+    "priceRange": "Prices here: {min}–{max}",
+    "apply": "Apply",
+    "clear": "Clear",
+    "clearAll": "Clear all",
+    "close": "Close",
+    "active": "Active filters",
+    "remove": "Remove filter {label}",
+    "priceBetween": "{min}–{max}",
+    "priceFrom": "From {min}",
+    "priceUpTo": "Up to {max}",
+    "showResults": "{count, plural, =0 {No matching products} one {Show 1 product} other {Show # products}}",
+    "noResultsTitle": "No products match these filters",
+    "noResultsHint": "Try removing some filters, or clear them all.",
+    "noOptions": "No options available",
+    "updating": "Updating results…"
+  },
+  "admin": {
+    "productForm": {
+      "productDetails": "Basic details",
+      "content": {
+        "title": "Product details",
+        "hint": "Shown on the product page under 'Fabric & care' and 'Size & fit'. Optional – empty fields are hidden.",
+        "language": "Content language",
+        "he": "עברית",
+        "en": "English",
+        "fabric": "Fabric & composition",
+        "fabricPlaceholder": "e.g. 82% recycled nylon, 18% elastane. Fully lined, UPF 50+",
+        "care": "Care instructions",
+        "carePlaceholder": "e.g. Hand wash cold, rinse off chlorine and salt right after use, dry in the shade",
+        "fit": "Size & fit",
+        "fitPlaceholder": "e.g. Model wears M and is 1.75 m tall. Fits true to size.",
+        "chars": "{count}/{max}",
+        "missingEn": "English translation missing",
+        "filled": "Filled"
+      }
+    },
+    "products": {
+      "activateNoSizes": "A product can't be shown in the store without active sizes. Add a size in the product editor."
+    },
+    "categories": {
+      "sizeSet": "Size chart",
+      "sizeSetInherit": "Default (same as parent / free sizes)",
+      "sizeSetHint": "Offered by default for new products in this category, and picks the size guide on the product page.",
+      "image": "Category image",
+      "imageHint": "Shown on the home page and in menus. JPG, PNG or WebP up to 10MB.",
+      "chooseImage": "Choose image",
+      "replaceImage": "Replace image",
+      "removeImage": "Remove image",
+      "removeImageConfirm": "Remove the category image?",
+      "imagePending": "The image will be uploaded when you save",
+      "imageFailed": "The category was saved, but the image upload failed. Try again.",
+      "imageRemoved": "Image removed"
+    }
+  }
+}
