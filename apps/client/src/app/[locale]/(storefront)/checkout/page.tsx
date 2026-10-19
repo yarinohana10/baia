@@ -53,8 +53,8 @@ export default function CheckoutPage() {
   const [couponChecking, setCouponChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
-  // An order whose payment did not go through: retry charges it instead of
-  // creating a second order (the cart was already converted into it).
+  // An order already created from the cart (e.g. the shopper came back from
+  // the payment page): continue to pay it instead of creating a second order.
   const [pendingOrder, setPendingOrder] = useState<{ id: string; token?: string } | null>(null);
 
   useEffect(() => {
@@ -239,31 +239,12 @@ export default function CheckoutPage() {
       return;
     }
 
-    try {
-      // Amount is computed by the server from the order; only the id is sent.
-      await api.post(
-        '/payment/charge',
-        { orderId: order.id },
-        order.token ? { headers: { 'X-Order-Token': order.token } } : undefined,
-      );
-      void fetchCart();
-      // The token travels in the URL fragment, which browsers never send to
-      // servers or in Referer headers; the confirmation page swaps it for an
-      // httpOnly cookie and strips it from the address bar.
-      router.push(`/order-confirmation/${order.id}${order.token ? `#token=${order.token}` : ''}`);
-    } catch (err) {
-      if (errorCode(err) === 'ORDER_NOT_PAYABLE') {
-        // The unpaid order expired (stock released): start over from the cart.
-        setPendingOrder(null);
-        setAppliedCoupon(null);
-        void fetchCart();
-        setError({ key: 'orderNotPayable' });
-      } else {
-        // 402 = declined; the order stays pending, so "retry payment" charges it again.
-        setError(shopErrorMessage(err, locale));
-      }
-      setSubmitting(false);
-    }
+    // Payment happens on the hosted payment page (mock PSP while testing).
+    // The token travels in the URL fragment, which browsers never send to
+    // servers or in Referer headers; the payment page swaps it for an
+    // httpOnly cookie and strips it from the address bar.
+    void fetchCart();
+    router.push(`/checkout/payment/${order.id}${order.token ? `#token=${order.token}` : ''}`);
   };
 
   const errorBanner = error && (

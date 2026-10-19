@@ -3,6 +3,8 @@
  * status lookup, cancellation). Strings live in messages/<locale>/orders.json.
  */
 
+import type { OrderPaymentFields } from './payment';
+
 export type DeliveryMethod = 'COURIER' | 'PICKUP_POINT';
 
 export type OrderStatus =
@@ -54,7 +56,7 @@ export type OrderItem = {
   unitPrice: string;
 };
 
-export type CustomerOrder = {
+export type CustomerOrder = OrderPaymentFields & {
   id: string;
   orderNumber: string;
   status: OrderStatus;

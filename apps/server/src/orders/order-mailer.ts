@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { EmailService, normalizeLocale } from '../email/email.service';
+import { EmailService, normalizeLocale, type SendResult } from '../email/email.service';
 import type { EmailLocale } from '../email/email.types';
-import { DeliveryMethod, type Order, type OrderItem } from '../generated/prisma';
+import { DeliveryMethod, OrderStatus, type Order, type OrderItem } from '../generated/prisma';
 import { signOrderToken } from './order-access';
 import { deliveryConfig, etaFor } from './delivery';
 import { DEFAULT_SELF_CANCEL_WINDOW_HOURS, REASON_LABELS_HE } from './cancellation-eligibility';
@@ -17,10 +17,18 @@ export function formatMoney(value: { toString(): string } | number, locale: Emai
   );
 }
 
+export function formatDate(value: Date, locale: EmailLocale): string {
+  return new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-GB', {
+    dateStyle: 'long',
+    timeZone: 'Asia/Jerusalem',
+  }).format(value);
+}
+
 /**
  * Carrier tracking link. Set TRACKING_URL_TEMPLATE (e.g.
  * "https://carrier.example/track?n={tracking}") once a courier is chosen;
- * until then emails show the tracking number only.
+ * until then emails show the tracking number only. TRACKING_CARRIER_NAME is
+ * the carrier's display name.
  */
 export function trackingUrl(trackingNumber: string | null | undefined): string | null {
   const template = process.env.TRACKING_URL_TEMPLATE?.trim();
@@ -28,7 +36,27 @@ export function trackingUrl(trackingNumber: string | null | undefined): string |
   return template.replace('{tracking}', encodeURIComponent(trackingNumber));
 }
 
-type OrderWithItems = Order & { items: OrderItem[] };
+/** Product photos must be absolute for email clients; relative paths are resolved against the API origin. */
+export function absoluteImageUrl(url: string | null | undefined): string | null {
+  const u = url?.trim();
+  if (!u) return null;
+  if (/^https?:\/\//i.test(u)) return u;
+  const origin = (process.env.SERVER_URL || process.env.BETTER_AUTH_URL || '').replace(/\/$/, '');
+  return u.startsWith('/') && origin ? `${origin}${u}` : null;
+}
+
+type ImageRow = { url: string; color: string | null };
+
+/** First photo of the item's colour, else the product's first photo. */
+export function itemImage(images: ImageRow[] | undefined, color: string): string | null {
+  if (!images?.length) return null;
+  const c = color.trim().toLowerCase();
+  const match = images.find((i) => i.color?.trim().toLowerCase() === c) ?? images.find((i) => !i.color) ?? images[0];
+  return absoluteImageUrl(match.url);
+}
+
+type ItemWithImages = OrderItem & { variant?: { product?: { images?: ImageRow[] } | null } | null };
+type OrderWithItems = Order & { items: ItemWithImages[] };
 
 export type CancelledEmailOptions = {
   refundAmount?: number | null;
@@ -37,11 +65,19 @@ export type CancelledEmailOptions = {
   note?: string | null;
 };
 
+/** Statuses after a successful payment (resending the confirmation makes sense). */
+const CONFIRMABLE_STATUSES: OrderStatus[] = [
+  OrderStatus.CONFIRMED,
+  OrderStatus.PROCESSING,
+  OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED,
+];
+
 /**
  * Builds and sends every order email (customer + store inbox). All sends are
- * fire-and-forget through EmailService.dispatch, which never throws; the
- * methods themselves swallow lookup errors so callers never fail because of
- * email.
+ * fire-and-forget through EmailService.dispatch, which retries, logs to
+ * EmailLog (with the orderId) and never throws; the methods themselves
+ * swallow lookup errors so callers never fail because of email.
  */
 @Injectable()
 export class OrderMailer {
@@ -66,23 +102,53 @@ export class OrderMailer {
     return `${clientUrl()}/he/admin/orders?q=${encodeURIComponent(order.orderNumber)}`;
   }
 
+  private contactUrl(locale: EmailLocale) {
+    return `${clientUrl()}/${locale}/contact`;
+  }
+
   private address(order: Order, locale: EmailLocale): string {
+    return this.addressLines(order, locale).join(', ');
+  }
+
+  private addressLines(order: Order, locale: EmailLocale): string[] {
     if (order.deliveryMethod === DeliveryMethod.PICKUP_POINT) {
-      return [order.pickupPointName, order.shippingStreet, order.shippingCity].filter(Boolean).join(', ');
+      return [order.pickupPointName, [order.shippingStreet, order.shippingCity].filter(Boolean).join(', ')].filter(
+        (x): x is string => !!x,
+      );
     }
-    return [
-      order.recipientName,
+    const street = [
       `${order.shippingStreet} ${order.shippingNumber}`.trim(),
       order.shippingApartment ? (locale === 'he' ? `דירה ${order.shippingApartment}` : `Apt ${order.shippingApartment}`) : null,
-      order.shippingCity,
-      order.shippingZip,
     ]
       .filter(Boolean)
       .join(', ');
+    return [order.recipientName, street, [order.shippingCity, order.shippingZip].filter(Boolean).join(' ')].filter(
+      (x): x is string => !!x && !!x.trim(),
+    );
   }
 
   private load(orderId: string) {
-    return this.prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
+    return this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            variant: {
+              select: {
+                product: { select: { images: { select: { url: true, color: true }, orderBy: { sortOrder: 'asc' } } } },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  private pickupPoint(order: Order) {
+    return order.deliveryMethod === DeliveryMethod.PICKUP_POINT && order.pickupPointId
+      ? this.prisma.pickupPoint.findUnique({ where: { id: order.pickupPointId } })
+      : Promise.resolve(null);
   }
 
   private async safely(fn: () => Promise<void>) {
@@ -98,39 +164,93 @@ export class OrderMailer {
     return this.safely(async () => {
       const order = await this.load(orderId);
       if (!order) return;
-      const locale = normalizeLocale(order.locale);
-      const config = await this.prisma.siteConfig.findUnique({ where: { id: 'default' } });
-      const delivery = deliveryConfig(config);
-      const discount = Number(order.discountAmount);
-      const base = clientUrl();
-
-      void this.email.dispatch('order-confirmation', {
-        to: order.customerEmail,
-        locale,
-        data: {
-          orderNumber: order.orderNumber,
-          items: order.items.map((i) => ({
-            name: (locale === 'he' ? i.productNameHe : null) ?? i.productName,
-            color: i.color,
-            size: i.size,
-            quantity: i.quantity,
-            lineTotal: formatMoney(Number(i.unitPrice) * i.quantity, locale),
-          })),
-          subtotal: formatMoney(order.subtotal, locale),
-          shipping: Number(order.shippingCost) === 0 ? (locale === 'he' ? 'חינם' : 'Free') : formatMoney(order.shippingCost, locale),
-          discount: discount > 0 ? formatMoney(discount, locale) : null,
-          total: formatMoney(order.total, locale),
-          address: this.address(order, locale),
-          orderUrl: this.orderUrl(order, locale),
-          deliveryMethod: order.deliveryMethod,
-          etaDays: etaFor(order.deliveryMethod, delivery),
-          trackUrl: `${base}/${locale}/order-status`,
-          cancelUrl: `${base}/${locale}/cancel-order`,
-          cancelWindowHours: config?.selfCancelWindowHours ?? DEFAULT_SELF_CANCEL_WINDOW_HOURS,
-        },
-      });
-
+      void this.sendConfirmation(order);
       await this.adminNewOrder(order);
+    });
+  }
+
+  /**
+   * Admin "resend confirmation": paid orders only. Awaited, so the admin sees
+   * whether it went out (the attempt is logged either way).
+   */
+  async resendConfirmation(orderId: string): Promise<SendResult> {
+    const order = await this.load(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (!order.paidAt || !CONFIRMABLE_STATUSES.includes(order.status)) {
+      throw new ConflictException('Only paid orders can get their confirmation resent');
+    }
+    return this.sendConfirmation(order);
+  }
+
+  /** EmailLog rows for an order, newest first (admin order panel). 404 for unknown orders. */
+  async emailLogs(orderId: string) {
+    const exists = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true } });
+    if (!exists) throw new NotFoundException('Order not found');
+    return this.prisma.emailLog.findMany({
+      where: { orderId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        template: true,
+        to: true,
+        subject: true,
+        locale: true,
+        status: true,
+        attempts: true,
+        error: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  private async sendConfirmation(order: OrderWithItems): Promise<SendResult> {
+    const locale = normalizeLocale(order.locale);
+    const [config, point] = await Promise.all([
+      this.prisma.siteConfig.findUnique({ where: { id: 'default' } }),
+      this.pickupPoint(order),
+    ]);
+    const discount = Number(order.discountAmount);
+    const base = clientUrl();
+
+    return this.email.deliver('order-confirmation', {
+      to: order.customerEmail,
+      locale,
+      meta: { orderId: order.id },
+      data: {
+        name: order.recipientName,
+        orderNumber: order.orderNumber,
+        orderDate: formatDate(order.paidAt ?? order.createdAt, locale),
+        items: order.items.map((i) => ({
+          name: (locale === 'he' ? i.productNameHe : null) ?? i.productName,
+          color: i.color,
+          size: i.size,
+          quantity: i.quantity,
+          unitPrice: formatMoney(i.unitPrice, locale),
+          lineTotal: formatMoney(Number(i.unitPrice) * i.quantity, locale),
+          imageUrl: itemImage(i.variant?.product?.images, i.color),
+        })),
+        subtotal: formatMoney(order.subtotal, locale),
+        shipping: Number(order.shippingCost) === 0 ? (locale === 'he' ? 'חינם' : 'Free') : formatMoney(order.shippingCost, locale),
+        discount: discount > 0 ? formatMoney(discount, locale) : null,
+        total: formatMoney(order.total, locale),
+        address: this.address(order, locale),
+        addressLines: this.addressLines(order, locale),
+        pickupHours: point?.hours ?? null,
+        orderUrl: this.orderUrl(order, locale),
+        deliveryMethod: order.deliveryMethod,
+        etaDays: etaFor(order.deliveryMethod, deliveryConfig(config)),
+        trackUrl: `${base}/${locale}/order-status`,
+        cancelUrl: `${base}/${locale}/cancel-order`,
+        cancelWindowHours: config?.selfCancelWindowHours ?? DEFAULT_SELF_CANCEL_WINDOW_HOURS,
+        contactUrl: this.contactUrl(locale),
+        payment: {
+          method: order.paymentMethod,
+          cardBrand: order.cardBrand,
+          cardLast4: order.cardLast4,
+          installments: order.paymentInstallments,
+        },
+      },
     });
   }
 
@@ -140,6 +260,7 @@ export class OrderMailer {
     void this.email.dispatch('admin-new-order', {
       to,
       locale: 'he',
+      meta: { orderId: order.id },
       data: {
         orderNumber: order.orderNumber,
         customer: order.recipientName ?? order.customerEmail,
@@ -162,14 +283,14 @@ export class OrderMailer {
       const order = await this.load(orderId);
       if (!order) return;
       const locale = normalizeLocale(order.locale);
-      const config = await this.prisma.siteConfig.findUnique({ where: { id: 'default' } });
-      const point =
-        order.deliveryMethod === DeliveryMethod.PICKUP_POINT && order.pickupPointId
-          ? await this.prisma.pickupPoint.findUnique({ where: { id: order.pickupPointId } })
-          : null;
+      const [config, point] = await Promise.all([
+        this.prisma.siteConfig.findUnique({ where: { id: 'default' } }),
+        this.pickupPoint(order),
+      ]);
       void this.email.dispatch('order-shipped', {
         to: order.customerEmail,
         locale,
+        meta: { orderId: order.id },
         data: {
           name: order.recipientName,
           orderNumber: order.orderNumber,
@@ -186,8 +307,10 @@ export class OrderMailer {
           address: order.deliveryMethod === DeliveryMethod.COURIER ? this.address(order, locale) : null,
           trackingNumber: order.trackingNumber,
           trackingUrl: trackingUrl(order.trackingNumber),
+          carrierName: process.env.TRACKING_CARRIER_NAME?.trim() || null,
           etaDays: etaFor(order.deliveryMethod, deliveryConfig(config)),
           orderUrl: this.orderUrl(order, locale),
+          contactUrl: this.contactUrl(locale),
         },
       });
     });
@@ -201,11 +324,13 @@ export class OrderMailer {
       void this.email.dispatch('order-delivered', {
         to: order.customerEmail,
         locale,
+        meta: { orderId: order.id },
         data: {
           name: order.recipientName,
           orderNumber: order.orderNumber,
           orderUrl: this.orderUrl(order, locale),
           returnsUrl: `${clientUrl()}/${locale}/returns`,
+          contactUrl: this.contactUrl(locale),
         },
       });
     });
@@ -220,15 +345,18 @@ export class OrderMailer {
       void this.email.dispatch('order-cancelled', {
         to: order.customerEmail,
         locale,
+        meta: { orderId: order.id },
         data: {
           name: order.recipientName,
           orderNumber: order.orderNumber,
           paid,
           refundAmount: opts.refundAmount ? formatMoney(opts.refundAmount, locale) : null,
           feeAmount: opts.feeAmount ? formatMoney(opts.feeAmount, locale) : null,
+          orderTotal: formatMoney(order.total, locale),
           refundPending: opts.refundPending ?? false,
           note: opts.note ?? null,
           shopUrl: `${clientUrl()}/${locale}`,
+          contactUrl: this.contactUrl(locale),
         },
       });
     });
@@ -246,11 +374,13 @@ export class OrderMailer {
       void this.email.dispatch('cancellation-request-received', {
         to: order.customerEmail,
         locale,
+        meta: { orderId: order.id },
         data: {
           name: order.recipientName,
           orderNumber: order.orderNumber,
           requiresReturn,
           orderUrl: this.orderUrl(order, locale),
+          contactUrl: this.contactUrl(locale),
         },
       });
       const to = await this.adminInbox();
@@ -258,6 +388,7 @@ export class OrderMailer {
       void this.email.dispatch('admin-cancellation-request', {
         to,
         locale: 'he',
+        meta: { orderId: order.id },
         data: {
           orderNumber: order.orderNumber,
           customer: order.recipientName ?? order.customerEmail,
@@ -285,11 +416,12 @@ export class OrderMailer {
       void this.email.dispatch('cancellation-request-rejected', {
         to: request.order.customerEmail,
         locale,
+        meta: { orderId: request.orderId },
         data: {
           name: request.order.recipientName,
           orderNumber: request.order.orderNumber,
           note: request.adminNote,
-          contactUrl: `${clientUrl()}/${locale}/contact`,
+          contactUrl: this.contactUrl(locale),
         },
       });
     });
@@ -306,6 +438,7 @@ export class OrderMailer {
       void this.email.dispatch('admin-order-self-cancelled', {
         to,
         locale: 'he',
+        meta: { orderId: order.id },
         data: {
           orderNumber: order.orderNumber,
           customer: order.recipientName ?? order.customerEmail,

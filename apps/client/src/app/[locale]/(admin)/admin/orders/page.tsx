@@ -12,6 +12,8 @@ import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Eye, ChevronLeft, ChevronRight, Search, X, MapPin, Home, Undo2, Mail } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { ORDER_STATUS_COLORS as statusColors, formatShekels as money } from '@/components/admin/order-status';
+import { OrderPaymentPanel } from '@/components/admin/OrderPaymentPanel';
+import { OrderEmailsPanel } from '@/components/admin/OrderEmailsPanel';
 
 const ORDER_STATUSES = [
   'PENDING_PAYMENT',
@@ -493,6 +495,15 @@ export default function AdminOrdersPage() {
                   <span>{money(selectedOrder.total)}</span>
                 </div>
               </div>
+
+              <OrderPaymentPanel orderId={selectedOrder.id} refreshKey={selectedOrder.status} />
+
+              <OrderEmailsPanel
+                orderId={selectedOrder.id}
+                customerEmail={selectedOrder.customerEmail}
+                canResend={!!selectedOrder.paidAt && PAID_STATUSES.includes(selectedOrder.status)}
+                refreshKey={selectedOrder.status}
+              />
 
               {(selectedOrder.cancellationRequests ?? []).length > 0 && (
                 <div className="border-t border-border pt-3 space-y-2 text-sm">

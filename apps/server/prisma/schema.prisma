@@ -325,6 +325,12 @@ model Order {
   // Shopper ticked the (unticked-by-default) marketing consent box at checkout.
   marketingConsent Boolean @default(false)
 
+  // How the order was paid (filled from the payment provider's result).
+  paymentMethod       String?  // "card" | "bit" | "apple_pay"
+  paymentInstallments Int?
+  cardBrand           String?
+  cardLast4           String?
+
   paidAt      DateTime?
   shippedAt   DateTime?
   cancelledAt DateTime?
@@ -545,4 +551,29 @@ model NewsletterSubscriber {
   updatedAt      DateTime  @updatedAt
 
   @@map("newsletter_subscribers")
+}
+
+// ─── Email log ────────────────────────────────────────────────
+
+enum EmailLogStatus {
+  SENT
+  FAILED
+}
+
+/// Every transactional email we tried to send (for support and auditing).
+model EmailLog {
+  id        String         @id @default(cuid())
+  template  String
+  to        String
+  subject   String
+  locale    String
+  orderId   String?
+  status    EmailLogStatus
+  attempts  Int            @default(1)
+  error     String?
+  createdAt DateTime       @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("email_logs")
 }

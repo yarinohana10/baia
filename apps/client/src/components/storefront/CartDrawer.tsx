@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
+  canDecrease,
   canIncrease,
   cartSubtotal,
   decreasedQuantity,
@@ -132,7 +133,7 @@ export function CartDrawer() {
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.id, decreasedQuantity(item))}
-                            disabled={busy}
+                            disabled={busy || !canDecrease(item)}
                             aria-label={t('decreaseQuantity')}
                             className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors disabled:text-gray-300"
                           >

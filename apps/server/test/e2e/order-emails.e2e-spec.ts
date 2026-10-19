@@ -1,5 +1,6 @@
 import { createTestApp, resetDb, seedCatalog, signUp, SHIPPING, type TestApp } from './app';
 import { captureEmails, settledEmails, waitForEmail } from './mail';
+import { EmailService } from '../../src/email/email.service';
 import { OrdersService } from '../../src/orders/orders.service';
 
 const STORE_INBOX = 'store@example.test';
@@ -81,7 +82,7 @@ describe('Order emails, order lookup and guest tracking (e2e)', () => {
         .expect(201);
       await member.agent.post('/v1/payment/charge').send({ orderId: res.body.id }).expect(200);
       const email = await waitForEmail(mail, (m) => m.to === member.email && m.subject.includes(res.body.orderNumber));
-      expect(email.text).toContain('איסוף מנקודת חלוקה: נקודת איסוף - קניון, הרצל 10, אופקים');
+      expect(email.text).toContain('איסוף מנקודת חלוקה:\nנקודת איסוף - קניון\nהרצל 10, אופקים');
       expect(email.text).toContain('/he/account/orders');
       expect(email.text).not.toContain('#token=');
     });
@@ -191,6 +192,78 @@ describe('Order emails, order lookup and guest tracking (e2e)', () => {
       const row = await t.prisma.order.findUniqueOrThrow({ where: { id: order.id } });
       expect(row.status).toBe('CANCELLED');
       await admin.agent.put(`/v1/admin/orders/${order.id}/status`).send({ status: 'SHIPPED' }).expect(409);
+    });
+  });
+
+  describe('admin email log', () => {
+    /** Log rows are written right after each send: poll until `count` exist. */
+    async function logsFor(orderId: string, count: number) {
+      for (let i = 0; i < 100; i++) {
+        const rows = await t.prisma.emailLog.findMany({ where: { orderId }, orderBy: { createdAt: 'asc' } });
+        if (rows.length >= count) return rows;
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      throw new Error(`expected ${count} email log rows for ${orderId}`);
+    }
+
+    it('logs every order email and lists them for admins only', async () => {
+      const { order } = await paidGuestOrder({ locale: 'en' });
+      const rows = await logsFor(order.id, 2);
+      expect(rows.map((r) => r.template).sort()).toEqual(['admin-new-order', 'order-confirmation']);
+      const confirmation = rows.find((r) => r.template === 'order-confirmation')!;
+      expect(confirmation).toMatchObject({ to: 'Guest@Example.test', status: 'SENT', attempts: 1, locale: 'en', error: null });
+      expect(confirmation.subject).toContain(order.orderNumber);
+
+      await t.http().get(`/v1/admin/orders/${order.id}/emails`).expect(401);
+      const shopper = await signUp(t);
+      await shopper.agent.get(`/v1/admin/orders/${order.id}/emails`).expect(403);
+      const admin = await signUp(t, { admin: true });
+      const res = await admin.agent.get(`/v1/admin/orders/${order.id}/emails`).expect(200);
+      expect(res.body).toHaveLength(2);
+      expect(res.body[0]).toEqual(
+        expect.objectContaining({ template: expect.any(String), to: expect.any(String), status: 'SENT', createdAt: expect.any(String) }),
+      );
+      expect(res.body[0]).not.toHaveProperty('html');
+      await admin.agent.get('/v1/admin/orders/nope/emails').expect(404);
+    });
+
+    it('resends the confirmation for paid orders and logs failures', async () => {
+      const { order } = await paidGuestOrder();
+      await logsFor(order.id, 2);
+      const admin = await signUp(t, { admin: true });
+      mail.clear();
+
+      const res = await admin.agent.post(`/v1/admin/orders/${order.id}/resend-confirmation`).expect(200);
+      expect(res.body).toMatchObject({ status: 'SENT', attempts: 1 });
+      const email = await waitForEmail(mail, (m) => m.to === 'Guest@Example.test' && m.subject.includes(order.orderNumber));
+      expect(email.replyTo).toBe(STORE_INBOX);
+      expect(email.text).toContain('#token=');
+      await logsFor(order.id, 3);
+
+      // A mail outage: retried, then logged as FAILED with the error.
+      const service = t.app.get(EmailService);
+      const failing = { name: 'down', send: jest.fn().mockRejectedValue(Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNECTION' })) };
+      service.setTransport(failing);
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        const failed = await admin.agent.post(`/v1/admin/orders/${order.id}/resend-confirmation`).expect(200);
+        expect(failed.body).toMatchObject({ status: 'FAILED', attempts: 3 });
+        expect(failing.send).toHaveBeenCalledTimes(3);
+      } finally {
+        errorSpy.mockRestore();
+        service.setTransport(mail);
+      }
+      const rows = await logsFor(order.id, 4);
+      expect(rows.at(-1)).toMatchObject({ template: 'order-confirmation', status: 'FAILED', attempts: 3 });
+      expect(rows.at(-1)!.error).toContain('ECONNREFUSED');
+
+      // Unpaid orders cannot be "re"-confirmed; unknown orders 404.
+      const guest = t.agent();
+      await guest.post('/v1/cart/items').send({ variantId: catalog.inStock.id, quantity: 1 }).expect(201);
+      const unpaid = await guest.post('/v1/orders').send({ ...SHIPPING, customerEmail: 'unpaid@example.test' }).expect(201);
+      await admin.agent.post(`/v1/admin/orders/${unpaid.body.id}/resend-confirmation`).expect(409);
+      await admin.agent.post('/v1/admin/orders/nope/resend-confirmation').expect(404);
+      await t.http().post(`/v1/admin/orders/${order.id}/resend-confirmation`).expect(401);
     });
   });
 

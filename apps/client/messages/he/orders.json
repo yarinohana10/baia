@@ -310,6 +310,143 @@
       "refundOnCancel": "לזכות את הלקוח/ה ב-{amount} דרך ספק התשלום",
       "confirmCancelRefund": "לבטל את ההזמנה ולזכות {amount}? הפריטים יחזרו למלאי והלקוח/ה יקבלו מייל.",
       "refundFailed": "ההזמנה {number} בוטלה, אבל הזיכוי האוטומטי נכשל - יש לזכות ידנית."
+    },
+    "orderEmails": {
+      "title": "מיילים שנשלחו",
+      "loadFailed": "לא הצלחנו לטעון את רשימת המיילים.",
+      "empty": "עדיין לא נשלחו מיילים על ההזמנה הזו.",
+      "sent": "נשלח",
+      "failed": "נכשל",
+      "attempts": "{count} ניסיונות",
+      "errorLabel": "שגיאה: {error}",
+      "resend": "שליחה חוזרת של אישור הזמנה",
+      "resending": "שולחים…",
+      "confirmResend": "לשלוח שוב את אישור ההזמנה ל-{email}?",
+      "resent": "אישור ההזמנה נשלח שוב ל-{email}.",
+      "resendFailed": "השליחה נכשלה. אפשר לנסות שוב בעוד כמה דקות.",
+      "resendNotAllowed": "אפשר לשלוח אישור הזמנה רק להזמנות ששולמו.",
+      "templates": {
+        "order-confirmation": "אישור הזמנה",
+        "order-shipped": "ההזמנה נשלחה",
+        "order-delivered": "ההזמנה נמסרה",
+        "order-cancelled": "ביטול הזמנה",
+        "cancellation-request-received": "קבלת בקשת ביטול",
+        "cancellation-request-rejected": "דחיית בקשת ביטול",
+        "admin-new-order": "התראה לחנות: הזמנה חדשה",
+        "admin-cancellation-request": "התראה לחנות: בקשת ביטול",
+        "admin-order-self-cancelled": "התראה לחנות: ביטול עצמי"
+      }
+    }
+  },
+  "payment": {
+    "title": "תשלום מאובטח",
+    "orderLabel": "הזמנה",
+    "loading": "טוענים את דף התשלום…",
+    "testBanner": "סביבת בדיקה — לא מתבצע חיוב אמיתי",
+    "testBannerHint": "זהו דף תשלום מדומה. אל תזינו פרטי כרטיס אמיתיים.",
+    "secureNote": "פרטי הכרטיס לא נשמרים בחנות ונשלחים ישירות לחברת הסליקה.",
+    "amountDue": "לתשלום",
+    "orderSummary": "סיכום ההזמנה",
+    "items": "{count, plural, one {פריט אחד} other {# פריטים}}",
+    "methodsLabel": "אמצעי תשלום",
+    "methods": {
+      "card": "כרטיס אשראי",
+      "bit": "Bit",
+      "apple_pay": "Apple Pay"
+    },
+    "card": {
+      "number": "מספר כרטיס",
+      "expiry": "תוקף",
+      "expiryPlaceholder": "MM/YY",
+      "cvv": "CVV",
+      "cvvHint": "3 ספרות בגב הכרטיס (4 בחזית כרטיס אמריקן אקספרס)",
+      "holderId": "תעודת זהות של בעל הכרטיס",
+      "installments": "מספר תשלומים",
+      "singlePayment": "תשלום אחד",
+      "installmentOption": "{count, plural, one {תשלום אחד} other {# תשלומים ({amount} לחודש)}}",
+      "installmentsFrom": "פריסה לתשלומים אפשרית בהזמנות מעל {min}",
+      "brand": "{brand, select, visa {ויזה} mastercard {מאסטרקארד} amex {אמריקן אקספרס} isracard {ישראכרט} diners {דיינרס} other {כרטיס}}"
+    },
+    "errors": {
+      "numberRequired": "יש להזין מספר כרטיס",
+      "numberInvalid": "מספר הכרטיס אינו תקין",
+      "expiryRequired": "יש להזין תוקף",
+      "expiryInvalid": "התוקף אינו תקין או שפג",
+      "cvvInvalid": "יש להזין {length} ספרות",
+      "idRequired": "יש להזין מספר תעודת זהות",
+      "idInvalid": "מספר תעודת הזהות אינו תקין",
+      "phoneInvalid": "יש להזין מספר נייד תקין, למשל 050-1234567",
+      "fixFields": "יש לתקן את השדות המסומנים",
+      "card_declined": "הכרטיס נדחה. אפשר לנסות כרטיס אחר או אמצעי תשלום אחר.",
+      "insufficient_funds": "אין מספיק יתרה בכרטיס. אפשר לנסות כרטיס אחר או אמצעי תשלום אחר.",
+      "provider_error": "חברת הסליקה לא זמינה כרגע. נסו שוב בעוד רגע.",
+      "declined": "התשלום נדחה. אפשר לנסות שוב עם אמצעי תשלום אחר.",
+      "inProgress": "התשלום כבר בטיפול. המתינו רגע ורעננו את הדף.",
+      "threeDsCode": "קוד האימות שגוי. נסו שוב.",
+      "keptOrder": "ההזמנה שמורה, והפריטים שמורים עבורך לזמן מוגבל."
+    },
+    "pay": "תשלום {amount}",
+    "processing": "מעבדים את התשלום…",
+    "bit": {
+      "phone": "מספר הנייד המחובר ל-Bit",
+      "intro": "נשלח בקשת תשלום לאפליקציית Bit בנייד שלך.",
+      "submit": "שליחת בקשת תשלום ב-Bit",
+      "waiting": "ממתין לאישור באפליקציה…",
+      "waitingHint": "פתחו את אפליקציית Bit ואשרו את התשלום."
+    },
+    "applePay": {
+      "intro": "תשלום מהיר עם הכרטיס השמור ב-Apple Wallet.",
+      "button": "תשלום עם Apple Pay"
+    },
+    "threeDs": {
+      "title": "אימות מאובטח 3-D Secure",
+      "body": "הבנק שלך מבקש לאמת את העסקה. הזינו את הקוד שנשלח אליכם ב-SMS.",
+      "code": "קוד אימות",
+      "testHint": "בסביבת הבדיקה הקוד הוא 123456",
+      "submit": "אימות",
+      "cancel": "ביטול"
+    },
+    "testCards": {
+      "title": "כרטיסי בדיקה",
+      "hint": "תוקף: כל תאריך עתידי · CVV: כל 3 ספרות · ת.ז.: 000000018",
+      "use": "מילוי",
+      "useCard": "מילוי כרטיס הבדיקה {number}",
+      "success": "תשלום מאושר",
+      "decline": "כרטיס נדחה",
+      "insufficient_funds": "אין מספיק יתרה",
+      "3ds": "דורש אימות 3-D Secure"
+    },
+    "backToCheckout": "חזרה לקופה",
+    "alreadyPaid": "ההזמנה כבר שולמה. מעבירים אותך לדף ההזמנה…",
+    "notPayable": "ההזמנה הזו כבר לא ממתינה לתשלום.",
+    "viewOrder": "לדף ההזמנה",
+    "success": "התשלום אושר! מעבירים אותך לדף ההזמנה…",
+    "summaryLabel": "אמצעי תשלום",
+    "summary": {
+      "card": "{brand, select, visa {ויזה} mastercard {מאסטרקארד} amex {אמריקן אקספרס} isracard {ישראכרט} diners {דיינרס} other {כרטיס}} •••• {last4}",
+      "cardInstallments": "{brand, select, visa {ויזה} mastercard {מאסטרקארד} amex {אמריקן אקספרס} isracard {ישראכרט} diners {דיינרס} other {כרטיס}} •••• {last4} · {installments} תשלומים",
+      "bit": "Bit",
+      "applePay": "Apple Pay"
+    },
+    "admin": {
+      "title": "תשלום",
+      "method": "אמצעי תשלום",
+      "notRecorded": "לא נרשם",
+      "reference": "אסמכתה",
+      "attempts": "ניסיונות חיוב",
+      "noAttempts": "אין ניסיונות חיוב",
+      "loadFailed": "לא הצלחנו לטעון את פרטי התשלום",
+      "status": {
+        "PENDING": "בתהליך",
+        "SUCCEEDED": "הצליח",
+        "FAILED": "נכשל"
+      },
+      "error": {
+        "card_declined": "כרטיס נדחה",
+        "insufficient_funds": "אין מספיק יתרה",
+        "provider_error": "שגיאת ספק סליקה",
+        "declined": "נדחה"
+      }
     }
   }
 }

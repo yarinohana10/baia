@@ -7,7 +7,11 @@ import type { EmailMessage, EmailTransport } from '../email.types';
 export class ConsoleEmailTransport implements EmailTransport {
   readonly name = 'console';
 
+  /** `quiet` (used under NODE_ENV=test) drops even the one-line log. */
+  constructor(private readonly options: { quiet?: boolean } = {}) {}
+
   async send(message: EmailMessage & { from: string }): Promise<void> {
+    if (this.options.quiet) return;
     console.log(`[email:console] to=${message.to} subject="${message.subject}" (no SMTP configured; message not delivered)`);
   }
 }

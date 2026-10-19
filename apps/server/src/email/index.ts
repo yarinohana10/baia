@@ -5,10 +5,13 @@ export {
   normalizeLocale,
   createEmailServiceFromEnv,
   createEmailTransportFromEnv,
+  isTransientEmailError,
+  retryDelaysFromEnv,
 } from './email.service';
-export type { SendTemplateOptions } from './email.service';
+export type { SendTemplateOptions, SendResult, EmailServiceOptions } from './email.service';
 export { EmailModule } from './email.module';
-export { renderTemplate, templates } from './templates';
+export { PrismaEmailStore, defaultBranding, mergeBranding } from './email-store';
+export { renderTemplate, templates, TEMPLATE_REASONS, isCustomerFacing } from './templates';
 export type { EmailTemplateData, EmailTemplateName, EmailTemplate } from './templates';
 export { SmtpEmailTransport } from './transports/smtp.transport';
 export { ConsoleEmailTransport, MemoryEmailTransport } from './transports/console.transport';

@@ -115,7 +115,7 @@ export async function createTestApp(): Promise<TestApp> {
 export async function resetDb(prisma: PrismaService) {
   RateLimitGuard.reset();
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE cancellation_requests, contact_messages, newsletter_subscribers, pickup_points, site_config, addresses, payment_attempts, order_items, orders, cart_items, carts, wishlists, product_images, product_variants, products, categories, coupons, sessions, accounts, verifications, users RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE email_logs, cancellation_requests, contact_messages, newsletter_subscribers, pickup_points, site_config, addresses, payment_attempts, order_items, orders, cart_items, carts, wishlists, product_images, product_variants, products, categories, coupons, sessions, accounts, verifications, users RESTART IDENTITY CASCADE',
   );
 }
 

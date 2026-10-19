@@ -1,19 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
 import { useSession } from '@/lib/auth-client';
 import { formatPrice } from '@/lib/catalog/pricing';
-import { errorCode, shopErrorMessage, type ErrorMessage } from '@/lib/shop-errors';
 import { etaFor, useCartStore } from '@/store/cart';
 import { formatEta, isClosed, trackingUrl, type CustomerOrder, type OrderItem } from '@/lib/orders';
+import { releaseOrderToken, takeOrderToken } from '@/lib/order-token';
+import { PaymentMethodLine } from '@/components/storefront/orders/PaymentMethodLine';
 import { OrderTimeline } from '@/components/storefront/orders/OrderTimeline';
 import { OrderCancellation } from '@/components/storefront/orders/OrderCancellation';
 import {
-  AlertTriangle,
   CheckCircle2,
   Clock,
   CreditCard,
@@ -26,21 +26,6 @@ import {
 } from 'lucide-react';
 
 type Order = CustomerOrder;
-
-// Held in memory only until the exchange succeeds (survives StrictMode's
-// double effect run, which would otherwise see the already-stripped hash).
-const tokenInFlight = new Map<string, string>();
-
-/** Reads `#token=...` and removes it from the address bar (and history). */
-function takeToken(orderId: string): string | null {
-  if (typeof window === 'undefined') return null;
-  const token = new URLSearchParams(window.location.hash.slice(1)).get('token');
-  if (token) {
-    tokenInFlight.set(orderId, token);
-    window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
-  }
-  return tokenInFlight.get(orderId) ?? null;
-}
 
 /**
  * Access rules are enforced by the API (owner session, guest token, or admin;
@@ -56,16 +41,13 @@ export default function OrderConfirmationPage() {
   const tDelivery = useTranslations('delivery');
   const { shipping, fetchShipping } = useCartStore();
   const tOrders = useTranslations('orders');
-  const tErrors = useTranslations('checkout.errors');
   const locale = useLocale();
   const { data: session } = useSession();
   const [order, setOrder] = useState<Order | null>(null);
   const [notFound, setNotFound] = useState(false);
-  // The guest token from the fragment, kept in memory for this page view only:
-  // the exchanged cookie is scoped to /orders/:id, so paying needs the header.
+  // The guest token from the fragment, kept in memory for this page view only
+  // (cancellation sends it as a header; the payment page gets it in its fragment).
   const [guestToken, setGuestToken] = useState<string | null>(null);
-  const [paying, setPaying] = useState(false);
-  const [payError, setPayError] = useState<ErrorMessage | null>(null);
 
   useEffect(() => {
     fetchShipping();
@@ -73,10 +55,10 @@ export default function OrderConfirmationPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const token = takeToken(id);
+    const token = takeOrderToken(id);
     if (token) setGuestToken(token);
     const request = token
-      ? api.post(`/orders/${encodeURIComponent(id)}/access`, { token }).finally(() => tokenInFlight.delete(id))
+      ? api.post(`/orders/${encodeURIComponent(id)}/access`, { token }).finally(() => releaseOrderToken(id))
       : api.get(`/orders/${encodeURIComponent(id)}`);
     request
       .then((res) => !cancelled && setOrder(res.data))
@@ -85,37 +67,6 @@ export default function OrderConfirmationPage() {
       cancelled = true;
     };
   }, [id]);
-
-  const reload = useCallback(async () => {
-    try {
-      const res = await api.get(`/orders/${encodeURIComponent(id)}`);
-      setOrder(res.data);
-    } catch {
-      // Keep showing what we have; the error banner explains what happened.
-    }
-  }, [id]);
-
-  // Same endpoint the checkout uses; the server computes the amount from the order.
-  const completePayment = async () => {
-    if (paying) return;
-    setPaying(true);
-    setPayError(null);
-    try {
-      // Under /orders/:id so the guest's order cookie is sent after a refresh.
-      await api.post(
-        `/orders/${encodeURIComponent(id)}/pay`,
-        {},
-        guestToken ? { headers: { 'X-Order-Token': guestToken } } : undefined,
-      );
-      await reload();
-    } catch (err) {
-      setPayError(shopErrorMessage(err, locale));
-      // e.g. ORDER_NOT_PAYABLE: the order was cancelled meanwhile — show its real status.
-      if (errorCode(err)) await reload();
-    } finally {
-      setPaying(false);
-    }
-  };
 
   if (notFound) {
     return (
@@ -283,6 +234,8 @@ export default function OrderConfirmationPage() {
           ))}
         </div>
 
+        <PaymentMethodLine order={order} className="border-t border-gray-100 pt-4 text-sm" />
+
         <div className="border-t border-gray-100 pt-4 space-y-1 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-400">{t('subtotal')}</span>
@@ -327,26 +280,15 @@ export default function OrderConfirmationPage() {
         </div>
       )}
 
-      {payError && (
-        <div
-          role="alert"
-          className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6 flex items-center gap-2 rounded-lg"
-        >
-          <AlertTriangle size={14} className="shrink-0" /> {tErrors(payError.key, payError.values)}
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center justify-center gap-4">
         {canPay && (
-          <button
-            type="button"
-            onClick={completePayment}
-            disabled={paying}
-            aria-busy={paying}
-            className="flex items-center gap-2 px-6 py-2.5 text-sm bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          // The payment page reuses the token (guests) or the order cookie / session.
+          <Link
+            href={`/checkout/payment/${id}${guestToken ? `#token=${guestToken}` : ''}`}
+            className="flex items-center gap-2 px-6 py-2.5 text-sm bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 transition-colors"
           >
-            <CreditCard size={14} /> {paying ? tOrders('paying') : tOrders('completePayment')}
-          </button>
+            <CreditCard size={14} /> {tOrders('completePayment')}
+          </Link>
         )}
         <Link
           href="/"

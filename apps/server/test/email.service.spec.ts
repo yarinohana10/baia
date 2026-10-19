@@ -6,13 +6,13 @@ import { SmtpEmailTransport } from '../src/email/transports/smtp.transport';
 describe('EmailService', () => {
   it('renders Hebrew templates right-to-left and English left-to-right', () => {
     const he = renderTemplate('reset-password', { name: 'דנה', url: 'https://x/he/reset?token=t', expiresInMinutes: 60 }, 'he');
-    expect(he.html).toContain('<html lang="he" dir="rtl">');
+    expect(he.html).toContain('<html lang="he" dir="rtl"');
     expect(he.html).toContain('text-align:right');
     expect(he.html).toContain('שלום דנה,');
     expect(he.text).toContain('https://x/he/reset?token=t');
 
     const en = renderTemplate('welcome', { name: 'Dana', shopUrl: 'https://x/en' }, 'en');
-    expect(en.html).toContain('<html lang="en" dir="ltr">');
+    expect(en.html).toContain('<html lang="en" dir="ltr"');
     expect(en.subject).toBe('Welcome to BAIA');
   });
 

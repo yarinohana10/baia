@@ -310,6 +310,143 @@
       "refundOnCancel": "Refund {amount} through the payment provider",
       "confirmCancelRefund": "Cancel the order and refund {amount}? Items go back to stock and the customer is emailed.",
       "refundFailed": "Order {number} was cancelled, but the automatic refund failed - refund it manually."
+    },
+    "orderEmails": {
+      "title": "Emails sent",
+      "loadFailed": "Couldn't load the email list.",
+      "empty": "No emails have been sent about this order yet.",
+      "sent": "Sent",
+      "failed": "Failed",
+      "attempts": "{count} attempts",
+      "errorLabel": "Error: {error}",
+      "resend": "Resend order confirmation",
+      "resending": "Sending…",
+      "confirmResend": "Send the order confirmation to {email} again?",
+      "resent": "Order confirmation sent again to {email}.",
+      "resendFailed": "Sending failed. Try again in a few minutes.",
+      "resendNotAllowed": "Only paid orders can get an order confirmation.",
+      "templates": {
+        "order-confirmation": "Order confirmation",
+        "order-shipped": "Order shipped",
+        "order-delivered": "Order delivered",
+        "order-cancelled": "Order cancelled",
+        "cancellation-request-received": "Cancellation request received",
+        "cancellation-request-rejected": "Cancellation request rejected",
+        "admin-new-order": "Store alert: new order",
+        "admin-cancellation-request": "Store alert: cancellation request",
+        "admin-order-self-cancelled": "Store alert: self-service cancellation"
+      }
+    }
+  },
+  "payment": {
+    "title": "Secure payment",
+    "orderLabel": "Order",
+    "loading": "Loading the payment page…",
+    "testBanner": "Test environment — no real charge is made",
+    "testBannerHint": "This is a simulated payment page. Do not enter real card details.",
+    "secureNote": "Card details are never stored by the shop; they go straight to the payment processor.",
+    "amountDue": "Amount due",
+    "orderSummary": "Order summary",
+    "items": "{count, plural, one {1 item} other {# items}}",
+    "methodsLabel": "Payment method",
+    "methods": {
+      "card": "Credit card",
+      "bit": "Bit",
+      "apple_pay": "Apple Pay"
+    },
+    "card": {
+      "number": "Card number",
+      "expiry": "Expiry",
+      "expiryPlaceholder": "MM/YY",
+      "cvv": "CVV",
+      "cvvHint": "3 digits on the back (4 on the front of American Express cards)",
+      "holderId": "Cardholder ID number",
+      "installments": "Installments",
+      "singlePayment": "Single payment",
+      "installmentOption": "{count, plural, one {Single payment} other {# installments ({amount}/month)}}",
+      "installmentsFrom": "Installments are available on orders over {min}",
+      "brand": "{brand, select, visa {Visa} mastercard {Mastercard} amex {American Express} isracard {Isracard} diners {Diners} other {Card}}"
+    },
+    "errors": {
+      "numberRequired": "Enter the card number",
+      "numberInvalid": "The card number is not valid",
+      "expiryRequired": "Enter the expiry date",
+      "expiryInvalid": "The expiry date is invalid or has passed",
+      "cvvInvalid": "Enter {length} digits",
+      "idRequired": "Enter the ID number",
+      "idInvalid": "The ID number is not valid",
+      "phoneInvalid": "Enter a valid mobile number, e.g. 050-1234567",
+      "fixFields": "Please fix the highlighted fields",
+      "card_declined": "Your card was declined. Try another card or payment method.",
+      "insufficient_funds": "Insufficient funds. Try another card or payment method.",
+      "provider_error": "The payment processor is unavailable right now. Please try again shortly.",
+      "declined": "The payment was declined. Try again with another payment method.",
+      "inProgress": "This payment is already being processed. Wait a moment and refresh the page.",
+      "threeDsCode": "Wrong verification code. Try again.",
+      "keptOrder": "Your order is saved and the items are reserved for a limited time."
+    },
+    "pay": "Pay {amount}",
+    "processing": "Processing payment…",
+    "bit": {
+      "phone": "Mobile number linked to Bit",
+      "intro": "We'll send a payment request to the Bit app on your phone.",
+      "submit": "Send Bit payment request",
+      "waiting": "Waiting for approval in the app…",
+      "waitingHint": "Open the Bit app and approve the payment."
+    },
+    "applePay": {
+      "intro": "Pay quickly with the card saved in Apple Wallet.",
+      "button": "Pay with Apple Pay"
+    },
+    "threeDs": {
+      "title": "3-D Secure verification",
+      "body": "Your bank wants to verify this transaction. Enter the code sent to you by SMS.",
+      "code": "Verification code",
+      "testHint": "In the test environment the code is 123456",
+      "submit": "Verify",
+      "cancel": "Cancel"
+    },
+    "testCards": {
+      "title": "Test cards",
+      "hint": "Expiry: any future date · CVV: any 3 digits · ID: 000000018",
+      "use": "Fill",
+      "useCard": "Fill test card {number}",
+      "success": "Approved",
+      "decline": "Declined",
+      "insufficient_funds": "Insufficient funds",
+      "3ds": "Requires 3-D Secure"
+    },
+    "backToCheckout": "Back to checkout",
+    "alreadyPaid": "This order is already paid. Taking you to the order page…",
+    "notPayable": "This order is no longer awaiting payment.",
+    "viewOrder": "View order",
+    "success": "Payment approved! Taking you to the order page…",
+    "summaryLabel": "Payment method",
+    "summary": {
+      "card": "{brand, select, visa {Visa} mastercard {Mastercard} amex {American Express} isracard {Isracard} diners {Diners} other {Card}} •••• {last4}",
+      "cardInstallments": "{brand, select, visa {Visa} mastercard {Mastercard} amex {American Express} isracard {Isracard} diners {Diners} other {Card}} •••• {last4} · {installments} installments",
+      "bit": "Bit",
+      "applePay": "Apple Pay"
+    },
+    "admin": {
+      "title": "Payment",
+      "method": "Payment method",
+      "notRecorded": "Not recorded",
+      "reference": "Reference",
+      "attempts": "Charge attempts",
+      "noAttempts": "No charge attempts",
+      "loadFailed": "Could not load payment details",
+      "status": {
+        "PENDING": "In progress",
+        "SUCCEEDED": "Succeeded",
+        "FAILED": "Failed"
+      },
+      "error": {
+        "card_declined": "Card declined",
+        "insufficient_funds": "Insufficient funds",
+        "provider_error": "Payment provider error",
+        "declined": "Declined"
+      }
     }
   }
 }

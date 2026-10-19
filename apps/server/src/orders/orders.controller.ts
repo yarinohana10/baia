@@ -31,6 +31,7 @@ import {
   UpdateOrderStatusDto,
 } from './dto/order.dto';
 import { allowedTransitions } from './order-status';
+import { OrderMailer } from './order-mailer';
 import type { OrderStatus } from '../generated/prisma';
 import {
   ORDER_ACCESS_COOKIE_MAX_AGE_MS,
@@ -45,7 +46,10 @@ const MINUTE = 60_000;
 @UseGuards(RateLimitGuard)
 @UsePipes(strictValidationPipe)
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly orderMailer: OrderMailer,
+  ) {}
 
   @Post('orders')
   @RateLimit({ limit: 10, windowMs: MINUTE })
@@ -212,6 +216,25 @@ export class OrdersController {
   @Roles('ADMIN')
   async findById(@Param('id') id: string) {
     return withTransitions(await this.ordersService.findForAdmin(id));
+  }
+
+  /** Emails sent about this order (EmailLog), newest first. */
+  @Get('admin/orders/:id/emails')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  @Header('Cache-Control', 'no-store')
+  emails(@Param('id') id: string) {
+    return this.orderMailer.emailLogs(id);
+  }
+
+  /** Re-sends the customer's order confirmation (paid orders only; 409 otherwise). */
+  @Post('admin/orders/:id/resend-confirmation')
+  @HttpCode(200)
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  @RateLimit({ limit: 10, windowMs: MINUTE })
+  async resendConfirmation(@Param('id') id: string) {
+    return this.orderMailer.resendConfirmation(id);
   }
 
   /** Status change. SHIPPED / DELIVERED / CANCELLED / REFUNDED email the customer. */

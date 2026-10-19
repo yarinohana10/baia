@@ -9,6 +9,7 @@ import { Package, ChevronRight, AlertTriangle, MapPin, Home, ExternalLink } from
 import { trackingUrl, type CustomerOrder } from '@/lib/orders';
 import { OrderTimeline } from '@/components/storefront/orders/OrderTimeline';
 import { OrderCancellation } from '@/components/storefront/orders/OrderCancellation';
+import { PaymentMethodLine } from '@/components/storefront/orders/PaymentMethodLine';
 
 const statusColors: Record<string, string> = {
   PENDING_PAYMENT: 'bg-yellow-50 text-yellow-600',
@@ -157,6 +158,7 @@ export default function MyOrdersPage() {
                           ? `${tDelivery('pickup')}${order.pickupPointName ? ` · ${order.pickupPointName}` : ''}`
                           : `${tDelivery('courier')} · ${order.shippingCity}`}
                       </span>
+                      <PaymentMethodLine order={order} compact />
                       {order.trackingNumber && (
                         <span className="flex items-center gap-1">
                           {tPage('trackingShort')}: <span dir="ltr" className="font-mono">{order.trackingNumber}</span>

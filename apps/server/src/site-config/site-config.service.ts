@@ -4,6 +4,7 @@ import { StorageService, STORAGE_SERVICE } from '../storage/storage.interface';
 import { randomUUID } from 'crypto';
 import { Prisma } from '../generated/prisma';
 import { UpdateSiteConfigDto } from './dto/update-site-config.dto';
+import { emailService } from '../email/email.service';
 
 @Injectable()
 export class SiteConfigService {
@@ -71,10 +72,13 @@ export class SiteConfigService {
     }
 
     await this.ensureRow();
-    return this.prisma.siteConfig.update({
+    const updated = await this.prisma.siteConfig.update({
       where: { id: 'default' },
       data: updateData,
     });
+    // Email footers carry the business details; drop the cached copy.
+    emailService.invalidateBranding();
+    return updated;
   }
 
   async uploadHeroImage(

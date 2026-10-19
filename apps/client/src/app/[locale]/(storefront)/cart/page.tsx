@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import {
+  canDecrease,
   canIncrease,
   cartSubtotal,
   decreasedQuantity,
@@ -111,7 +112,7 @@ export default function CartPage() {
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.id, decreasedQuantity(item))}
-                          disabled={busy}
+                          disabled={busy || !canDecrease(item)}
                           aria-label={t('decreaseQuantity')}
                           className="px-2 py-1 text-gray-500 hover:text-ocean-600 disabled:text-gray-300"
                         >

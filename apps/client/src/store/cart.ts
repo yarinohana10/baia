@@ -55,6 +55,11 @@ export function decreasedQuantity(item: CartItem): number {
   return item.quantity - 1;
 }
 
+/** "−" stops at 1 (removing is the trash button's job), unless the line has a stock issue to fix. */
+export function canDecrease(item: CartItem): boolean {
+  return !!lineIssue(item) || item.quantity > 1;
+}
+
 export function canIncrease(item: CartItem): boolean {
   return !lineIssue(item) && item.quantity < availableQty(item.variant);
 }
