@@ -41,12 +41,14 @@ export async function getCategory(slug: string): Promise<Category | null> {
 
 export function getProducts(params: {
   categoryId?: string;
+  search?: string;
   page?: number;
   limit?: number;
   sort?: SortOption;
 } = {}): Promise<ProductList> {
   const qs = new URLSearchParams();
   if (params.categoryId) qs.set('categoryId', params.categoryId);
+  if (params.search) qs.set('search', params.search);
   qs.set('page', String(params.page ?? 1));
   qs.set('limit', String(params.limit ?? 12));
   qs.set('sort', params.sort ?? 'newest');

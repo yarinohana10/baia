@@ -50,7 +50,7 @@ export class ProductsController {
   ) {
     return this.productsService.findAll({
       categoryId,
-      search,
+      search: search?.trim().slice(0, 100) || undefined,
       page: clampInt(page, 1, 1, MAX_PAGE),
       limit: clampInt(limit, PUBLIC_PAGE_LIMIT.default, 1, PUBLIC_PAGE_LIMIT.max),
       sort,

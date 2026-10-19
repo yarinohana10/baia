@@ -36,9 +36,9 @@ const navItems = [
   { href: '/admin/categories', labelKey: 'categories', icon: FolderTree },
   { href: '/admin/products', labelKey: 'products', icon: Package },
   { href: '/admin/orders', labelKey: 'orders', icon: ShoppingBag },
+  { href: '/admin/customers', labelKey: 'customers', icon: Users },
   { href: '/admin/coupons', labelKey: 'coupons', icon: Tags },
   { href: '/admin/settings', labelKey: 'settings', icon: Settings },
-  { href: '/admin/customers', labelKey: 'customers', icon: Users, future: true },
 ];
 
 export function AdminShell({
@@ -133,21 +133,6 @@ export function AdminShell({
             const isActive = item.exact
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-            if (item.future) {
-              return (
-                <span
-                  key={item.href}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 font-body text-sm text-muted-foreground/50 cursor-not-allowed"
-                >
-                  <item.icon size={18} />
-                  {t(`nav.${item.labelKey}`)}
-                  <span className="ms-auto rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {t('nav.soon')}
-                  </span>
-                </span>
-              );
-            }
 
             return (
               <Link

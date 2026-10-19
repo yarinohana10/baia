@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useSession, signOut } from '@/lib/auth-client';
-import { ShoppingBag, User, Menu, X, LogOut, Shield } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, LogOut, Shield, Search } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { Wordmark } from './Wordmark';
+import { SearchForm } from './SearchForm';
 
 export type NavItem = { label: string; href: string };
 
@@ -47,19 +48,27 @@ export function Header({ nav }: { nav: NavItem[] }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const cartCount = useCartStore((s) => s.itemCount());
   const openDrawer = useCartStore((s) => s.openDrawer);
   const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'ADMIN';
 
-  // Close the mobile menu on navigation and on Escape.
-  useEffect(() => setMenuOpen(false), [pathname]);
+  // Close the mobile menu and search panel on navigation and on Escape.
   useEffect(() => {
-    if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    setMenuOpen(false);
+    setSearchOpen(false);
+  }, [pathname]);
+  useEffect(() => {
+    if (!menuOpen && !searchOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setMenuOpen(false);
+      setSearchOpen(false);
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [menuOpen]);
+  }, [menuOpen, searchOpen]);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -83,7 +92,10 @@ export function Header({ nav }: { nav: NavItem[] }) {
             <button
               type="button"
               className={`${iconButton} -ms-2 lg:hidden`}
-              onClick={() => setMenuOpen((o) => !o)}
+              onClick={() => {
+                setMenuOpen((o) => !o);
+                setSearchOpen(false);
+              }}
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               aria-label={menuOpen ? ts('closeMenu') : ts('menu')}
@@ -115,7 +127,21 @@ export function Header({ nav }: { nav: NavItem[] }) {
 
           {/* End: actions */}
           <div className="flex items-center justify-end gap-0.5 sm:gap-1">
-            <LocaleSwitcher className={`${iconButton} hidden text-[13px] font-bold sm:inline-flex`} />
+            <button
+              type="button"
+              onClick={() => {
+                setSearchOpen((o) => !o);
+                setMenuOpen(false);
+              }}
+              className={iconButton}
+              aria-expanded={searchOpen}
+              aria-controls="header-search"
+              aria-label={searchOpen ? ts('search.close') : ts('search.open')}
+            >
+              {searchOpen ? <X size={20} strokeWidth={1.6} /> : <Search size={20} strokeWidth={1.6} />}
+            </button>
+
+            <LocaleSwitcher className={`${iconButton} text-[13px] font-bold max-sm:hidden`} />
 
             {session?.user ? (
               <>
@@ -125,7 +151,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className={`${iconButton} hidden sm:inline-flex`}
+                  className={`${iconButton} max-sm:hidden`}
                   aria-label={t('signOut')}
                 >
                   <LogOut size={18} strokeWidth={1.6} />
@@ -138,7 +164,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
             )}
 
             {isAdmin && (
-              <Link href="/admin" className={`${iconButton} hidden sm:inline-flex`} aria-label={t('adminPanel')}>
+              <Link href="/admin" className={`${iconButton} max-sm:hidden`} aria-label={t('adminPanel')}>
                 <Shield size={19} strokeWidth={1.6} />
               </Link>
             )}
@@ -154,6 +180,18 @@ export function Header({ nav }: { nav: NavItem[] }) {
           </div>
         </div>
       </div>
+
+      {/* Search panel */}
+      {searchOpen && (
+        <div
+          id="header-search"
+          className="absolute inset-x-0 top-full border-b border-header-line bg-shell shadow-[0_24px_48px_-24px_rgba(15,42,54,0.25)]"
+        >
+          <div className="container-header py-4 lg:py-6">
+            <SearchForm autoFocus onSubmitted={() => setSearchOpen(false)} className="mx-auto max-w-2xl" />
+          </div>
+        </div>
+      )}
 
       {/* Mobile menu */}
       <div
