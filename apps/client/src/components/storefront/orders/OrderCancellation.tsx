@@ -9,6 +9,12 @@ import { PHONE_PATTERN } from '@/lib/addresses';
 import { CANCELLATION_REASONS, type CancellationReason, type CustomerOrder } from '@/lib/orders';
 import { cn } from '@/lib/utils';
 
+/** Built once, in the store's time zone, so server and browser render the same date. */
+const REQUEST_DATE_FORMAT = {
+  he: new Intl.DateTimeFormat('he-IL', { dateStyle: 'short', timeZone: 'Asia/Jerusalem' }),
+  en: new Intl.DateTimeFormat('en-IL', { dateStyle: 'short', timeZone: 'Asia/Jerusalem' }),
+};
+
 type Mode = 'cancel' | 'request';
 
 const fieldClass =
@@ -23,6 +29,8 @@ export function formatDeadline(iso: string, locale: string): string {
     month: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    // The 48-hour window is the store's clock, so show it in Israel time.
+    timeZone: 'Asia/Jerusalem',
   }).format(new Date(iso));
 }
 
@@ -69,9 +77,7 @@ export function OrderCancellation({
         <Info size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
         <span>
           {t('openRequest', {
-            date: new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-IL', { dateStyle: 'short' }).format(
-              new Date(openRequest.createdAt),
-            ),
+            date: REQUEST_DATE_FORMAT[locale === 'he' ? 'he' : 'en'].format(new Date(openRequest.createdAt)),
           })}
         </span>
       </div>
@@ -175,7 +181,25 @@ function CancellationDialog({
     const previous = document.activeElement as HTMLElement | null;
     dialogRef.current?.querySelector<HTMLElement>('select, textarea, input, button')?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      // Keep Tab inside the dialog while it is open.
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>('button, select, textarea, input, a[href]'),
+      ).filter((el) => !el.hasAttribute('disabled'));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => {
@@ -209,6 +233,7 @@ function CancellationDialog({
 
   return (
     <div
+      role="presentation"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
