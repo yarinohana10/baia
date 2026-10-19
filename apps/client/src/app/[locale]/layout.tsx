@@ -67,7 +67,7 @@ export async function generateMetadata({
       type: 'website',
       siteName: SITE_NAME,
       locale: ogLocale(locale),
-      alternateLocale: routing.locales.filter((l) => l !== locale).map(ogLocale),
+      alternateLocale: routing.locales.flatMap((l) => (l === locale ? [] : [ogLocale(l)])),
     },
     twitter: { card: 'summary_large_image' },
     robots: { index: true, follow: true },

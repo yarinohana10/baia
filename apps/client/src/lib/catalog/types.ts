@@ -13,7 +13,16 @@ export type Variant = {
   saleEnd: string | null;
 };
 
-export type ProductImage = { id?: string; url: string; color?: string | null };
+export type ProductImage = {
+  id?: string;
+  url: string;
+  color?: string | null;
+  altText?: string | null;
+  altTextHe?: string | null;
+  altTextEn?: string | null;
+};
+
+export type SizeSetRef = { id: string; key: string; nameHe: string; nameEn: string; sizes: string[] };
 
 export type CategoryRef = {
   id: string;
@@ -30,9 +39,20 @@ export type Product = {
   nameEn: string;
   descriptionHe?: string | null;
   descriptionEn?: string | null;
+  /** Product-page content (optional, bilingual). */
+  fabricHe?: string | null;
+  fabricEn?: string | null;
+  careHe?: string | null;
+  careEn?: string | null;
+  fitHe?: string | null;
+  fitEn?: string | null;
   slug: string;
   basePrice: string;
   isFeatured?: boolean;
+  isActive?: boolean;
+  categoryId?: string;
+  sizeSetId?: string | null;
+  sizeSet?: SizeSetRef | null;
   createdAt?: string;
   updatedAt?: string;
   category?: CategoryRef;
@@ -63,6 +83,31 @@ export type SiteConfig = {
   heroSubtitleHe: string | null;
   heroSubtitleEn: string | null;
   heroCtaUrl: string | null;
+  /** Delivery: shippingCost is the courier price. */
+  pickupPointCost: string | null;
+  courierEtaDays: string;
+  pickupEtaDays: string;
+  /** Business details for the footer and legal pages (placeholders until registered). */
+  businessName: string;
+  companyId: string;
+  businessAddress: string;
+  businessPhone: string;
+  contactEmail: string;
+  /** Digits in international format; null hides the WhatsApp button. */
+  whatsappNumber: string | null;
+  accessibilityCoordinatorName: string;
+  accessibilityCoordinatorPhone: string;
+  accessibilityCoordinatorEmail: string;
+  /** Hours after payment in which a customer can cancel instantly. */
+  selfCancelWindowHours: number;
+};
+
+/** Filter options for a listing scope (`GET /products/facets`). */
+export type Facets = {
+  /** Sizes that are in stock right now, in size-set order. */
+  sizes: { value: string; count: number }[];
+  colors: { value: string; count: number }[];
+  price: { min: number | null; max: number | null };
 };
 
 export type SortOption = 'newest' | 'price-asc' | 'price-desc';

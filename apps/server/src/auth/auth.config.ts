@@ -1,15 +1,10 @@
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import type { EmailService } from '../email/email.service';
+import { PLACEHOLDER_SECRETS } from '../config/env';
 import { DEFAULT_EMAIL_LOCALE, EMAIL_LOCALES, type EmailLocale } from '../email/email.types';
 
 const DEV_SECRET = 'baia-dev-secret-not-for-production';
-const KNOWN_PLACEHOLDER_SECRETS = new Set([
-  'baia-dev-secret',
-  DEV_SECRET,
-  'change-me-to-a-random-secret',
-  'generate-a-random-secret-here',
-  'docker-dev-secret-change-me-in-production',
-]);
+const KNOWN_PLACEHOLDER_SECRETS = PLACEHOLDER_SECRETS;
 
 /** Token lifetimes, in seconds. */
 export const VERIFY_EMAIL_EXPIRES_IN = 24 * 60 * 60;
@@ -77,6 +72,16 @@ export function resolveRequestLocale(request?: Request | null, urlWithCallback?:
   return fromReferer ?? DEFAULT_EMAIL_LOCALE;
 }
 
+/** True when better-auth is sending the verification email as part of email/password sign-up. */
+export function isSignUpRequest(request?: Request | null): boolean {
+  if (!request?.url) return false;
+  try {
+    return new URL(request.url).pathname.endsWith('/sign-up/email');
+  } catch {
+    return false;
+  }
+}
+
 function parseList(value: string | undefined): string[] {
   return (value || '')
     .split(',')
@@ -139,25 +144,31 @@ export function createAuth({ database, email, env = process.env }: CreateAuthOpt
       expiresIn: VERIFY_EMAIL_EXPIRES_IN,
       sendVerificationEmail: async ({ user, url, token }, request) => {
         const locale = resolveRequestLocale(request, url);
+        const verifyUrl = `${clientUrl}/${locale}/verify-email?token=${encodeURIComponent(token)}`;
+        const expiresInHours = VERIFY_EMAIL_EXPIRES_IN / 3600;
+        // Sign-up gets ONE warm welcome that carries the verify button; resends
+        // (from the account banner) get the plain verification email.
+        if (isSignUpRequest(request)) {
+          void email.dispatch('welcome-verify', {
+            to: user.email,
+            locale,
+            data: { name: user.name, url: verifyUrl, expiresInHours, shopUrl: `${clientUrl}/${locale}` },
+          });
+          return;
+        }
         void email.dispatch('verify-email', {
           to: user.email,
           locale,
-          data: {
-            name: user.name,
-            url: `${clientUrl}/${locale}/verify-email?token=${encodeURIComponent(token)}`,
-            expiresInHours: VERIFY_EMAIL_EXPIRES_IN / 3600,
-          },
+          data: { name: user.name, url: verifyUrl, expiresInHours },
         });
       },
-      afterEmailVerification: async (user, request) => {
-        void welcome(user, resolveRequestLocale(request));
-      },
+      // No afterEmailVerification welcome: the sign-up email already welcomed them.
     },
     databaseHooks: {
       user: {
         create: {
-          // Social sign-ups arrive already verified, so they never hit
-          // afterEmailVerification - welcome them on creation instead.
+          // Social sign-ups arrive already verified and never get the
+          // welcome-verify email - welcome them on creation instead.
           after: async (user, ctx) => {
             if (user.emailVerified) void welcome(user, resolveRequestLocale(ctx?.request));
           },
@@ -200,6 +211,13 @@ export function createAuth({ database, email, env = process.env }: CreateAuthOpt
       },
     },
     advanced: {
+      // Client IP for rate limiting comes from X-Forwarded-For (set by Railway's
+      // edge and passed through by the storefront proxy). A single-value header
+      // is used as is; list proxy IPs/CIDRs in AUTH_TRUSTED_PROXIES if a chain
+      // of proxies appends to it.
+      ...(parseList(env.AUTH_TRUSTED_PROXIES).length
+        ? { ipAddress: { trustedProxies: parseList(env.AUTH_TRUSTED_PROXIES) } }
+        : {}),
       cookiePrefix: env.AUTH_COOKIE_PREFIX || 'baia',
       // In production cookies get the `__Secure-` prefix and the Secure flag.
       useSecureCookies: isProduction,

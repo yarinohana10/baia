@@ -5,28 +5,27 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
+import { Link } from '@/i18n/navigation';
 import { revalidateCatalog } from '@/lib/catalog/revalidate';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { BusinessDetailsCard } from '@/components/admin/BusinessDetailsCard';
 import { Save, Upload, Image as ImageIcon, Truck, Info } from 'lucide-react';
 
 type ApiFieldError = { field: string; code: string };
 
 /** Turns the API's field errors into a specific, translated message key. */
-function saveErrorKey(err: unknown): 'invalidCtaUrl' | 'invalidAmount' | 'textTooLong' | 'saveFailed' {
+function saveErrorKey(err: unknown): 'invalidCtaUrl' | 'textTooLong' | 'saveFailed' {
   const errors: ApiFieldError[] = (isAxiosError(err) && err.response?.data?.errors) || [];
   if (errors.some((e) => e.field === 'heroCtaUrl' && e.code !== 'maxLength')) return 'invalidCtaUrl';
-  if (errors.some((e) => e.field === 'shippingCost' || e.field === 'freeShippingThreshold')) return 'invalidAmount';
   if (errors.some((e) => e.code === 'maxLength')) return 'textTooLong';
   return 'saveFailed';
 }
 
 type SiteConfig = {
   id: string;
-  shippingCost: number;
-  freeShippingThreshold: number;
   heroImageUrl: string | null;
   heroTitleHe: string | null;
   heroTitleEn: string | null;
@@ -45,22 +44,22 @@ export default function SettingsPage() {
   const heroFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Ignore the response if the page was left before it arrived.
+    let cancelled = false;
     async function fetchConfig() {
       try {
         const res = await api.get('/admin/site-config');
-        const data = res.data;
-        setConfig({
-          ...data,
-          shippingCost: Number(data.shippingCost),
-          freeShippingThreshold: Number(data.freeShippingThreshold),
-        });
+        if (!cancelled) setConfig(res.data);
       } catch {
-        setMessage({ type: 'error', text: t('loadFailed') });
+        if (!cancelled) setMessage({ type: 'error', text: t('loadFailed') });
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     fetchConfig();
+    return () => {
+      cancelled = true;
+    };
   }, [t]);
 
   async function handleSave() {
@@ -69,8 +68,6 @@ export default function SettingsPage() {
     setMessage(null);
     try {
       await api.put('/admin/site-config', {
-        shippingCost: config.shippingCost,
-        freeShippingThreshold: config.freeShippingThreshold,
         heroTitleHe: config.heroTitleHe,
         heroTitleEn: config.heroTitleEn,
         heroSubtitleHe: config.heroSubtitleHe,
@@ -160,7 +157,10 @@ export default function SettingsPage() {
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Shipping Configuration */}
+        {/* Business details (footer, contact and legal pages) - saved on its own. */}
+        <BusinessDetailsCard />
+
+        {/* Delivery prices and pickup points live on their own page. */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -168,44 +168,11 @@ export default function SettingsPage() {
               <CardTitle className="font-serif text-xl">{t('shipping')}</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="shippingCost" className="text-xs uppercase tracking-wide text-muted-foreground">
-                {t('shippingCost')}
-              </Label>
-              <Input
-                id="shippingCost"
-                type="number"
-                min="0"
-                step="0.01"
-                value={config.shippingCost}
-                onChange={(e) =>
-                  setConfig({ ...config, shippingCost: parseFloat(e.target.value) || 0 })
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="freeShippingThreshold" className="text-xs uppercase tracking-wide text-muted-foreground">
-                {t('freeShippingThreshold')}
-              </Label>
-              <Input
-                id="freeShippingThreshold"
-                type="number"
-                min="0"
-                step="1"
-                value={config.freeShippingThreshold}
-                onChange={(e) =>
-                  setConfig({
-                    ...config,
-                    freeShippingThreshold: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-              <p className="font-body text-xs text-muted-foreground">
-                {t('freeShippingNote')}
-              </p>
-            </div>
+          <CardContent className="space-y-3">
+            <p className="font-body text-sm text-muted-foreground">{t('shippingMoved')}</p>
+            <Link href="/admin/delivery" className="inline-flex text-sm font-medium text-ocean-700 hover:underline">
+              {t('shippingMovedLink')}
+            </Link>
           </CardContent>
         </Card>
 

@@ -3,7 +3,17 @@ import { locales } from '@/i18n/config';
 import { absoluteUrl, languageAlternates } from './seo';
 import type { Category, Product } from './catalog/types';
 
-export const STATIC_PATHS = ['/', '/new-arrivals', '/about', '/shipping', '/returns', '/contact'];
+export const STATIC_PATHS = [
+  '/',
+  '/new-arrivals',
+  '/about',
+  '/shipping',
+  '/returns',
+  '/contact',
+  '/terms',
+  '/privacy',
+  '/accessibility',
+];
 
 type Entry = MetadataRoute.Sitemap[number];
 

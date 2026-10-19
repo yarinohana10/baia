@@ -1,8 +1,22 @@
-import { IsEmail, IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
-import { OrderStatus } from '../../generated/prisma';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
+import { DeliveryMethod, OrderStatus } from '../../generated/prisma';
 import { Transform } from 'class-transformer';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
+
+/** Courier orders need a street address; pickup orders use the point's (any address sent is ignored). */
+const needsAddress = (o: { deliveryMethod?: DeliveryMethod }) => o.deliveryMethod !== DeliveryMethod.PICKUP_POINT;
 
 export class CreateOrderDto {
   /** Required for guests; logged-in users default to their account email. */
@@ -34,28 +48,50 @@ export class CreateOrderDto {
   @MaxLength(50)
   couponCode?: string;
 
+  /** COURIER (default) or PICKUP_POINT. */
+  @IsOptional()
+  @IsEnum(DeliveryMethod)
+  deliveryMethod?: DeliveryMethod;
+
+  /** Required for PICKUP_POINT; the address is then taken from the point. */
+  @ValidateIf((o: CreateOrderDto) => o.deliveryMethod === DeliveryMethod.PICKUP_POINT)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  pickupPointId?: string;
+
+  /** The unticked-by-default "send me offers" checkbox. */
+  @IsOptional()
+  @IsBoolean()
+  marketingConsent?: boolean;
+
+  // Address: required for courier delivery only.
+  @ValidateIf(needsAddress)
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  shippingCity!: string;
+  shippingCity?: string;
 
+  @ValidateIf(needsAddress)
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  shippingStreet!: string;
+  shippingStreet?: string;
 
+  @ValidateIf(needsAddress)
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  shippingNumber!: string;
+  shippingNumber?: string;
 
+  /** Apartment, floor, entrance… (Israeli addresses often need all three). */
   @IsOptional()
   @Transform(trim)
   @IsString()
-  @MaxLength(20)
+  @MaxLength(60)
   shippingApartment?: string;
 
   @IsOptional()
@@ -107,4 +143,33 @@ export class AdminOrdersQueryDto {
   @IsOptional()
   @IsString()
   limit?: string;
+}
+
+/** Public order lookup (order-status and cancel-order pages). */
+export class OrderLookupDto {
+  @Transform(trim)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(40)
+  orderNumber!: string;
+
+  @Transform(trim)
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
+}
+
+/** Admin CSV export: orders created between `from` and `to` (ISO dates). */
+export class AdminOrdersExportQueryDto {
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/)
+  from?: string;
+
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/)
+  to?: string;
+
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
 }

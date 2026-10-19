@@ -41,10 +41,11 @@ export class CreateAddressDto {
   @MaxLength(20)
   number!: string;
 
+  /** Apartment, floor, entrance… - same limit as the checkout's shippingApartment. */
   @IsOptional()
   @Transform(trimOrNull)
   @IsString()
-  @MaxLength(20)
+  @MaxLength(60)
   apartment?: string | null;
 
   @IsOptional()

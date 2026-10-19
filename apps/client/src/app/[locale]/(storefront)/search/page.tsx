@@ -1,15 +1,16 @@
-import { SlidersHorizontal } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ListingHeader } from '@/components/storefront/ListingHeader';
-import { ProductGrid } from '@/components/storefront/ProductGrid';
-import { SortSelect } from '@/components/storefront/SortSelect';
-import { Pagination } from '@/components/storefront/Pagination';
+import { ListingResults } from '@/components/storefront/listing/ListingResults';
 import { SearchEmpty } from '@/components/storefront/SearchEmpty';
 import { SearchForm } from '@/components/storefront/SearchForm';
-import { getCategories, getProducts, toCardProduct } from '@/lib/catalog/server';
+import { getCategories, getFacets, getProducts } from '@/lib/catalog/server';
 import { PAGE_SIZE, parseListingQuery } from '@/lib/catalog/query';
+import { categoryLinks } from '@/lib/catalog/names';
+import type { Facets } from '@/lib/catalog/types';
 import { pageMetadata } from '@/lib/seo';
+
+const NO_FACETS: Facets = { sizes: [], colors: [], price: { min: null, max: null } };
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -36,42 +37,44 @@ export default async function SearchPage({ params, searchParams }: Props) {
   const query = parseListingQuery(await searchParams);
   const basePath = '/search';
 
-  const [{ products, total, totalPages }, categories, t, tCat] = await Promise.all([
+  const [{ products, total, totalPages }, facets, categories, t, tCat] = await Promise.all([
     query.q
-      ? getProducts({ search: query.q, page: query.page, limit: PAGE_SIZE, sort: query.sort })
+      ? getProducts({ search: query.q, page: query.page, limit: PAGE_SIZE, sort: query.sort, filters: query })
       : Promise.resolve({ products: [], total: 0, totalPages: 0 }),
+    query.q ? getFacets({ search: query.q }) : Promise.resolve(NO_FACETS),
     getCategories(),
     getTranslations('storefront.search'),
     getTranslations('storefront.category'),
   ]);
 
-  const suggestions = [
-    ...categories.map((c) => ({ label: locale === 'he' ? c.nameHe : c.nameEn, href: `/category/${c.slug}` })),
-    { label: t('newArrivals'), href: '/new-arrivals' },
-  ];
+  const countLabel = tCat('count', { count: total });
+  const empty = (
+    <SearchEmpty
+      query={query.q}
+      suggestions={[...categoryLinks(categories, locale), { label: t('newArrivals'), href: '/new-arrivals' }]}
+    />
+  );
 
   return (
     <div className="container-page py-8">
       <SearchForm key={query.q ?? ''} defaultValue={query.q} autoFocus={!query.q} className="mb-8 max-w-xl" />
 
-      {query.q && (
-        <ListingHeader title={t('resultsFor', { query: query.q })} countLabel={tCat('count', { count: total })} />
-      )}
-
-      {products.length === 0 ? (
-        <SearchEmpty query={query.q} suggestions={suggestions} />
-      ) : (
+      {query.q ? (
         <>
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <SlidersHorizontal size={14} aria-hidden="true" />
-              <span>{tCat('count', { count: total })}</span>
-            </div>
-            {total > 1 && <SortSelect basePath={basePath} query={query} />}
-          </div>
-          <ProductGrid products={products.map(toCardProduct)} priorityCount={4} />
-          <Pagination basePath={basePath} query={query} totalPages={totalPages} />
+          <ListingHeader title={t('resultsFor', { query: query.q })} countLabel={countLabel} />
+          <ListingResults
+            basePath={basePath}
+            query={query}
+            facets={facets}
+            products={products}
+            total={total}
+            totalPages={totalPages}
+            countLabel={countLabel}
+            empty={empty}
+          />
         </>
+      ) : (
+        empty
       )}
     </div>
   );

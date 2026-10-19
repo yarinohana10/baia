@@ -1,11 +1,13 @@
 import { Transform } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsEmail, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 const emptyToNull = ({ value }: { value: unknown }) => {
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
   return trimmed === '' ? null : trimmed;
 };
+
+const trimString = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
 const present = (_: object, value: unknown) => value !== null && value !== undefined;
 
@@ -61,4 +63,56 @@ export class UpdateSiteConfigDto {
     message: 'heroCtaUrl must be a relative path (e.g. /category/men) or an http(s) URL',
   })
   heroCtaUrl?: string | null;
+
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100000)
+  pickupPointCost?: number;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{1,2}(-\d{1,2})?$/, { message: 'ETA must look like "3-5" or "2"' })
+  courierEtaDays?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{1,2}(-\d{1,2})?$/, { message: 'ETA must look like "3-5" or "2"' })
+  pickupEtaDays?: string;
+
+  @IsOptional() @Transform(trimString) @IsString() @IsNotEmpty() @MaxLength(120)
+  businessName?: string;
+
+  @IsOptional() @Transform(trimString) @IsString() @IsNotEmpty() @MaxLength(40)
+  companyId?: string;
+
+  @IsOptional() @Transform(trimString) @IsString() @IsNotEmpty() @MaxLength(200)
+  businessAddress?: string;
+
+  @IsOptional() @Transform(trimString) @IsString() @IsNotEmpty() @MaxLength(40)
+  businessPhone?: string;
+
+  @IsOptional() @Transform(trimString) @IsEmail() @MaxLength(254)
+  contactEmail?: string;
+
+  /** International format digits only (e.g. 972501234567); empty hides the WhatsApp button. */
+  @Transform(emptyToNull)
+  @ValidateIf(present)
+  @Matches(/^[1-9]\d{7,14}$/, { message: 'whatsappNumber must be digits in international format, e.g. 972501234567' })
+  whatsappNumber?: string | null;
+
+  @IsOptional() @Transform(trimString) @IsString() @IsNotEmpty() @MaxLength(120)
+  accessibilityCoordinatorName?: string;
+
+  @IsOptional() @Transform(trimString) @IsString() @IsNotEmpty() @MaxLength(40)
+  accessibilityCoordinatorPhone?: string;
+
+  @IsOptional() @Transform(trimString) @IsEmail() @MaxLength(254)
+  accessibilityCoordinatorEmail?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(24 * 14)
+  selfCancelWindowHours?: number;
 }

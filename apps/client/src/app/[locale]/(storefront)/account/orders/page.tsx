@@ -5,7 +5,12 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
 import { formatPrice } from '@/lib/catalog/pricing';
-import { Package, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Package, ChevronRight, AlertTriangle, MapPin, Home, ExternalLink } from 'lucide-react';
+import { trackingUrl, type CustomerOrder } from '@/lib/orders';
+import { OrderTimeline } from '@/components/storefront/orders/OrderTimeline';
+import { OrderCancellation } from '@/components/storefront/orders/OrderCancellation';
+import { PaymentMethodLine } from '@/components/storefront/orders/PaymentMethodLine';
+import { formatOrderDate, ORDER_DATE } from '@/components/storefront/orders/order-dates';
 
 const statusColors: Record<string, string> = {
   PENDING_PAYMENT: 'bg-yellow-50 text-yellow-600',
@@ -17,14 +22,7 @@ const statusColors: Record<string, string> = {
   REFUNDED: 'bg-red-50 text-red-500',
 };
 
-type OrderSummary = {
-  id: string;
-  orderNumber: string;
-  status: string;
-  total: string;
-  createdAt: string;
-  items: { id: string; quantity: number; productName: string; productNameHe?: string | null }[];
-};
+type OrderSummary = CustomerOrder;
 
 type OrdersPage = { orders: OrderSummary[]; total: number; page: number; totalPages: number };
 
@@ -33,6 +31,8 @@ const PAGE_SIZE = 20;
 export default function MyOrdersPage() {
   const t = useTranslations('orders');
   const tStatus = useTranslations('orderConfirmation.status');
+  const tPage = useTranslations('orderPage');
+  const tDelivery = useTranslations('delivery');
   const locale = useLocale();
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [page, setPage] = useState(0);
@@ -68,7 +68,8 @@ export default function MyOrdersPage() {
       .finally(() => setLoadingMore(false));
   };
 
-  const dateFormat = new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-IL', { dateStyle: 'medium' });
+  const replaceOrder = (updated: OrderSummary) =>
+    setOrders((list) => list.map((o) => (o.id === updated.id ? { ...o, ...updated } : o)));
 
   if (loading) {
     return (
@@ -116,34 +117,69 @@ export default function MyOrdersPage() {
               const names = order.items
                 .map((item) => (locale === 'he' && item.productNameHe) || item.productName)
                 .join(', ');
+              const trackLink = trackingUrl(order.trackingNumber);
               return (
-                <Link
-                  key={order.id}
-                  href={`/order-confirmation/${order.id}`}
-                  aria-label={t('viewOrder', { number: order.orderNumber })}
-                  className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-ocean-300 transition-colors"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
+                <div key={order.id} className="bg-white border border-gray-200 rounded-xl">
+                  <Link
+                    href={`/order-confirmation/${order.id}`}
+                    aria-label={t('viewOrder', { number: order.orderNumber })}
+                    className="flex items-center justify-between gap-3 p-4 rounded-t-xl hover:bg-gray-50/60 transition-colors"
+                  >
                     <div className="min-w-0">
                       <p className="font-mono text-sm font-medium" dir="ltr">{order.orderNumber}</p>
                       <p className="text-xs text-gray-400">
-                        {dateFormat.format(new Date(order.createdAt))} &middot; {t('itemCount', { count })}
+                        {formatOrderDate(ORDER_DATE, order.createdAt, locale)} &middot; {t('itemCount', { count })}
                       </p>
                       {names && <p className="text-xs text-gray-500 line-clamp-1">{names}</p>}
                     </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="font-medium text-sm">{formatPrice(parseFloat(order.total))}</span>
+                      <span
+                        className={`text-xs px-2 py-0.5 uppercase tracking-wider rounded-full ${
+                          statusColors[order.status] || 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
+                        {tStatus.has(order.status) ? tStatus(order.status) : order.status}
+                      </span>
+                      <ChevronRight size={14} className="text-gray-400 rtl:rotate-180" />
+                    </div>
+                  </Link>
+                  <div className="space-y-3 border-t border-gray-100 px-4 py-4">
+                    <OrderTimeline order={order} compact />
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        {order.deliveryMethod === 'PICKUP_POINT' ? (
+                          <MapPin size={12} aria-hidden="true" />
+                        ) : (
+                          <Home size={12} aria-hidden="true" />
+                        )}
+                        {order.deliveryMethod === 'PICKUP_POINT'
+                          ? `${tDelivery('pickup')}${order.pickupPointName ? ` · ${order.pickupPointName}` : ''}`
+                          : `${tDelivery('courier')} · ${order.shippingCity}`}
+                      </span>
+                      <PaymentMethodLine order={order} compact />
+                      {order.trackingNumber && (
+                        <span className="flex items-center gap-1">
+                          {tPage('trackingShort')}: <span dir="ltr" className="font-mono">{order.trackingNumber}</span>
+                          {trackLink && (
+                            <a
+                              href={trackLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={tPage('trackParcel')}
+                              className="text-ocean-700 hover:text-ocean-800"
+                            >
+                              <ExternalLink size={11} />
+                            </a>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {order.status !== 'CANCELLED' && order.status !== 'REFUNDED' && (
+                      <OrderCancellation order={order} onUpdated={replaceOrder} compact />
+                    )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-sm">{formatPrice(parseFloat(order.total))}</span>
-                    <span
-                      className={`text-xs px-2 py-0.5 uppercase tracking-wider rounded-full ${
-                        statusColors[order.status] || 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      {tStatus.has(order.status) ? tStatus(order.status) : order.status}
-                    </span>
-                    <ChevronRight size={14} className="text-gray-400 rtl:rotate-180" />
-                  </div>
-                </Link>
+                </div>
               );
             })}
           </div>

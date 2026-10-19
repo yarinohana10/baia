@@ -1,17 +1,17 @@
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { forwardedRequestHeaders, serverAuthUrl } from '@/lib/api-urls';
 
 async function getSession() {
   const headersList = await headers();
-  const cookie = headersList.get('cookie') || '';
 
   try {
     const res = await fetch(
       // Skip the cookie cache so a just-demoted admin loses access immediately.
-      `${process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:8000'}/api/auth/get-session?disableCookieCache=true`,
+      `${serverAuthUrl()}/api/auth/get-session?disableCookieCache=true`,
       {
-        headers: { cookie },
+        headers: forwardedRequestHeaders(headersList),
         cache: 'no-store',
       },
     );

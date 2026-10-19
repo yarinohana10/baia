@@ -22,6 +22,9 @@ model User {
   emailVerified Boolean   @default(false)
   image         String?
   role          Role      @default(CUSTOMER)
+  // Spam-law (חוק התקשורת 30א) opt-in for marketing email; never pre-ticked.
+  marketingConsent   Boolean   @default(false)
+  marketingConsentAt DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -160,6 +163,13 @@ model Product {
   // Size set used for variant sizes; null = custom (free-text) sizes
   sizeSetId     String?
   sizeSet       SizeSet?         @relation(fields: [sizeSetId], references: [id], onDelete: SetNull)
+  // Product-page content (all optional, bilingual)
+  fabricHe      String?          // e.g. "82% ניילון ממוחזר, 18% ליקרה"
+  fabricEn      String?
+  careHe        String?
+  careEn        String?
+  fitHe         String?          // fit notes, e.g. "הדוגמנית לובשת M, גובה 1.75"
+  fitEn         String?
   variants      ProductVariant[]
   images        ProductImage[]
   wishlistItems Wishlist[]
@@ -271,6 +281,11 @@ model CartItem {
 
 // ─── Orders ───────────────────────────────────────────────────
 
+enum DeliveryMethod {
+  COURIER
+  PICKUP_POINT
+}
+
 enum OrderStatus {
   PENDING_PAYMENT
   CONFIRMED
@@ -302,6 +317,24 @@ model Order {
   trackingNumber String?
   paymentRef     String?
   items          OrderItem[]
+
+  deliveryMethod  DeliveryMethod @default(COURIER)
+  // Snapshot of the chosen pickup point (the shipping* fields hold its address).
+  pickupPointId   String?
+  pickupPointName String?
+  // Shopper ticked the (unticked-by-default) marketing consent box at checkout.
+  marketingConsent Boolean @default(false)
+
+  // How the order was paid (filled from the payment provider's result).
+  paymentMethod       String?  // "card" | "bit" | "apple_pay"
+  paymentInstallments Int?
+  cardBrand           String?
+  cardLast4           String?
+
+  paidAt      DateTime?
+  shippedAt   DateTime?
+  cancelledAt DateTime?
+  cancellationRequests CancellationRequest[]
 
   // Guest access: SHA-256 hash of a 256-bit random token returned once at
   // creation. The raw token is never stored. Null for logged-in orders.
@@ -412,5 +445,135 @@ model SiteConfig {
   heroSubtitleEn        String?
   heroCtaUrl            String?
 
+  // Delivery: shippingCost above is the courier price.
+  pickupPointCost       Decimal @default(19.90) @db.Decimal(10, 2)
+  courierEtaDays        String  @default("3-5")
+  pickupEtaDays         String  @default("2-4")
+
+  // Business details shown in the footer and legal pages (placeholders until registered).
+  businessName          String  @default("BAIA Swimwear")
+  companyId             String  @default("000000000")
+  businessAddress       String  @default("מושב גילת")
+  businessPhone         String  @default("050-0000000")
+  contactEmail          String  @default("hello@baia-swimwear.co.il")
+  whatsappNumber        String? @default("972500000000")
+  accessibilityCoordinatorName  String @default("יעודכן בקרוב")
+  accessibilityCoordinatorPhone String @default("050-0000000")
+  accessibilityCoordinatorEmail String @default("hello@baia-swimwear.co.il")
+
+  // Self-service cancellation window (hours after the order is paid).
+  selfCancelWindowHours Int @default(48)
+
   @@map("site_config")
+}
+
+
+// ─── Delivery ─────────────────────────────────────────────────
+
+/// A collection point shoppers can choose at checkout (managed in admin).
+model PickupPoint {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  address   String
+  hours     String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("pickup_points")
+}
+
+// ─── Cancellations ────────────────────────────────────────────
+
+enum CancellationStatus {
+  REQUESTED      // waiting for the store to contact the customer
+  APPROVED       // store cancelled the order
+  REJECTED       // store declined (e.g. already shipped); note explains
+  AUTO_CANCELLED // customer cancelled instantly inside the self-service window
+}
+
+model CancellationRequest {
+  id           String             @id @default(cuid())
+  orderId      String
+  order        Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status       CancellationStatus @default(REQUESTED)
+  reason       String
+  details      String?
+  contactPhone String?
+  adminNote    String?
+  // Fee charged under the consumer-protection rules (0 inside the free window).
+  feeAmount    Decimal            @default(0) @db.Decimal(10, 2)
+  refundAmount Decimal?           @db.Decimal(10, 2)
+  resolvedAt   DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([status, createdAt])
+  @@index([orderId])
+  @@map("cancellation_requests")
+}
+
+// ─── Contact & marketing ──────────────────────────────────────
+
+enum ContactMessageStatus {
+  NEW
+  HANDLED
+}
+
+model ContactMessage {
+  id          String               @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  orderNumber String?
+  subject     String?
+  message     String
+  locale      String               @default("he")
+  status      ContactMessageStatus @default(NEW)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([status, createdAt])
+  @@map("contact_messages")
+}
+
+/// Marketing opt-ins (newsletter form, checkout or registration).
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  locale         String    @default("he")
+  source         String    // "footer" | "checkout" | "register"
+  consentAt      DateTime  @default(now())
+  unsubscribedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("newsletter_subscribers")
+}
+
+// ─── Email log ────────────────────────────────────────────────
+
+enum EmailLogStatus {
+  SENT
+  FAILED
+}
+
+/// Every transactional email we tried to send (for support and auditing).
+model EmailLog {
+  id        String         @id @default(cuid())
+  template  String
+  to        String
+  subject   String
+  locale    String
+  orderId   String?
+  status    EmailLogStatus
+  attempts  Int            @default(1)
+  error     String?
+  createdAt DateTime       @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("email_logs")
 }

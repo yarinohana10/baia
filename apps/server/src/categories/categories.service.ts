@@ -40,7 +40,7 @@ export class CategoriesService {
 
     return categories.map((cat) => ({
       ...this.resolveCategoryImage(cat),
-      children: cat.children.map((child: any) => this.resolveCategoryImage(child)),
+      children: cat.children.map((child) => this.resolveCategoryImage(child)),
     }));
   }
 
@@ -56,7 +56,7 @@ export class CategoriesService {
     if (!category) throw new NotFoundException('Category not found');
     return {
       ...this.resolveCategoryImage(category),
-      children: category.children.map((child: any) => this.resolveCategoryImage(child)),
+      children: category.children.map((child) => this.resolveCategoryImage(child)),
       parent: category.parent ? this.resolveCategoryImage(category.parent) : null,
     };
   }
@@ -202,19 +202,16 @@ export class CategoriesService {
     });
     if (!category) throw new NotFoundException('Category not found');
 
-    // Delete old upload if exists
-    if (category.imageUpload) {
-      await this.storage.delete(category.imageUpload.s3Key);
-      await this.prisma.upload.delete({ where: { id: category.imageUpload.id } });
-    }
-
-    const ext = originalName.split('.').pop() || 'jpg';
+    const ext = (originalName.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
     const uploadIdValue = randomUUID();
     const s3Key = `categories/${categoryId}/${uploadIdValue}.${ext}`;
     const bucket = process.env.S3_BUCKET || 'baia-assets';
 
+    // New image first: if anything fails the category keeps its current image.
     await this.storage.upload(file, s3Key, mimeType);
 
+    let updated;
+    let uploadId: string | null = null;
     try {
       const upload = await this.prisma.upload.create({
         data: {
@@ -226,18 +223,25 @@ export class CategoriesService {
           uploadedBy,
         },
       });
-
-      const updated = await this.prisma.category.update({
+      uploadId = upload.id;
+      updated = await this.prisma.category.update({
         where: { id: categoryId },
         data: { imageUploadId: upload.id },
         include: { imageUpload: true },
       });
-
-      return this.resolveCategoryImage(updated);
     } catch (err) {
+      if (uploadId) await this.prisma.upload.delete({ where: { id: uploadId } }).catch(() => {});
       await this.storage.delete(s3Key).catch(() => {});
       throw err;
     }
+
+    // Then retire the previous image (a leftover object is harmless).
+    if (category.imageUpload) {
+      await this.prisma.upload.delete({ where: { id: category.imageUpload.id } }).catch(() => {});
+      await this.storage.delete(category.imageUpload.s3Key).catch(() => {});
+    }
+
+    return this.resolveCategoryImage(updated);
   }
 
   async deleteImage(categoryId: string) {

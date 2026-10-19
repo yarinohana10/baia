@@ -8,6 +8,7 @@ import { Package, MapPin, LogOut, ChevronRight, Loader2 } from 'lucide-react';
 import { VerifyEmailBanner } from '@/components/storefront/VerifyEmailBanner';
 import { ProfileCard } from '@/components/storefront/account/ProfileCard';
 import { PasswordCard } from '@/components/storefront/account/PasswordCard';
+import { MarketingCard } from '@/components/storefront/account/MarketingCard';
 
 async function handleSignOut() {
   await signOut();
@@ -76,6 +77,8 @@ export default function AccountPage() {
         title={t('myAddresses')}
         description={t('myAddressesDescription')}
       />
+
+      {user && <MarketingCard />}
 
       {user && <PasswordCard />}
 

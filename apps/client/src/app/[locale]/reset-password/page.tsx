@@ -12,7 +12,6 @@ import {
   authButtonClass,
   authInputClass,
   authLabelClass,
-  authLinkClass,
 } from '@/components/storefront/AuthCardLayout';
 
 const MIN_PASSWORD_LENGTH = 8;

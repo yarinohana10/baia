@@ -49,12 +49,30 @@ export function totalStock(variants: StockLike[]): number {
 }
 
 export const LOW_STOCK_THRESHOLD = 5;
+/** Storefront "only N left" nudge kicks in at this many units (tracked stock only). */
+export const SHOPPER_LOW_STOCK_THRESHOLD = 3;
 
 /** Remaining units to show in an "only N left" hint, or null (never for unlimited stock). */
-export function lowStockCount(v: StockLike): number | null {
+export function lowStockCount(v: StockLike, threshold = LOW_STOCK_THRESHOLD): number | null {
   if (isUnlimited(v)) return null;
   const qty = v.stockQuantity ?? 0;
-  return qty > 0 && qty <= LOW_STOCK_THRESHOLD ? qty : null;
+  return qty > 0 && qty <= threshold ? qty : null;
+}
+
+/**
+ * What a shopper pays for a variant now and the compare-at price when a sale
+ * is live (`original` is null otherwise).
+ */
+export function variantPrice(v: V, basePrice: string, now = new Date()): { current: number; original: number | null } {
+  const regular = parseFloat(v.priceOverride || basePrice);
+  if (isSaleActive(v, now)) return { current: parseFloat(v.salePrice!), original: regular };
+  return { current: regular, original: null };
+}
+
+/** Whole-percent discount for a sale badge (0 when there is no discount). */
+export function discountPercent(current: number, original: number | null): number {
+  if (!original || original <= current) return 0;
+  return Math.round(((original - current) / original) * 100);
 }
 export const NEW_PRODUCT_DAYS = 30;
 
@@ -72,8 +90,11 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 
 /** Distinct sizes that still have stock, in a natural order. */
 export function sizesInStock(variants: V[]): string[] {
-  const sizes = [...new Set(variants.filter(isInStock).map((v) => v.size).filter((s): s is string => !!s))];
-  return sizes.sort((a, b) => {
+  const sizes = new Set<string>();
+  for (const v of variants) {
+    if (v.size && isInStock(v)) sizes.add(v.size);
+  }
+  return [...sizes].sort((a, b) => {
     const ia = SIZE_ORDER.indexOf(a);
     const ib = SIZE_ORDER.indexOf(b);
     if (ia === -1 && ib === -1) return a.localeCompare(b, undefined, { numeric: true });
@@ -97,6 +118,13 @@ const SWATCHES: Record<string, string> = {
 
 export function swatchColor(name: string): string | null {
   return SWATCHES[name.trim().toLowerCase()] ?? null;
+}
+
+/** True for light `#rrggbb` colours, where a dark check mark reads better than a white one. */
+export function isLightColor(hex: string): boolean {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return 0.299 * r + 0.587 * g + 0.114 * b > 186;
 }
 
 export function formatPrice(value: number): string {

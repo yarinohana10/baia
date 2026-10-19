@@ -8,10 +8,12 @@ dist/
 .turbo/
 out/
 
-# Environment
+# Environment (any .env file; only *.example templates are committed)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.*.example
+!*.env.example
 
 # IDE
 .idea/
@@ -45,3 +47,6 @@ docker-compose.override.yml
 
 *storybook.log
 storybook-static
+
+# TypeScript incremental build cache
+*.tsbuildinfo

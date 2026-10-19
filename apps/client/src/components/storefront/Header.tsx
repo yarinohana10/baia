@@ -16,10 +16,16 @@ async function handleSignOut() {
   window.location.href = '/';
 }
 
-function LocaleSwitcher({ className, onAfterSwitch }: { className?: string; onAfterSwitch?: () => void }) {
+type LocaleSwitcherProps = {
+  /** Current pathname (without locale), read once by the Header. */
+  pathname: string;
+  className?: string;
+  onAfterSwitch?: () => void;
+};
+
+function LocaleSwitcher({ pathname, className, onAfterSwitch }: LocaleSwitcherProps) {
   const locale = useLocale();
   const router = useRouter();
-  const pathname = usePathname();
   const t = useTranslations('common');
   const target = locale === 'he' ? 'en' : 'he';
 
@@ -110,7 +116,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
                     <Link
                       href={item.href}
                       aria-current={isActive(item.href) ? 'page' : undefined}
-                      className="relative py-2 text-[15px] font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-center after:scale-x-0 after:bg-ink after:transition-transform after:duration-300 hover:after:scale-x-100 aria-[current=page]:after:scale-x-100"
+                      className="relative py-2 text-[15px] font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-center after:scale-x-[0.01] after:bg-ink after:opacity-0 after:transition-[transform,opacity] after:duration-300 hover:after:scale-x-100 hover:after:opacity-100 aria-[current=page]:after:scale-x-100 aria-[current=page]:after:opacity-100"
                     >
                       {item.label}
                     </Link>
@@ -141,7 +147,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
               {searchOpen ? <X size={20} strokeWidth={1.6} /> : <Search size={20} strokeWidth={1.6} />}
             </button>
 
-            <LocaleSwitcher className={`${iconButton} text-[13px] font-bold max-sm:hidden`} />
+            <LocaleSwitcher pathname={pathname} className={`${iconButton} text-[13px] font-bold max-sm:hidden`} />
 
             {session?.user ? (
               <>
@@ -215,6 +221,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
           </ul>
           <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-header-line pt-4 text-sm font-semibold">
             <LocaleSwitcher
+              pathname={pathname}
               onAfterSwitch={() => setMenuOpen(false)}
               className="rounded-full border border-ink/20 px-4 py-2 text-ink"
             />

@@ -4,6 +4,7 @@ import { StorageService, STORAGE_SERVICE } from '../storage/storage.interface';
 import { randomUUID } from 'crypto';
 import { Prisma } from '../generated/prisma';
 import { UpdateSiteConfigDto } from './dto/update-site-config.dto';
+import { emailService } from '../email/email.service';
 
 @Injectable()
 export class SiteConfigService {
@@ -44,22 +45,40 @@ export class SiteConfigService {
 
   async update(data: UpdateSiteConfigDto) {
     const updateData: Prisma.SiteConfigUpdateInput = {};
-    const textKeys = ['heroTitleHe', 'heroTitleEn', 'heroSubtitleHe', 'heroSubtitleEn', 'heroCtaUrl'] as const;
-    for (const key of textKeys) {
-      if (data[key] !== undefined) updateData[key] = data[key];
-    }
-    if (data.shippingCost !== undefined) {
-      updateData.shippingCost = data.shippingCost;
-    }
-    if (data.freeShippingThreshold !== undefined) {
-      updateData.freeShippingThreshold = data.freeShippingThreshold;
+    const keys = [
+      'heroTitleHe',
+      'heroTitleEn',
+      'heroSubtitleHe',
+      'heroSubtitleEn',
+      'heroCtaUrl',
+      'shippingCost',
+      'freeShippingThreshold',
+      'pickupPointCost',
+      'courierEtaDays',
+      'pickupEtaDays',
+      'businessName',
+      'companyId',
+      'businessAddress',
+      'businessPhone',
+      'contactEmail',
+      'whatsappNumber',
+      'accessibilityCoordinatorName',
+      'accessibilityCoordinatorPhone',
+      'accessibilityCoordinatorEmail',
+      'selfCancelWindowHours',
+    ] as const;
+    for (const key of keys) {
+      if (data[key] !== undefined) (updateData as Record<string, unknown>)[key] = data[key];
     }
 
     await this.ensureRow();
-    return this.prisma.siteConfig.update({
+    const updated = await this.prisma.siteConfig.update({
       where: { id: 'default' },
       data: updateData,
     });
+    // Email footers carry the business details; drop the cached copy.
+    emailService.invalidateBranding();
+    return updated;
   }
 
   async uploadHeroImage(

@@ -1,0 +1,143 @@
+# Local simulation of the Railway production topology.
+#
+#   browser ──> client (Next standalone, :3070) ──private network──> server (NestJS, NOT published)
+#                  │  rewrites /v1/*, /api/auth/*, /uploads/* to http://server:8000
+#                  └─ SSR fetches go to http://server:8000 directly
+#   server ──> postgres (own container) · LocalStack S3 · Mailpit on the host (:1025)
+#
+# Same images, NODE_ENV=production and env validation as on Railway; the only
+# differences are plain http on localhost and PAYMENT_PROVIDER=mock, which is
+# allowed here ONLY because this is a simulation (mock confirms orders without
+# charging - it must never be used for a real launch).
+#
+# Usage (a unique project name keeps it apart from the dev stack):
+#   docker compose -p baia-railsim -f docker-compose.railway-sim.yml up -d --build
+#   docker compose -p baia-railsim -f docker-compose.railway-sim.yml run --rm migrate   # = Railway pre-deploy
+#   open http://localhost:3070            (Mailpit UI: http://localhost:8025)
+#   docker compose -p baia-railsim -f docker-compose.railway-sim.yml down -v            # removes ONLY this project
+#
+# Requires the dev Mailpit (docker-compose.infra.yml) on localhost:1025 for email;
+# without it the API logs the failed sends and keeps working.
+# Images are served from http://baia-s3.localhost:9070: browsers resolve
+# *.localhost to 127.0.0.1, and the client container maps it to the host.
+
+name: baia-railsim
+
+x-server-env: &server-env
+  NODE_ENV: production
+  PORT: '8000'
+  DATABASE_URL: postgresql://baia:baia@postgres:5432/baia_prodsim?schema=public
+  # Simulation-only value (>= 32 chars). Generate a real one for Railway: openssl rand -base64 32
+  BETTER_AUTH_SECRET: railsim-local-only-secret-9f8e7d6c5b4a3f2e1d0c
+  # Proxy mode: the browser reaches /api/auth through the storefront origin.
+  BETTER_AUTH_URL: http://localhost:3070
+  CLIENT_URL: http://localhost:3070
+  EMAIL_PROVIDER: smtp
+  SMTP_HOST: host.docker.internal
+  SMTP_PORT: '1025'
+  SMTP_SECURE: 'false'
+  SMTP_USER: railsim
+  SMTP_PASSWORD: railsim
+  EMAIL_FROM: BAIA Swimwear <orders@baia-railsim.test>
+  ADMIN_NOTIFY_EMAIL: owner@baia-railsim.test
+  STORAGE_PROVIDER: s3
+  S3_ENDPOINT: http://s3:4566
+  S3_FORCE_PATH_STYLE: 'true'
+  S3_PUBLIC_URL: http://baia-s3.localhost:9070
+  S3_REGION: us-east-1
+  S3_BUCKET: baia-assets
+  S3_ACCESS_KEY: railsim
+  S3_SECRET_KEY: railsim-s3-secret
+  PAYMENT_PROVIDER: mock
+  TRUST_PROXY: '1'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: baia
+      POSTGRES_PASSWORD: baia
+      POSTGRES_DB: baia_prodsim
+    ports:
+      - '5470:5432'
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U baia -d baia_prodsim']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # S3-compatible storage. (MinIO's images left Docker Hub; LocalStack S3 is
+  # public-read by default, like a bucket with a public-read policy.)
+  s3:
+    image: localstack/localstack:3
+    environment:
+      SERVICES: s3
+      DEFAULT_REGION: us-east-1
+    ports:
+      - '9070:4566'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:4566/_localstack/health | grep -q s3']
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  # Railway pre-deploy command: prisma migrate deploy (same image as the API).
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    image: baia-railsim-server
+    command: ['node_modules/.bin/prisma', 'migrate', 'deploy']
+    environment: *server-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ['tools']
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    image: baia-railsim-server
+    environment: *server-env
+    # Not published: like Railway, the API is only reachable on the private
+    # network (through the storefront proxy).
+    expose:
+      - '8000'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8000/v1/health >/dev/null || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: http://localhost:3070
+        NEXT_PUBLIC_API_URL: /v1
+        API_INTERNAL_URL: http://server:8000
+        IMAGE_REMOTE_PATTERNS: http://baia-s3.localhost:9070
+    image: baia-railsim-client
+    environment:
+      API_INTERNAL_URL: http://server:8000
+    ports:
+      - '3070:3000'
+    extra_hosts:
+      - 'baia-s3.localhost:host-gateway'
+    depends_on:
+      server:
+        condition: service_healthy
+
+volumes:
+  pg_data:

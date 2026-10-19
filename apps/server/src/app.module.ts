@@ -18,6 +18,11 @@ import { EmailModule } from './email/email.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { CustomersModule } from './customers/customers.module';
+import { ContactModule } from './contact/contact.module';
+import { NewsletterModule } from './newsletter/newsletter.module';
+import { CancellationsModule } from './cancellations/cancellations.module';
+import { PickupPointsModule } from './pickup-points/pickup-points.module';
+import { AdminNotificationsModule } from './admin-notifications/admin-notifications.module';
 
 @Module({
   imports: [
@@ -40,6 +45,11 @@ import { CustomersModule } from './customers/customers.module';
     AdminUsersModule,
     AddressesModule,
     CustomersModule,
+    ContactModule,
+    NewsletterModule,
+    CancellationsModule,
+    PickupPointsModule,
+    AdminNotificationsModule,
   ],
 })
 export class AppModule {}

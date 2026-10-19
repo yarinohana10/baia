@@ -1,10 +1,11 @@
 'use client';
 
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { isAxiosError } from 'axios';
 import { ArrowRight, BadgeCheck, CircleAlert } from 'lucide-react';
 import { api } from '@/lib/api';
+import { formatAdminDate } from '@/lib/admin/format';
 import { Link } from '@/i18n/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -39,8 +40,6 @@ export default function AdminCustomerPage({ params }: { params: Promise<{ id: st
   const t = useTranslations('admin.customers');
   const tOrders = useTranslations('admin.orders');
   const locale = useLocale();
-  const intlLocale = locale === 'he' ? 'he-IL' : 'en-IL';
-  const dateFormat = useMemo(() => new Intl.DateTimeFormat(intlLocale, { dateStyle: 'medium' }), [intlLocale]);
 
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +113,7 @@ export default function AdminCustomerPage({ params }: { params: Promise<{ id: st
 
           <div className="mb-8 grid gap-4 sm:grid-cols-3">
             {[
-              { label: t('registered'), value: dateFormat.format(new Date(customer.createdAt)) },
+              { label: t('registered'), value: formatAdminDate(customer.createdAt, locale, 'medium') },
               { label: t('paidOrders'), value: String(customer.orderCount) },
               { label: t('totalSpent'), value: formatShekels(customer.totalSpent) },
             ].map((stat) => (
@@ -160,7 +159,7 @@ export default function AdminCustomerPage({ params }: { params: Promise<{ id: st
                           </Link>
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {dateFormat.format(new Date(order.createdAt))}
+                          {formatAdminDate(order.createdAt, locale, 'medium')}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{order.itemCount}</td>
                         <td className="px-4 py-3 font-medium">{formatShekels(order.total)}</td>

@@ -16,6 +16,7 @@ export async function StaticPage({
   sections = [],
   children,
   aside,
+  placeholderNotice = true,
 }: {
   locale: string;
   eyebrow: string;
@@ -24,6 +25,8 @@ export async function StaticPage({
   sections?: StaticSection[];
   children?: React.ReactNode;
   aside?: React.ReactNode;
+  /** Show the "placeholder copy" reminder outside production (off for functional pages). */
+  placeholderNotice?: boolean;
 }) {
   const [t, tPages] = await Promise.all([getTranslations('storefront'), getTranslations('pages')]);
 
@@ -40,7 +43,7 @@ export async function StaticPage({
 
       <div className="container-page grid gap-12 py-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-20">
         <div className="prose-baia max-w-2xl">
-          {process.env.NODE_ENV !== 'production' && (
+          {placeholderNotice && process.env.NODE_ENV !== 'production' && (
             <p role="note" className="mb-8 border-s-2 border-amber-400 bg-amber-50 px-4 py-3 text-sm text-gray-900">
               {tPages('placeholderNotice')}
             </p>

@@ -1,4 +1,6 @@
-import type { Category, Product, ProductList, SiteConfig, SortOption, CardProduct } from './types';
+import type { Category, Product, ProductList, SiteConfig, SortOption, CardProduct, Facets } from './types';
+import { filterApiParams, type ListingFilters } from './query';
+import { serverApiUrl } from '../api-urls';
 
 /**
  * Server-side catalogue reads. Uses Next's data cache (ISR) with tags so an admin
@@ -6,7 +8,8 @@ import type { Category, Product, ProductList, SiteConfig, SortOption, CardProduc
  * Every read fails soft (returns empty) so a slow/down API never breaks a build or page.
  */
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1';
+// Private-network API address on Railway (API_INTERNAL_URL), else the public URL.
+const API_URL = serverApiUrl();
 
 export const REVALIDATE_SECONDS = 300;
 
@@ -45,15 +48,36 @@ export function getProducts(params: {
   page?: number;
   limit?: number;
   sort?: SortOption;
+  filters?: ListingFilters;
 } = {}): Promise<ProductList> {
   const qs = new URLSearchParams();
   if (params.categoryId) qs.set('categoryId', params.categoryId);
   if (params.search) qs.set('search', params.search);
+  for (const [key, value] of Object.entries(filterApiParams(params.filters ?? {}))) qs.set(key, value);
   qs.set('page', String(params.page ?? 1));
   qs.set('limit', String(params.limit ?? 12));
   qs.set('sort', params.sort ?? 'newest');
   const empty: ProductList = { products: [], total: 0, page: 1, limit: params.limit ?? 12, totalPages: 0 };
   return get<ProductList>(`/products?${qs}`, ['products'], empty);
+}
+
+const EMPTY_FACETS: Facets = { sizes: [], colors: [], price: { min: null, max: null } };
+
+/** Filter options (in-stock sizes, colors, price range) for a listing scope. */
+export function getFacets(params: { categoryId?: string; search?: string } = {}): Promise<Facets> {
+  const qs = new URLSearchParams();
+  if (params.categoryId) qs.set('categoryId', params.categoryId);
+  if (params.search) qs.set('search', params.search);
+  return get<Facets>(`/products/facets?${qs}`, ['products'], EMPTY_FACETS);
+}
+
+/** "You may also like" products for a product page. */
+export function getRelatedProducts(slug: string, limit = 8): Promise<Product[]> {
+  return get<Product[]>(
+    `/products/${encodeURIComponent(slug)}/related?limit=${limit}`,
+    ['products', `product:${slug}`],
+    [],
+  );
 }
 
 export function getProduct(slug: string): Promise<Product | null> {

@@ -1,9 +1,20 @@
-node_modules
-.next
-dist
+# Keep the build context small and never ship host artefacts into images:
+# host node_modules (macOS symlinks into the pnpm store), build outputs and
+# any .env file (a stray apps/client/.env.local would be baked into `next build`).
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/storybook-static
+**/*.tsbuildinfo
+**/src/generated
 .git
+.github
+.cursor
+.claude
 *.md
 docs
-.env*
+**/.env*
+!**/.env.example
 !.env.production.example
-uploads
+apps/server/uploads

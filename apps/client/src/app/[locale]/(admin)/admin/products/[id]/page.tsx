@@ -5,16 +5,17 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import ProductForm from '@/components/admin/ProductForm';
+import type { ServerProduct } from '@/components/admin/product-form/types';
 
 export default function EditProductPage() {
   const t = useTranslations('admin.productForm');
   const params = useParams();
   const id = params.id as string;
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<ServerProduct | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/admin/products/${id}`)
+    api.get<ServerProduct>(`/admin/products/${id}`)
       .then((res) => setProduct(res.data))
       .finally(() => setLoading(false));
   }, [id]);

@@ -3,10 +3,17 @@ import { Header, type NavItem } from './Header';
 import { Footer } from './Footer';
 import { CartDrawer } from './CartDrawer';
 import { SessionSync } from './SessionSync';
-import { getCategories } from '@/lib/catalog/server';
+import { WhatsAppButton } from './WhatsAppButton';
+import { CookieConsent } from './CookieConsent';
+import { getCategories, getSiteConfig } from '@/lib/catalog/server';
 
 export async function StorefrontLayout({ children }: { children: React.ReactNode }) {
-  const [locale, categories, tNav] = await Promise.all([getLocale(), getCategories(), getTranslations('nav')]);
+  const [locale, categories, tNav, config] = await Promise.all([
+    getLocale(),
+    getCategories(),
+    getTranslations('nav'),
+    getSiteConfig(),
+  ]);
 
   // Top-level categories drive both nav and footer, so links always match real slugs.
   const categoryNav: NavItem[] = categories.length
@@ -24,9 +31,11 @@ export async function StorefrontLayout({ children }: { children: React.ReactNode
       <main id="main" className="flex-1">
         {children}
       </main>
-      <Footer categories={categoryNav} />
+      <Footer categories={categoryNav} config={config} />
       <CartDrawer />
       <SessionSync />
+      <WhatsAppButton number={config?.whatsappNumber ?? null} />
+      <CookieConsent />
     </div>
   );
 }

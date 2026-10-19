@@ -28,7 +28,18 @@ import {
   UpdateVariantDto,
   VariantDto,
 } from './dto/product.dto';
+import { parseCatalogFilters } from './catalog-filters';
 import { ADMIN_PAGE_LIMIT, clampInt, MAX_PAGE, PUBLIC_PAGE_LIMIT } from './pagination';
+
+const SORTS = ['newest', 'price-asc', 'price-desc'];
+
+type FilterQuery = {
+  sizes?: string | string[];
+  colors?: string | string[];
+  minPrice?: string;
+  maxPrice?: string;
+  inStock?: string;
+};
 
 function userIdOf(req?: Request): string | undefined {
   return (req as unknown as { user?: { id?: string } } | undefined)?.user?.id;
@@ -40,6 +51,11 @@ export class ProductsController {
 
   // ─── Public ──────────────────────────────────────
 
+  /**
+   * Storefront listing. Filters: `sizes` and `colors` (comma lists; sizes only
+   * match variants in stock), `minPrice` / `maxPrice` (effective price incl.
+   * live sales), `inStock=true`. Invalid values are ignored.
+   */
   @Get('products')
   findAll(
     @Query('categoryId') categoryId?: string,
@@ -47,14 +63,31 @@ export class ProductsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('sort') sort?: string,
+    @Query() filterQuery: FilterQuery = {},
   ) {
     return this.productsService.findAll({
-      categoryId,
+      categoryId: categoryId || undefined,
       search: search?.trim().slice(0, 100) || undefined,
       page: clampInt(page, 1, 1, MAX_PAGE),
       limit: clampInt(limit, PUBLIC_PAGE_LIMIT.default, 1, PUBLIC_PAGE_LIMIT.max),
-      sort,
+      sort: sort && SORTS.includes(sort) ? sort : 'newest',
+      filters: parseCatalogFilters(filterQuery ?? {}),
     });
+  }
+
+  /** Filter options (sizes in stock, colors, price range) for a listing scope. */
+  @Get('products/facets')
+  facets(@Query('categoryId') categoryId?: string, @Query('search') search?: string) {
+    return this.productsService.facets({
+      categoryId: categoryId || undefined,
+      search: search?.trim().slice(0, 100) || undefined,
+    });
+  }
+
+  /** "You may also like" for a product page (same category first, in stock first). */
+  @Get('products/:slug/related')
+  related(@Param('slug') slug: string, @Query('limit') limit?: string) {
+    return this.productsService.related(slug, clampInt(limit, 8, 1, 24));
   }
 
   @Get('products/:slug')

@@ -32,6 +32,8 @@ const emptyToNull = ({ value }: { value: unknown }) => {
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const MAX_IMAGES_PER_REQUEST = 20;
 export const MAX_VARIANTS_PER_PRODUCT = 200;
+/** Max lengths of the product-page content fields (per language). */
+export const PRODUCT_CONTENT_MAX = { fabric: 1000, care: 2000, fit: 1000 } as const;
 
 /** `saleEnd` must be strictly after `saleStart` when both are present. */
 function IsAfterProperty(property: string, options?: ValidationOptions) {
@@ -173,6 +175,45 @@ export class CreateProductDto {
   @IsString()
   @MaxLength(5000)
   descriptionEn?: string | null;
+
+  /** Fabric & composition, e.g. "82% ניילון ממוחזר, 18% ליקרה". Empty strings are stored as null. */
+  @IsOptional()
+  @Transform(emptyToNull)
+  @IsString()
+  @MaxLength(PRODUCT_CONTENT_MAX.fabric)
+  fabricHe?: string | null;
+
+  @IsOptional()
+  @Transform(emptyToNull)
+  @IsString()
+  @MaxLength(PRODUCT_CONTENT_MAX.fabric)
+  fabricEn?: string | null;
+
+  /** Care instructions (washing, drying). Empty strings are stored as null. */
+  @IsOptional()
+  @Transform(emptyToNull)
+  @IsString()
+  @MaxLength(PRODUCT_CONTENT_MAX.care)
+  careHe?: string | null;
+
+  @IsOptional()
+  @Transform(emptyToNull)
+  @IsString()
+  @MaxLength(PRODUCT_CONTENT_MAX.care)
+  careEn?: string | null;
+
+  /** Fit notes, e.g. "הדוגמנית לובשת M, גובה 1.75". Empty strings are stored as null. */
+  @IsOptional()
+  @Transform(emptyToNull)
+  @IsString()
+  @MaxLength(PRODUCT_CONTENT_MAX.fit)
+  fitHe?: string | null;
+
+  @IsOptional()
+  @Transform(emptyToNull)
+  @IsString()
+  @MaxLength(PRODUCT_CONTENT_MAX.fit)
+  fitEn?: string | null;
 
   @Transform(trim)
   @IsString()

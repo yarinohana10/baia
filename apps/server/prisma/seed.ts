@@ -178,6 +178,23 @@ async function main() {
     },
   });
 
+  // Example pickup points (generic placeholders until a courier such as
+  // Cheetah / HFD / UPS is integrated). Only on an empty table, so points
+  // edited or removed in the admin are never recreated.
+  if ((await prisma.pickupPoint.count()) === 0) {
+    await prisma.pickupPoint.createMany({
+      data: [
+        { name: 'נקודת איסוף - מרכז מסחרי אופקים', city: 'אופקים', address: 'שדרות הרצל 10', hours: 'א׳-ה׳ 09:00-20:00, ו׳ 09:00-14:00', sortOrder: 10 },
+        { name: 'נקודת איסוף - קניון הנגב', city: 'באר שבע', address: 'דרך אליהו נאווי 21', hours: 'א׳-ה׳ 10:00-21:00, ו׳ 09:00-14:00', sortOrder: 20 },
+        { name: 'נקודת איסוף - מרכז העיר נתיבות', city: 'נתיבות', address: 'רחוב בעלי המלאכה 5', hours: 'א׳-ה׳ 09:00-19:00', sortOrder: 30 },
+        { name: 'נקודת איסוף - דיזנגוף סנטר', city: 'תל אביב', address: 'דיזנגוף 50', hours: 'א׳-ה׳ 10:00-21:00, ו׳ 09:30-14:30', sortOrder: 40 },
+        { name: 'נקודת איסוף - קניון עזריאלי ירושלים', city: 'ירושלים', address: 'דרך אגודת ספורט בית"ר 1', hours: 'א׳-ה׳ 10:00-21:00, ו׳ 09:00-14:00', sortOrder: 50 },
+        { name: 'נקודת איסוף - גרנד קניון חיפה', city: 'חיפה', address: 'דרך שמחה גולן 54', hours: 'א׳-ה׳ 10:00-21:00, ו׳ 09:00-14:00', sortOrder: 60 },
+      ],
+    });
+    console.log('  + 6 example pickup points');
+  }
+
   // Helper: upload category image to S3 and return { image, imageUploadId }
   async function seedCategoryImage(localPath: string): Promise<{ image: string | null; imageUploadId: string | null }> {
     if (useS3) {

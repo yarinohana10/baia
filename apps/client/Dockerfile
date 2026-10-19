@@ -1,45 +1,58 @@
-FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
-WORKDIR /app
+# syntax=docker/dockerfile:1
+# Production image for the Next.js storefront (standalone output).
+# Build context: repository root.   docker build -f apps/client/Dockerfile .
+ARG NODE_IMAGE=node:24-alpine
 
-# Install dependencies
-FROM base AS deps
+FROM ${NODE_IMAGE} AS base
+RUN apk add --no-cache libc6-compat \
+  && corepack enable && corepack prepare pnpm@9.15.4 --activate
+WORKDIR /app
+ENV PNPM_HOME=/pnpm CI=true NEXT_TELEMETRY_DISABLED=1
+
+FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/client/package.json apps/client/
 COPY packages/shared/package.json packages/shared/
-RUN pnpm install --frozen-lockfile --filter @baia/client... --prod=false
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+  pnpm install --frozen-lockfile --filter @baia/client...
+COPY packages/shared ./packages/shared
+COPY apps/client ./apps/client
 
-# Build
-FROM base AS build
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/client/node_modules ./apps/client/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY . .
-
+# Build-time configuration. NEXT_PUBLIC_* are inlined into the browser bundle
+# and the API proxy rewrites (API_INTERNAL_URL) and image hosts are baked into
+# the build manifest, so all of these must be present at build time. Railway
+# passes service variables to Dockerfile ARGs automatically.
+# `next build` validates them (src/lib/env.ts) and fails with a full list.
+ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_AUTH_URL
-ARG NEXT_PUBLIC_SITE_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_AUTH_URL=$NEXT_PUBLIC_AUTH_URL
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_AUTH_COOKIE_PREFIX
+ARG NEXT_PUBLIC_TRACKING_URL_TEMPLATE
+ARG NEXT_PUBLIC_CONTACT_EMAIL
+ARG API_INTERNAL_URL
+ARG IMAGE_REMOTE_PATTERNS
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+  NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+  NEXT_PUBLIC_AUTH_URL=$NEXT_PUBLIC_AUTH_URL \
+  NEXT_PUBLIC_AUTH_COOKIE_PREFIX=$NEXT_PUBLIC_AUTH_COOKIE_PREFIX \
+  NEXT_PUBLIC_TRACKING_URL_TEMPLATE=$NEXT_PUBLIC_TRACKING_URL_TEMPLATE \
+  NEXT_PUBLIC_CONTACT_EMAIL=$NEXT_PUBLIC_CONTACT_EMAIL \
+  API_INTERNAL_URL=$API_INTERNAL_URL \
+  IMAGE_REMOTE_PATTERNS=$IMAGE_REMOTE_PATTERNS
 
 WORKDIR /app/apps/client
 RUN pnpm run build
 
-# Production
-FROM node:20-alpine AS runner
+FROM ${NODE_IMAGE} AS runner
+RUN apk add --no-cache tini
 WORKDIR /app
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
 
-COPY --from=build /app/apps/client/.next/standalone ./
-COPY --from=build /app/apps/client/.next/static ./apps/client/.next/static
-COPY --from=build /app/apps/client/public ./apps/client/public
+COPY --from=build --chown=node:node /app/apps/client/.next/standalone ./
+COPY --from=build --chown=node:node /app/apps/client/.next/static ./apps/client/.next/static
+COPY --from=build --chown=node:node /app/apps/client/public ./apps/client/public
 
-USER nextjs
-
+USER node
 EXPOSE 3000
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
-
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "apps/client/server.js"]

@@ -1,33 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AnalyticsService, REVENUE_STATUSES } from '../src/analytics/analytics.service';
+import { AnalyticsService, REVENUE_STATUSES, dayKey, lastDayKeys } from '../src/analytics/analytics.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createMockPrismaService } from './helpers';
 
-/**
- * Get today's map key as the service would generate it:
- * `startOfDay().toISOString().split('T')[0]`.
- */
+/** Today's day key, in the store's timezone (Israel), as the service builds it. */
 function todayMapKey(): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString().split('T')[0];
+  return dayKey(new Date());
 }
 
 function yesterdayMapKey(): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
+  return lastDayKeys(2)[0];
 }
 
-/**
- * Create a mock date that will produce the same ISO date string
- * as the `startOfDay()` helper in the service.
- * The trick: use a Date built from the same ISO key so `toISOString()` matches.
- */
+/** Noon Israel time on the given day, so it falls in that day's bucket. */
 function mockDateForMapKey(mapKey: string): Date {
-  return new Date(mapKey + 'T12:00:00.000Z');
+  return new Date(mapKey + 'T12:00:00+03:00');
 }
+
+describe('store calendar days', () => {
+  it('ends on the Israel date even when UTC is still on the previous day', () => {
+    // 22:30 UTC on 19 Oct is 01:30 on 20 Oct in Israel (UTC+3).
+    expect(lastDayKeys(3, new Date('2026-10-19T22:30:00Z'))).toEqual(['2026-10-18', '2026-10-19', '2026-10-20']);
+  });
+
+  it('crosses month boundaries', () => {
+    expect(lastDayKeys(2, new Date('2026-11-01T10:00:00Z'))).toEqual(['2026-10-31', '2026-11-01']);
+  });
+});
 
 describe('AnalyticsService', () => {
   let service: AnalyticsService;

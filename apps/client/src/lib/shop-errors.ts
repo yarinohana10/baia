@@ -16,7 +16,13 @@ export type ShopErrorCode =
   | 'COUPON_LIMIT_REACHED'
   | 'COUPON_MIN_TOTAL'
   | 'ORDER_NOT_PAYABLE'
-  | 'ADDRESS_LIMIT_REACHED';
+  | 'ADDRESS_LIMIT_REACHED'
+  | 'ADDRESS_REQUIRED'
+  | 'PICKUP_POINT_UNAVAILABLE'
+  | 'ORDER_LOOKUP_FAILED'
+  | 'SELF_CANCEL_UNAVAILABLE'
+  | 'CANCELLATION_NOT_ALLOWED'
+  | 'CANCELLATION_ALREADY_REQUESTED';
 
 type ErrorBody = {
   code?: string;
@@ -80,6 +86,18 @@ export function shopErrorMessage(err: unknown, locale: string): ErrorMessage {
         : { key: 'couponInvalid' };
     case 'ORDER_NOT_PAYABLE':
       return { key: 'orderNotPayable' };
+    case 'ADDRESS_REQUIRED':
+      return { key: 'addressRequired' };
+    case 'PICKUP_POINT_UNAVAILABLE':
+      return { key: 'pickupPointUnavailable' };
+    case 'ORDER_LOOKUP_FAILED':
+      return { key: 'orderLookupFailed' };
+    case 'SELF_CANCEL_UNAVAILABLE':
+      return { key: 'selfCancelUnavailable' };
+    case 'CANCELLATION_NOT_ALLOWED':
+      return { key: 'cancellationNotAllowed' };
+    case 'CANCELLATION_ALREADY_REQUESTED':
+      return { key: 'cancellationAlreadyRequested' };
   }
 
   if (status === 429) return { key: 'tooManyRequests' };

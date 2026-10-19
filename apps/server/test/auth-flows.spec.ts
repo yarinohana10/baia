@@ -1,5 +1,5 @@
 import { memoryAdapter } from 'better-auth/adapters/memory';
-import { createAuth, resolveAuthSecret, resolveRequestLocale } from '../src/auth/auth.config';
+import { createAuth, isSignUpRequest, resolveAuthSecret, resolveRequestLocale } from '../src/auth/auth.config';
 import { EmailService } from '../src/email/email.service';
 import { MemoryEmailTransport } from '../src/email/transports/console.transport';
 
@@ -43,7 +43,7 @@ async function signUp(auth: ReturnType<typeof setup>['auth'], emailAddr = 'dana@
 
 describe('auth flows (better-auth + email)', () => {
   describe('email verification', () => {
-    it('sends a verification email on sign-up but does not block sign-in', async () => {
+    it('sends one welcome email with the verify button on sign-up but does not block sign-in', async () => {
       const { auth, transport } = setup();
       const res = await signUp(auth);
       await flush();
@@ -51,15 +51,16 @@ describe('auth flows (better-auth + email)', () => {
       expect(res.user.emailVerified).toBe(false);
       expect(transport.sent).toHaveLength(1);
       expect(transport.sent[0].to).toBe('dana@example.com');
-      expect(transport.sent[0].subject).toBe('Confirm your email for BAIA');
+      expect(transport.sent[0].subject).toBe('Welcome to BAIA - just confirm your email');
       expect(transport.sent[0].html).toContain('http://localhost:3000/en/verify-email?token=');
+      expect(transport.sent[0].html).toContain('http://localhost:3000/en');
 
       // Unverified users can still log in (registration must not add friction).
       const signIn = await auth.api.signInEmail({ body: { email: 'dana@example.com', password: 'original-pass-1' } });
       expect(signIn.user.email).toBe('dana@example.com');
     });
 
-    it('verifies the email with the token and sends a welcome email', async () => {
+    it('verifies the email with the token without sending a second welcome', async () => {
       const { auth, db, transport } = setup();
       await signUp(auth);
       await flush();
@@ -70,9 +71,24 @@ describe('auth flows (better-auth + email)', () => {
       await flush();
 
       expect(db.user[0].emailVerified).toBe(true);
+      expect(transport.sent).toHaveLength(0);
+    });
+
+    it('sends the Hebrew welcome+verify email by default', async () => {
+      const { auth, transport } = setup();
+      const res = await auth.handler(
+        new Request('http://localhost:8000/api/auth/sign-up/email', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', origin: 'http://localhost:3000' },
+          body: JSON.stringify({ email: 'noa@example.com', password: 'original-pass-1', name: 'נועה' }),
+        }),
+      );
+      expect(res.status).toBe(200);
+      await flush();
       expect(transport.sent).toHaveLength(1);
-      expect(transport.sent[0].subject).toBe('ברוכים הבאים ל-BAIA');
+      expect(transport.sent[0].subject).toBe('ברוכים הבאים ל-BAIA - נשאר רק לאמת את המייל');
       expect(transport.sent[0].html).toContain('dir="rtl"');
+      expect(transport.sent[0].html).toContain('/he/verify-email?token=');
     });
 
     it('rejects an invalid verification token', async () => {
@@ -82,7 +98,7 @@ describe('auth flows (better-auth + email)', () => {
       expect(db.user[0].emailVerified).toBe(false);
     });
 
-    it('can resend the verification email', async () => {
+    it('resends a plain verification email (not another welcome)', async () => {
       const { auth, transport } = setup();
       await signUp(auth);
       await flush();
@@ -91,6 +107,7 @@ describe('auth flows (better-auth + email)', () => {
       await auth.api.sendVerificationEmail({ body: { email: 'dana@example.com' } });
       await flush();
       expect(transport.sent).toHaveLength(1);
+      expect(transport.sent[0].subject).toBe('אימות כתובת האימייל שלך ב-BAIA');
       expect(transport.sent[0].html).toContain('/verify-email?token=');
     });
   });
@@ -172,6 +189,12 @@ describe('auth flows (better-auth + email)', () => {
       expect(resolveRequestLocale(null, 'http://api/verify?token=a&callbackURL=%2Fen%2Faccount')).toBe('en');
       expect(resolveRequestLocale(req({ referer: 'http://shop/en/login' }))).toBe('en');
       expect(resolveRequestLocale(req({}))).toBe('he');
+    });
+
+    it('recognises the email sign-up request', () => {
+      expect(isSignUpRequest(new Request('http://api/api/auth/sign-up/email', { method: 'POST' }))).toBe(true);
+      expect(isSignUpRequest(new Request('http://api/api/auth/send-verification-email', { method: 'POST' }))).toBe(false);
+      expect(isSignUpRequest(undefined)).toBe(false);
     });
   });
 });

@@ -6,13 +6,13 @@ import { SmtpEmailTransport } from '../src/email/transports/smtp.transport';
 describe('EmailService', () => {
   it('renders Hebrew templates right-to-left and English left-to-right', () => {
     const he = renderTemplate('reset-password', { name: 'דנה', url: 'https://x/he/reset?token=t', expiresInMinutes: 60 }, 'he');
-    expect(he.html).toContain('<html lang="he" dir="rtl">');
+    expect(he.html).toContain('<html lang="he" dir="rtl"');
     expect(he.html).toContain('text-align:right');
     expect(he.html).toContain('שלום דנה,');
     expect(he.text).toContain('https://x/he/reset?token=t');
 
     const en = renderTemplate('welcome', { name: 'Dana', shopUrl: 'https://x/en' }, 'en');
-    expect(en.html).toContain('<html lang="en" dir="ltr">');
+    expect(en.html).toContain('<html lang="en" dir="ltr"');
     expect(en.subject).toBe('Welcome to BAIA');
   });
 
@@ -20,6 +20,42 @@ describe('EmailService', () => {
     const r = renderTemplate('welcome', { name: '<script>alert(1)</script>', shopUrl: 'https://x' }, 'en');
     expect(r.html).not.toContain('<script>');
     expect(r.html).toContain('&lt;script&gt;');
+  });
+
+  it('renders the sign-up welcome with the verify button', () => {
+    const he = renderTemplate(
+      'welcome-verify',
+      { name: 'דנה', url: 'https://x/he/verify-email?token=t', expiresInHours: 24, shopUrl: 'https://x/he' },
+      'he',
+    );
+    expect(he.subject).toBe('ברוכים הבאים ל-BAIA - נשאר רק לאמת את המייל');
+    expect(he.html).toContain('https://x/he/verify-email?token=t');
+    expect(he.html).toContain('dir="rtl"');
+  });
+
+  it('renders contact emails with escaped, single-line subjects', () => {
+    const r = renderTemplate(
+      'contact-notification',
+      {
+        name: 'Dana\r\nBcc: evil@x',
+        email: 'dana@example.com',
+        subject: '<b>Size</b>\nquestion',
+        message: 'line one\n<script>x</script>',
+        locale: 'en',
+        adminUrl: 'https://x/he/admin/messages',
+      },
+      'he',
+    );
+    expect(r.subject).not.toMatch(/[\r\n]/);
+    expect(r.subject.startsWith('פנייה חדשה מהאתר')).toBe(true);
+    expect(r.html).not.toContain('<script>');
+    expect(r.html).toContain('line one');
+
+    const reply = renderTemplate('contact-auto-reply', { name: 'Dana', message: 'hi', shopUrl: 'https://x/en' }, 'en');
+    expect(reply.subject).toBe('We received your message - BAIA');
+    expect(renderTemplate('contact-auto-reply', { name: 'דנה', message: 'hi', shopUrl: 'https://x' }, 'he').subject).toBe(
+      'קיבלנו את פנייתך - BAIA',
+    );
   });
 
   it('sends templated mail through the transport with the default from address', async () => {

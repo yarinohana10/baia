@@ -1,0 +1,615 @@
+{
+  "footer": {
+    "freeShipping": "Free shipping over {threshold}",
+    "freeShippingSub": "Home courier or pickup point",
+    "easyReturnsSub": "Cancel within 14 days of delivery",
+    "legalTitle": "Policies",
+    "terms": "Terms & conditions",
+    "privacy": "Privacy policy",
+    "accessibility": "Accessibility statement",
+    "trackOrder": "Track your order",
+    "cancelOrder": "Cancel an order",
+    "cancelOrderSub": "Quick, online order cancellation",
+    "businessTitle": "Business details",
+    "companyId": "Company no. {id}",
+    "companyIdSoon": "Company no. coming soon",
+    "phoneLabel": "Phone",
+    "addressLabel": "Address",
+    "emailLabel": "Email",
+    "whatsappLabel": "WhatsApp",
+    "vatNote": "All prices are in ILS and include VAT",
+    "newsletterTitle": "BAIA Club",
+    "newsletterBody": "Launches, member offers and early access to new collections - straight to your inbox.",
+    "newsletterEmailLabel": "Email address",
+    "newsletterEmailPlaceholder": "you@example.com",
+    "newsletterConsent": "I agree to receive marketing emails from BAIA. You can unsubscribe at any time.",
+    "newsletterSubmit": "Join",
+    "newsletterSubmitting": "One sec…",
+    "newsletterSuccessTitle": "Welcome to the club!",
+    "newsletterSuccess": "Thank you! BAIA updates will now land in your inbox.",
+    "newsletterError": "We couldn't sign you up right now. Please try again in a moment.",
+    "newsletterConsentRequired": "Please tick the box to agree to receive marketing emails.",
+    "newsletterInvalidEmail": "Please enter a valid email address."
+  },
+  "legal": {
+    "lawyerNotice": "Draft - this text is a general template and must be reviewed and approved by a lawyer before going live. (This notice only shows outside production.)",
+    "updated": "Last updated: {date}",
+    "tocTitle": "On this page",
+    "questionsTitle": "Have a question?",
+    "questionsBody": "We're here for you - by phone, email or WhatsApp.",
+    "contactCta": "Contact us",
+    "terms": {
+      "metaTitle": "Terms & conditions",
+      "metaDescription": "BAIA Swimwear terms of use and sale: ordering, payment, delivery, order cancellation and returns.",
+      "eyebrow": "Legal",
+      "title": "Terms & conditions of sale",
+      "intro": "Welcome to BAIA. These terms explain in plain language how ordering works, how we deliver and what your rights are when cancelling or returning. Please read them before placing an order.",
+      "sections": [
+        {
+          "id": "operator",
+          "title": "1. Who we are",
+          "paragraphs": [
+            "This website and online store are operated by {businessName} ({companyIdText}) (\"BAIA\", \"we\").",
+            "Address: {address} · Phone: {phone} · Email: {email}.",
+            "The Hebrew version of these terms is the binding version; this English version is provided for convenience. Section headings are for orientation only."
+          ]
+        },
+        {
+          "id": "acceptance",
+          "title": "2. Accepting these terms",
+          "paragraphs": [
+            "Using the website or placing an order means you accept these terms and our privacy policy. If you do not agree, please do not place an order.",
+            "If these terms conflict with mandatory law, including the Israeli Consumer Protection Law, 5741-1981, the law prevails."
+          ]
+        },
+        {
+          "id": "eligibility",
+          "title": "3. Who may buy",
+          "paragraphs": [
+            "You may buy on the website if you meet all of the following:"
+          ],
+          "items": [
+            "You are 18 or older, or a minor with the consent of a parent or guardian.",
+            "You hold a valid credit card issued in Israel, or another payment method offered on the website.",
+            "You have a delivery address in Israel, an active email address and a reachable phone number."
+          ]
+        },
+        {
+          "id": "ordering",
+          "title": "4. Orders and payment",
+          "paragraphs": [
+            "All prices are in New Israeli Shekels (₪) and include 18% VAT. Delivery fees are shown separately before you confirm the order.",
+            "Payment is processed by a secure, PCI DSS-compliant payment provider. Card details are entered directly with the provider - we never see or store them.",
+            "An order is accepted only once the card issuer approves the payment. You will then receive an order confirmation email with your order number and items.",
+            "We work hard to show accurate stock, prices and photos. In the rare case of an obvious pricing error, or an item that sold out after you ordered, we will contact you and offer an alternative, or cancel the order (in whole or in part) and refund everything paid for the cancelled items.",
+            "Product colours may look slightly different depending on your screen and lighting."
+          ]
+        },
+        {
+          "id": "delivery",
+          "title": "5. Shipping and delivery",
+          "paragraphs": [
+            "We ship anywhere in Israel. Choose between two delivery methods:"
+          ],
+          "items": [
+            "Home courier - {courierCost}, delivered within {courierEta} business days.",
+            "Pickup point - {pickupCost}, delivered within {pickupEta} business days.",
+            "Orders of {threshold} or more (after discounts) ship free."
+          ],
+          "after": [
+            "Delivery times are counted from the business day after the order is confirmed and exclude Fridays, Saturdays, holiday eves and holidays. Remote areas, and events outside our control (security situation, strikes, extreme weather), may cause delays - we'll keep you posted.",
+            "Please check that the package is intact when it arrives. If an item is missing, damaged or wrong, contact us as soon as possible and we'll sort it out."
+          ]
+        },
+        {
+          "id": "self-cancel",
+          "title": "6. Free cancellation within {cancelHours} hours",
+          "paragraphs": [
+            "On top of your legal rights, you can cancel an order yourself on the \"Cancel an order\" page within the first {cancelHours} hours after payment - as long as the order hasn't shipped yet.",
+            "You'll get a full refund of everything you paid, including delivery, with no cancellation fee. Refunds go back to the original payment method."
+          ]
+        },
+        {
+          "id": "cancellation",
+          "title": "7. Cancellation under the Consumer Protection Law",
+          "paragraphs": [
+            "Under the Consumer Protection Law, 5741-1981, and the Consumer Protection (Cancellation of Transaction) Regulations, 5771-2010, you may cancel an online purchase from the day you order until 14 days after receiving the goods or the disclosure document (order confirmation), whichever is later."
+          ],
+          "items": [
+            "How to cancel: on the \"Cancel an order\" page, by email to {email}, by phone at {phone}, on WhatsApp, or in writing to our business address. Please include your full name, order number and contact details.",
+            "Cancellation fee: if you cancel for a reason other than a defect, non-conformity or non-delivery, a fee of 5% of the product price or ₪100, whichever is lower, applies.",
+            "Returning the item: after cancelling, return the item to us in its packaging and in the condition you received it. Return shipping is at your cost unless the item is defective or not what you ordered.",
+            "Refund: we refund the original payment method within 14 days of receiving your cancellation notice, minus the cancellation fee (if any).",
+            "Senior citizens (65+), people with disabilities and new immigrants (within 5 years of receiving status) may cancel a purchase that involved a conversation with us (including electronic communication) within 4 months of the transaction, delivery or disclosure document - whichever is later - on presentation of a suitable certificate."
+          ]
+        },
+        {
+          "id": "hygiene",
+          "title": "8. Swimwear and hygiene",
+          "paragraphs": [
+            "Swimwear is worn close to the body. To protect the health of all our customers, every item ships with a hygiene liner and original tags.",
+            "Store policy: an item can be returned or exchanged only if it has not been worn (other than a brief try-on over underwear), washed or exposed to water, sunscreen or perfume, and the hygiene liner and original tags are still attached. For hygiene and public-health reasons we may refuse to accept an item that does not meet these conditions, subject to applicable law.",
+            "This does not limit your right to return a defective item or an item that is not what you ordered."
+          ]
+        },
+        {
+          "id": "exchanges",
+          "title": "9. Exchanges",
+          "paragraphs": [
+            "Wrong size? You can exchange an item within 14 days of receiving it, subject to the hygiene conditions above and stock availability. To start an exchange, contact us through the contact form or on WhatsApp with your order number and the size or colour you'd like.",
+            "Shipping the item back to us and the replacement to you is at your cost, unless the exchange is due to a defect or our mistake."
+          ]
+        },
+        {
+          "id": "defects",
+          "title": "10. Defects and warranty",
+          "paragraphs": [
+            "We check every item before it ships. If you still receive a defective item or one that is not what you ordered, contact us promptly (ideally with a photo) and we'll offer a repair, exchange or full refund - including shipping and with no cancellation fee.",
+            "The warranty does not cover normal wear or damage caused by not following the care instructions (e.g. hot washing, tumble drying, or prolonged exposure to chlorine and sun)."
+          ]
+        },
+        {
+          "id": "account",
+          "title": "11. Your account",
+          "paragraphs": [
+            "You can order without an account. If you open one, keep your password confidential and tell us if you suspect unauthorised use.",
+            "We may suspend or close an account used for abuse, fraud or anything unlawful or contrary to these terms."
+          ]
+        },
+        {
+          "id": "liability",
+          "title": "12. Limitation of liability",
+          "paragraphs": [
+            "The website is provided as is. We work to keep it available and error-free, but outages may occur. To the extent permitted by law, our liability for any damage related to an order is limited to the amount actually paid for that order.",
+            "Nothing here limits liability that cannot be limited by law, including under the Consumer Protection Law."
+          ]
+        },
+        {
+          "id": "ip",
+          "title": "13. Intellectual property",
+          "paragraphs": [
+            "All rights in the website and its content - including the BAIA name and mark, designs, photos, texts, logo and code - belong to {businessName} or to third parties who licensed them to us. Do not copy, distribute, reproduce or use them commercially without prior written permission."
+          ]
+        },
+        {
+          "id": "privacy",
+          "title": "14. Privacy",
+          "paragraphs": [
+            "Your privacy matters to us. What we collect, how we use it and your rights are set out in our privacy policy. Marketing emails are only sent to people who explicitly opted in, and you can unsubscribe at any time."
+          ]
+        },
+        {
+          "id": "law",
+          "title": "15. Governing law and jurisdiction",
+          "paragraphs": [
+            "These terms and every purchase on the website are governed solely by the laws of the State of Israel. Subject to applicable law, the competent courts in Beer Sheva (Southern District) have exclusive jurisdiction over any dispute."
+          ]
+        },
+        {
+          "id": "changes",
+          "title": "16. Changes to these terms",
+          "paragraphs": [
+            "We may update these terms from time to time. Each order is governed by the version in force when it was placed. The date of the last update appears at the top of this page.",
+            "Questions about these terms? Email {email} or use the contact form - we're happy to help."
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "metaTitle": "Privacy policy",
+      "metaDescription": "What information BAIA collects, why, who we share it with and how to exercise your rights under Israeli privacy law.",
+      "eyebrow": "Legal",
+      "title": "Privacy policy",
+      "intro": "We only collect what we need to deliver your order and look after you - and we protect it carefully. Here's exactly what we collect, why, and what your rights are under the Israeli Protection of Privacy Law, 5741-1981, including Amendment 13.",
+      "sections": [
+        {
+          "id": "owner",
+          "title": "1. Who is responsible for your data",
+          "paragraphs": [
+            "The database owner and data controller is {businessName} ({companyIdText}), {address}.",
+            "For any privacy question or request: {email} or by phone at {phone}."
+          ]
+        },
+        {
+          "id": "collect",
+          "title": "2. What we collect",
+          "items": [
+            "Account (if you open one): name, email address and password (stored only as a secure hash). If you sign up with Google - the name, email and profile picture Google shares.",
+            "Orders: recipient name, phone, delivery address or pickup point, items ordered, amounts, coupons and order history. Card details go directly to the payment provider and are never stored by us.",
+            "Messages: what you write in the contact form - name, email, phone and order number (optional) and the message itself.",
+            "Newsletter: your email address, language, sign-up source and consent date - as proof of the consent you gave.",
+            "Technical data: IP address, browser and device type, and cookies - see section 8."
+          ],
+          "after": [
+            "You are not legally required to give us any information, but without details such as your name, phone and address we cannot deliver your order."
+          ]
+        },
+        {
+          "id": "purposes",
+          "title": "3. How we use it",
+          "items": [
+            "Processing your order, payment and delivery, and handling cancellations, returns and exchanges.",
+            "Sending service messages: order confirmations, shipping updates, email verification and password resets.",
+            "Answering your messages and providing customer service.",
+            "Securing the website and preventing fraud and abuse.",
+            "Meeting legal obligations such as tax and bookkeeping.",
+            "Sending marketing emails - only if you explicitly agreed."
+          ]
+        },
+        {
+          "id": "basis",
+          "title": "4. Consent and marketing emails",
+          "paragraphs": [
+            "In line with section 30A of the Communications (Telecommunications and Broadcasting) Law, 5742-1982 (the \"Spam Law\"), we only send advertising if you ticked the consent box yourself - it is never pre-ticked. Every marketing email is marked \"Advertisement\" (פרסומת) and includes an unsubscribe link.",
+            "You can withdraw consent at any time: via the unsubscribe link in any marketing email, in your account settings, or by contacting us. Service messages about existing orders will still be sent."
+          ]
+        },
+        {
+          "id": "sharing",
+          "title": "5. Who we share it with",
+          "paragraphs": [
+            "We never sell or rent personal data. We share it only with parties needed to provide the service, and only as much as they need:"
+          ],
+          "items": [
+            "The payment provider - to process payment and prevent fraud.",
+            "Couriers and pickup points - name, phone and address for delivery.",
+            "Our email service provider - to send service messages and newsletters.",
+            "Hosting and cloud infrastructure providers - to host the website and data.",
+            "Competent authorities - when required by law or court order."
+          ],
+          "after": [
+            "Some providers may store data on servers outside Israel. When that happens we make sure the transfer complies with the Protection of Privacy (Transfer of Data to Databases Abroad) Regulations, 5761-2001, and that adequate protection applies."
+          ]
+        },
+        {
+          "id": "retention",
+          "title": "6. How long we keep it",
+          "items": [
+            "Orders and invoices - 7 years, as required by tax law.",
+            "Your account - while it is active, or until you ask us to delete it.",
+            "Customer service messages - up to 2 years after they are resolved.",
+            "Newsletter list - until you unsubscribe. After that we keep only your email address and the consent and unsubscribe dates, to honour your request and prove compliance."
+          ]
+        },
+        {
+          "id": "security",
+          "title": "7. Security",
+          "paragraphs": [
+            "We apply security measures in line with the Protection of Privacy (Data Security) Regulations, 5777-2017: encrypted traffic (HTTPS), hashed passwords, restricted access and backups. No system is completely immune, but if a serious security incident occurs we will act according to our legal reporting duties."
+          ]
+        },
+        {
+          "id": "cookies",
+          "title": "8. Cookies",
+          "paragraphs": [
+            "We only use essential cookies that the website needs to work: keeping you signed in, your cart, your language and your cookie choice. There are currently no analytics or advertising cookies.",
+            "If we add such cookies in the future, they will only run if you chose \"Accept all\" in the cookie banner. You can delete cookies at any time in your browser settings, and the banner will show again."
+          ]
+        },
+        {
+          "id": "rights",
+          "title": "9. Your rights",
+          "items": [
+            "Access - receive the information we hold about you (section 13 of the Law).",
+            "Correction - ask us to fix inaccurate, incomplete or outdated data (section 14 of the Law).",
+            "Deletion - ask us to delete your account and any data we are not legally required to keep.",
+            "Unsubscribe - at any time, free of charge (section 17F of the Law and section 30A of the Communications Law)."
+          ],
+          "after": [
+            "To exercise a right, email {email} from the address registered with us. We may ask you to verify your identity before sharing data. We reply within 30 days. If you're unhappy with how we handled it, you can contact the Privacy Protection Authority."
+          ]
+        },
+        {
+          "id": "minors",
+          "title": "10. Minors",
+          "paragraphs": [
+            "Accounts are not intended for anyone under 18 without parental consent. If you learn that a minor gave us data without such consent, contact us and we will delete it."
+          ]
+        },
+        {
+          "id": "changes",
+          "title": "11. Changes to this policy",
+          "paragraphs": [
+            "We'll update this policy when the way we handle data changes. The date of the last update is shown at the top of the page, and material changes will also be announced prominently on the website."
+          ]
+        }
+      ]
+    },
+    "accessibility": {
+      "metaTitle": "Accessibility statement",
+      "metaDescription": "BAIA Swimwear accessibility statement: adjustments made under Israeli Standard 5568 / WCAG 2.0 AA and our accessibility coordinator's details.",
+      "eyebrow": "Accessibility",
+      "title": "Accessibility statement",
+      "intro": "We want everyone to be able to browse and shop with ease and independence - including people with disabilities. We've invested a lot in making this website accessible, and we keep improving it.",
+      "coordinatorTitle": "Accessibility coordinator",
+      "coordinatorNameLabel": "Name",
+      "coordinatorPhoneLabel": "Phone",
+      "coordinatorEmailLabel": "Email",
+      "sections": [
+        {
+          "id": "standard",
+          "title": "Accessibility level",
+          "paragraphs": [
+            "The website was made accessible in line with the Equal Rights for Persons with Disabilities (Service Accessibility Adjustments) Regulations, 5773-2013, and Israeli Standard 5568, which is based on the W3C WCAG 2.0 guidelines at level AA.",
+            "It was tested on current versions of Chrome, Safari, Firefox and Edge, on desktop and mobile, and with the VoiceOver and NVDA screen readers."
+          ]
+        },
+        {
+          "id": "done",
+          "title": "What we did",
+          "items": [
+            "Semantic page structure with ordered headings, navigation landmarks and a \"skip to main content\" link.",
+            "Full keyboard navigation with a clearly visible focus indicator.",
+            "Alternative text for product images and accessible labels for buttons and icons.",
+            "Labelled form fields, clear error messages and status messages announced by screen readers.",
+            "Sufficient colour contrast; colour is never the only way information is conveyed.",
+            "Text can be enlarged up to 200% without losing content, with a responsive layout for every screen size.",
+            "Full support for right-to-left Hebrew and for English.",
+            "No flashing content and no auto-playing sound."
+          ]
+        },
+        {
+          "id": "limits",
+          "title": "Known limitations",
+          "paragraphs": [
+            "Despite our efforts, some parts may not yet be fully accessible:"
+          ],
+          "items": [
+            "The payment page is run by an external payment provider, which is responsible for its accessibility.",
+            "Image descriptions for some products may not be detailed enough.",
+            "Third-party components (such as WhatsApp) are not fully under our control."
+          ],
+          "after": [
+            "We're continuously improving and would love to hear about any difficulty you encounter."
+          ]
+        },
+        {
+          "id": "physical",
+          "title": "Physical accessibility",
+          "paragraphs": [
+            "BAIA is an online-only store with no shop or branch open to the public. All service is provided through the website, phone, email and WhatsApp, and orders are delivered to your door or to a pickup point."
+          ]
+        },
+        {
+          "id": "report",
+          "title": "Found a problem? Let us know",
+          "paragraphs": [
+            "If you had difficulty browsing or buying, or have a suggestion, contact our accessibility coordinator (details on this page). To help us respond quickly, please include:"
+          ],
+          "items": [
+            "A description of the problem and the page where it happened (a link if possible).",
+            "Your device, browser and any assistive technology you used.",
+            "How we can best get back to you."
+          ],
+          "after": [
+            "We'll reply within 5 business days and do our best to fix the issue quickly. Meanwhile, we're happy to help you complete your order by phone or WhatsApp."
+          ]
+        }
+      ]
+    },
+    "cookies": {
+      "label": "Cookie notice",
+      "title": "Cookies on this site",
+      "body": "We use essential cookies to make the site work (sign-in, cart and language). Statistics cookies will only run with your permission.",
+      "privacyLink": "Privacy policy",
+      "acceptAll": "Accept all",
+      "essentialOnly": "Essential only"
+    },
+    "whatsapp": {
+      "label": "Chat with us on WhatsApp",
+      "prefill": "Hi BAIA, I have a question"
+    },
+    "unsubscribe": {
+      "metaTitle": "Unsubscribe",
+      "eyebrow": "Newsletter",
+      "title": "Unsubscribe from our emails",
+      "intro": "Sorry to see you go! Click the button to remove this address from BAIA's marketing emails. Messages about existing orders will still arrive as usual.",
+      "emailLabel": "Email address to unsubscribe",
+      "submit": "Unsubscribe",
+      "submitting": "Unsubscribing…",
+      "successTitle": "You've been unsubscribed",
+      "successBody": "We won't send any more marketing emails to {email}. Changed your mind? You can always rejoin at the bottom of the site.",
+      "error": "Something went wrong. Please try again in a moment, or email us and we'll remove you manually.",
+      "backHome": "Back to the shop"
+    }
+  },
+  "auth": {
+    "newsletterSignup": "I agree to receive marketing emails from BAIA (launches, offers and perks). You can unsubscribe at any time.",
+    "termsNotice": "By creating an account you accept our <terms>terms & conditions</terms> and <privacy>privacy policy</privacy>."
+  },
+  "account": {
+    "marketingTitle": "Emails & updates",
+    "marketingDescription": "Launches, member offers and early access to collections - straight to your inbox. Unsubscribe any time.",
+    "marketingToggle": "I agree to receive marketing emails from BAIA",
+    "marketingSavedOn": "Great, you're subscribed.",
+    "marketingSavedOff": "You've been unsubscribed. Order updates will still arrive as usual.",
+    "marketingError": "We couldn't update your preference. Please try again."
+  },
+  "pages": {
+    "shipping": {
+      "metaDescription": "Home courier or pickup point delivery: costs, delivery times and free shipping - BAIA Swimwear.",
+      "intro": "We deliver across Israel - by courier to your door or to a nearby pickup point. Here's everything you need to know.",
+      "costTitle": "Delivery options & costs",
+      "courierTitle": "Home courier",
+      "pickupTitle": "Pickup point",
+      "costLine": "{cost} · {eta} business days",
+      "costFree": "Free shipping on orders over {threshold}",
+      "vatNote": "Prices include VAT.",
+      "sections": [
+        {
+          "title": "Two ways to get your order",
+          "body": "Home courier: {courierCost}, delivered within {courierEta} business days. Pickup point: {pickupCost}, delivered within {pickupEta} business days, and you collect whenever it suits you. Orders over {threshold} ship free."
+        },
+        {
+          "title": "When does my order ship?",
+          "body": "We pack and ship within 1-2 business days of your order being confirmed. Delivery times exclude Fridays, Saturdays and holidays. Remote areas or circumstances outside our control may cause delays - we'll keep you posted."
+        },
+        {
+          "title": "Tracking your order",
+          "body": "We'll email you when your order ships. You can check its status any time on the \"Track your order\" page with your order number and email, or in your account."
+        },
+        {
+          "title": "Need to cancel?",
+          "body": "Within the first {cancelHours} hours after payment, and as long as the order hasn't shipped, you can cancel it yourself on the \"Cancel an order\" page - no fee. After that, the legal cancellation policy applies (see \"Returns & exchanges\")."
+        },
+        {
+          "title": "International shipping",
+          "body": "We currently ship within Israel only."
+        }
+      ]
+    },
+    "returns": {
+      "metaDescription": "Cancellations, returns and exchanges at BAIA: free cancellation within 48 hours, legal 14-day cancellation and swimwear hygiene rules.",
+      "intro": "Something not quite right? You can cancel, return or exchange. Here are all the options - from the quickest one to your rights under the law.",
+      "sections": [
+        {
+          "title": "Free cancellation within {cancelHours} hours",
+          "body": "Changed your mind? Within the first {cancelHours} hours after payment, and as long as the order hasn't shipped, you can cancel it yourself on the \"Cancel an order\" page and get a full refund - including delivery."
+        },
+        {
+          "title": "14-day cancellation (Consumer Protection Law)",
+          "body": "You may cancel a purchase up to 14 days after receiving your delivery. Unless the reason is a defect, a cancellation fee of 5% of the product price or ₪100 - whichever is lower - applies. Return the item to us at your own cost; we refund the original payment method within 14 days of receiving your cancellation notice."
+        },
+        {
+          "title": "Swimwear hygiene rules",
+          "body": "For hygiene reasons we can only accept items that haven't been worn (other than a brief try-on over underwear), washed or exposed to water, sunscreen or perfume - with the hygiene liner and original tags attached. Items that don't meet these conditions may be refused."
+        },
+        {
+          "title": "Exchanging a size or colour",
+          "body": "You can exchange an item within 14 days of receiving it, subject to the hygiene rules and stock. Contact us through the contact form or on WhatsApp with your order number and the size or colour you'd like, and we'll send instructions. Exchange shipping is at your cost unless it's due to a defect or our mistake."
+        },
+        {
+          "title": "Received a faulty or wrong item?",
+          "body": "Sorry about that! Take a photo and contact us - we'll arrange an exchange or a full refund, including shipping and with no cancellation fee."
+        }
+      ],
+      "ctaTitle": "How to start",
+      "ctaCancel": "Cancel an order",
+      "ctaCancelBody": "Cancel online - no phone calls, no waiting.",
+      "ctaExchange": "Exchange or return",
+      "ctaExchangeBody": "Send us a message with your order number and we'll reply within one business day.",
+      "ctaContact": "Contact form",
+      "ctaWhatsapp": "WhatsApp",
+      "termsLink": "Full details in our terms & conditions"
+    },
+    "contact": {
+      "intro": "A question about sizing, an order, an exchange or a cancellation? We're happy to help. We reply within one business day - usually faster on WhatsApp.",
+      "phoneLabel": "Phone",
+      "whatsappLabel": "WhatsApp",
+      "whatsappCta": "Send us a message",
+      "addressLabel": "Business address",
+      "addressNote": "Online store - no walk-in customers",
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone (optional)",
+      "orderNumber": "Order number (optional)",
+      "subject": "Subject",
+      "subjectOptions": {
+        "general": "General question",
+        "sizing": "Sizing & fit",
+        "order": "An existing order",
+        "exchange": "Exchange or return",
+        "cancel": "Order cancellation",
+        "other": "Something else"
+      },
+      "message": "How can we help?",
+      "requiredNote": "Fields marked * are required.",
+      "submit": "Send message",
+      "sending": "Sending…",
+      "formNote": "We'll get back to you within one business day.",
+      "successTitle": "Message sent!",
+      "successBody": "Thanks, {name}. We got your message and sent a confirmation to your email. We'll reply within one business day.",
+      "sendAnother": "Send another message",
+      "errorFailed": "We couldn't send your message. Please try again, or email us directly.",
+      "errorRateLimited": "Several messages were sent in a row. Please wait a minute and try again.",
+      "errorInvalid": "Please check that all required fields are filled in and your email address is valid.",
+      "honeypot": "Leave this field empty"
+    }
+  },
+  "admin": {
+    "messages": {
+      "title": "Messages",
+      "subtitle": "Messages sent through the website's contact form. New messages are listed first.",
+      "filterAll": "All",
+      "filterNew": "New",
+      "filterHandled": "Handled",
+      "searchPlaceholder": "Search by name, email, order number or text",
+      "empty": "No messages yet.",
+      "noMatches": "No matching messages.",
+      "loadFailed": "Failed to load messages.",
+      "updateFailed": "Failed to update the status.",
+      "markHandled": "Mark as handled",
+      "markNew": "Mark as new",
+      "reply": "Reply by email",
+      "replySubject": "Re: your message to BAIA",
+      "statusNew": "New",
+      "statusHandled": "Handled",
+      "orderNumber": "Order",
+      "phone": "Phone",
+      "subject": "Subject",
+      "noSubject": "No subject",
+      "language": "Language",
+      "expand": "Show message",
+      "collapse": "Hide message",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "dismiss": "Dismiss",
+      "newCount": "{count, plural, =0 {No new messages} one {1 new message} other {# new messages}}"
+    },
+    "newsletter": {
+      "title": "Newsletter",
+      "subtitle": "Subscribers who explicitly opted in to marketing emails (Communications Law, section 30A). Every campaign must start its subject with \"פרסומת\" and include an unsubscribe link.",
+      "activeCount": "{count} active subscribers",
+      "searchPlaceholder": "Search by email",
+      "activeOnly": "Active only",
+      "export": "Export CSV",
+      "exporting": "Exporting…",
+      "exportFailed": "Export failed.",
+      "email": "Email",
+      "locale": "Language",
+      "source": "Source",
+      "status": "Status",
+      "consentAt": "Consent date",
+      "active": "Active",
+      "unsubscribed": "Unsubscribed",
+      "sources": {
+        "footer": "Footer",
+        "checkout": "Checkout",
+        "register": "Sign-up",
+        "account": "Account"
+      },
+      "empty": "No subscribers yet.",
+      "noMatches": "No matching subscribers.",
+      "loadFailed": "Failed to load subscribers.",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "dismiss": "Dismiss"
+    },
+    "settings": {
+      "business": "Business details",
+      "businessDescription": "Shown in the footer, on the contact page and on the terms, privacy and accessibility pages.",
+      "businessName": "Business name",
+      "companyId": "Company / VAT no.",
+      "companyIdHint": "While the value is 000000000 the site shows \"Company no. coming soon\".",
+      "businessAddress": "Business address",
+      "businessPhone": "Phone",
+      "contactEmail": "Contact email",
+      "contactEmailHint": "Contact-form messages are also sent to this address.",
+      "whatsappNumber": "WhatsApp number",
+      "whatsappHint": "Digits only, international format without the leading 0: 972501234567. Leave empty to hide the WhatsApp button.",
+      "accessibilityCoordinator": "Accessibility coordinator",
+      "accessibilityHint": "Shown on the accessibility statement, as required by the accessibility regulations.",
+      "a11yName": "Name",
+      "a11yPhone": "Phone",
+      "a11yEmail": "Email",
+      "saveBusiness": "Save business details",
+      "businessSaved": "Business details saved.",
+      "businessSaveFailed": "Failed to save business details.",
+      "invalidEmail": "Invalid email address.",
+      "invalidWhatsapp": "The WhatsApp number must have 8-15 digits in international format (e.g. 972501234567).",
+      "requiredField": "Please fill in all required fields.",
+      "shippingMoved": "Delivery prices, the free-shipping threshold, delivery times and pickup points are now managed on the Delivery page.",
+      "shippingMovedLink": "Go to Delivery →"
+    }
+  }
+}

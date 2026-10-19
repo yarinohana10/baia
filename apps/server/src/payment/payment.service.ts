@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   HttpException,
   HttpStatus,
@@ -11,7 +12,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders.service';
 import { ORDER_NOTIFIER, type OrderNotifier } from '../orders/order-notifier';
 import type { OrderRequester } from '../orders/order-access';
-import { PAYMENT_PROVIDER, type PaymentProvider, type PaymentResult } from './payment.interface';
+import {
+  PAYMENT_PROVIDER,
+  type PaymentMethod,
+  type PaymentProvider,
+  type PaymentResult,
+} from './payment.interface';
+import { MAX_INSTALLMENTS, type PayDto } from './dto/charge.dto';
 import type { PaymentWebhookEvent } from './webhook/webhook-verifier';
 
 export const PAYMENT_CURRENCY = 'ILS';
@@ -25,6 +32,29 @@ export type ChargeResponse = {
   status: string;
   transactionId: string;
   alreadyPaid?: boolean;
+};
+
+/** What the storefront's payment page needs to know (GET /payment/config). */
+export type PaymentConfig = {
+  provider: string;
+  /** No money moves: show the test banner and test cards; `simulation` is accepted. */
+  testMode: boolean;
+  methods: PaymentMethod[];
+  installments: { max: number; minTotal: number };
+};
+
+/** Order total from which the shopper may split a card payment (PAYMENT_INSTALLMENTS_MIN_TOTAL, default ₪300). */
+export function installmentsMinTotal(env: Record<string, string | undefined> = process.env): number {
+  const v = Number(env.PAYMENT_INSTALLMENTS_MIN_TOTAL);
+  return Number.isFinite(v) && v >= 0 && env.PAYMENT_INSTALLMENTS_MIN_TOTAL?.trim() ? v : 300;
+}
+
+/** Stored on the order once it is paid; derived from the validated PayDto. */
+type PaymentDetails = {
+  paymentMethod: PaymentMethod | null;
+  paymentInstallments: number | null;
+  cardBrand: string | null;
+  cardLast4: string | null;
 };
 
 @Injectable()
@@ -52,7 +82,12 @@ export class PaymentService {
    *    calls after success return the original result (idempotent).
    *  - every provider call is recorded as a PaymentAttempt.
    */
-  async charge(orderId: string, requester: OrderRequester, ipAddress?: string): Promise<ChargeResponse> {
+  async charge(
+    orderId: string,
+    requester: OrderRequester,
+    ipAddress?: string,
+    input: PayDto = {},
+  ): Promise<ChargeResponse> {
     await this.orders.assertAccess(orderId, requester, { allowAdmin: false });
 
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
@@ -61,6 +96,8 @@ export class PaymentService {
     if (order.status !== 'PENDING_PAYMENT') {
       return this.alreadyProcessed(order);
     }
+
+    const details = this.paymentDetails(input, Number(order.total));
 
     const now = new Date();
     const claim = await this.prisma.order.updateMany({
@@ -95,10 +132,13 @@ export class PaymentService {
         orderId,
         customerEmail: order.customerEmail,
         idempotencyKey: attempt.id,
+        method: details.paymentMethod ?? undefined,
+        installments: details.paymentInstallments ?? undefined,
+        ...(input.simulation ? { simulation: input.simulation } : {}),
       });
     } catch (err) {
       this.logger.error(`provider error for attempt ${attempt.id}: ${(err as Error)?.message}`);
-      result = { success: false, transactionId: '', error: 'Payment provider error' };
+      result = { success: false, transactionId: '', error: 'Payment provider error', errorCode: 'provider_error' };
     }
 
     if (!result.success) {
@@ -112,10 +152,19 @@ export class PaymentService {
           data: { paymentClaimedAt: null },
         }),
       ]);
-      throw new HttpException({ statusCode: 402, message: 'Payment was declined', success: false }, HttpStatus.PAYMENT_REQUIRED);
+      throw new HttpException(
+        {
+          statusCode: 402,
+          message: 'Payment was declined',
+          success: false,
+          // Stable reason the storefront translates ("card declined", "insufficient funds").
+          declineCode: result.errorCode ?? 'declined',
+        },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
     }
 
-    const confirmed = await this.confirmPaid(orderId, attempt.id, result.transactionId);
+    const confirmed = await this.confirmPaid(orderId, attempt.id, result.transactionId, details);
     if (!confirmed) {
       // The order left PENDING_PAYMENT while we were charging (e.g. an admin
       // cancelled it). Money moved but the order is not payable: refund.
@@ -172,12 +221,94 @@ export class PaymentService {
     return { applied };
   }
 
+  /** Provider name and mode for the storefront's payment page. */
+  config(): PaymentConfig {
+    return {
+      provider: this.provider.name,
+      testMode: this.simulationEnabled(),
+      methods: ['card', 'bit', 'apple_pay'],
+      installments: { max: MAX_INSTALLMENTS, minTotal: installmentsMinTotal() },
+    };
+  }
+
+  /**
+   * Test cards (`simulation`) are honoured only while a test-mode provider
+   * (the mock) is bound, and never in production — even a staging deploy
+   * that runs the mock with NODE_ENV=production gets plain "always succeeds".
+   */
+  simulationEnabled(): boolean {
+    return this.provider.testMode === true && process.env.NODE_ENV !== 'production';
+  }
+
+  /** Admin: how an order was paid plus every provider attempt, newest first. */
+  async paymentsForAdmin(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        status: true,
+        paymentRef: true,
+        paidAt: true,
+        paymentMethod: true,
+        paymentInstallments: true,
+        cardBrand: true,
+        cardLast4: true,
+        paymentAttempts: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            provider: true,
+            status: true,
+            amount: true,
+            currency: true,
+            providerRef: true,
+            error: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    const { paymentAttempts, ...rest } = order;
+    return { ...rest, attempts: paymentAttempts };
+  }
+
+  /**
+   * Validates what the payment page sent and turns it into the fields stored
+   * on the order. Card brand / last 4 are kept only for card payments, and
+   * installments only for card payments at or above the configured minimum.
+   */
+  private paymentDetails(input: PayDto, total: number): PaymentDetails {
+    if (input.simulation && !this.simulationEnabled()) {
+      throw new BadRequestException('Payment simulation is not available');
+    }
+    const method = input.method ?? null;
+    const installments = input.installments ?? 1;
+    if (installments > 1 && (method !== 'card' || total < installmentsMinTotal())) {
+      throw new BadRequestException('Installments are not available for this payment');
+    }
+    // Older clients (and API users) send no details: nothing is recorded.
+    if (!method) return { paymentMethod: null, paymentInstallments: null, cardBrand: null, cardLast4: null };
+    const card = method === 'card';
+    return {
+      paymentMethod: method,
+      paymentInstallments: card ? installments : null,
+      cardBrand: card ? (input.cardBrand ?? null) : null,
+      cardLast4: card ? (input.cardLast4 ?? null) : null,
+    };
+  }
+
   /** Conditional PENDING_PAYMENT -> CONFIRMED transition, in one transaction. */
-  private async confirmPaid(orderId: string, attemptId: string, providerRef: string): Promise<boolean> {
+  private async confirmPaid(
+    orderId: string,
+    attemptId: string,
+    providerRef: string,
+    details?: PaymentDetails,
+  ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.order.updateMany({
         where: { id: orderId, status: 'PENDING_PAYMENT' },
-        data: { status: 'CONFIRMED', paymentRef: providerRef, paymentClaimedAt: null },
+        data: { status: 'CONFIRMED', paymentRef: providerRef, paymentClaimedAt: null, paidAt: new Date(), ...details },
       });
       await tx.paymentAttempt.update({
         where: { id: attemptId },

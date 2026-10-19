@@ -1,11 +1,12 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
-import { getFreshSession, useSession, verifyEmail } from '@/lib/auth-client';
+import { useSession } from '@/lib/auth-client';
+import { useEmailVerification } from '@/hooks/storefront/useEmailVerification';
 import {
   AuthAlert,
   AuthCardLayout,
@@ -13,29 +14,11 @@ import {
   authLinkClass,
 } from '@/components/storefront/AuthCardLayout';
 
-type Status = 'verifying' | 'success' | 'error';
-
 function VerifyEmail() {
   const t = useTranslations('auth');
   const token = useSearchParams().get('token');
   const { data: session, refetch } = useSession();
-  const [status, setStatus] = useState<Status>(token ? 'verifying' : 'error');
-  const started = useRef(false);
-
-  useEffect(() => {
-    // Tokens are single-use: guard against React strict-mode double effects.
-    if (!token || started.current) return;
-    started.current = true;
-    verifyEmail({ query: { token } })
-      .then(async ({ error }) => {
-        if (error) return setStatus('error');
-        // Refresh the cached session so the account page sees emailVerified right away.
-        await getFreshSession().catch(() => undefined);
-        refetch();
-        setStatus('success');
-      })
-      .catch(() => setStatus('error'));
-  }, [token, refetch]);
+  const status = useEmailVerification(token, refetch);
 
   if (status === 'verifying') {
     return (
