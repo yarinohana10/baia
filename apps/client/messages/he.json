@@ -28,7 +28,52 @@
     "verifyBannerText": "שלחנו קישור לאישור אל <email></email>. האישור עוזר לנו לשמור על אבטחת החשבון — בינתיים אפשר להמשיך לקנות כרגיל.",
     "resendVerification": "שליחה חוזרת",
     "verificationSent": "נשלח! בדקו את תיבת הדואר.",
-    "verificationSendError": "לא הצלחנו לשלוח את האימייל כרגע. נסו שוב מאוחר יותר."
+    "verificationSendError": "לא הצלחנו לשלוח את האימייל כרגע. נסו שוב מאוחר יותר.",
+    "profileTitle": "פרטים אישיים",
+    "edit": "עריכה",
+    "save": "שמירה",
+    "saving": "שומרים…",
+    "cancel": "ביטול",
+    "profileSaved": "הפרטים נשמרו.",
+    "profileSaveError": "לא הצלחנו לשמור את הפרטים. נסו שוב.",
+    "myAddresses": "הכתובות שלי",
+    "myAddressesDescription": "ניהול כתובות המשלוח השמורות",
+    "passwordTitle": "סיסמה",
+    "passwordDescription": "מומלץ לבחור סיסמה חזקה שאינה משמשת אתכם באתרים אחרים.",
+    "changePassword": "שינוי סיסמה",
+    "currentPassword": "סיסמה נוכחית",
+    "newPassword": "סיסמה חדשה",
+    "confirmNewPassword": "אימות הסיסמה החדשה",
+    "passwordSignOutNote": "לשמירה על אבטחת החשבון, תבוצע התנתקות מכל שאר המכשירים.",
+    "passwordChanged": "הסיסמה שונתה, ובוצעה התנתקות מכל שאר המכשירים.",
+    "samePassword": "הסיסמה החדשה חייבת להיות שונה מהסיסמה הנוכחית.",
+    "socialOnlyPassword": "נכנסת לחשבון באמצעות Google, ולכן אין כאן סיסמה לשינוי."
+  },
+  "addresses": {
+    "title": "הכתובות שלי",
+    "backToAccount": "חזרה לחשבון שלי",
+    "empty": "עדיין לא נשמרו כתובות.",
+    "add": "הוספת כתובת",
+    "newAddress": "כתובת חדשה",
+    "editAddress": "עריכת כתובת",
+    "edit": "עריכה",
+    "delete": "מחיקה",
+    "confirmDelete": "למחוק את הכתובת?",
+    "confirmDeleteYes": "כן, למחוק",
+    "cancel": "ביטול",
+    "save": "שמירת כתובת",
+    "saving": "שומרים…",
+    "default": "ברירת מחדל",
+    "setDefault": "הגדרה כברירת מחדל",
+    "makeDefault": "להשתמש בכתובת הזו כברירת מחדל",
+    "recipientName": "שם הנמען",
+    "apartmentShort": "דירה {apartment}",
+    "loadError": "לא הצלחנו לטעון את הכתובות. נסו שוב.",
+    "retry": "ניסיון נוסף",
+    "saveError": "לא הצלחנו לשמור את הכתובת. בדקו את הפרטים ונסו שוב.",
+    "limitReached": "אפשר לשמור עד {max} כתובות. מחקו כתובת כדי להוסיף חדשה.",
+    "deleteError": "לא הצלחנו למחוק את הכתובת. נסו שוב.",
+    "setDefaultError": "לא הצלחנו לעדכן את כתובת ברירת המחדל. נסו שוב."
   },
   "auth": {
     "welcomeBack": "ברוכים השבים",
@@ -80,7 +125,8 @@
     "emailVerified": "תודה! כתובת האימייל שלכם אושרה.",
     "verifyLinkInvalid": "הקישור לאימות אינו תקין או שפג תוקפו. אפשר לבקש קישור חדש מעמוד החשבון.",
     "goToAccount": "לחשבון שלי",
-    "continueShopping": "להמשך קנייה"
+    "continueShopping": "להמשך קנייה",
+    "wrongCurrentPassword": "הסיסמה הנוכחית שגויה"
   },
   "nav": {
     "men": "גברים",
@@ -863,7 +909,12 @@
       "couponLimitReached": "הקופון הגיע למספר השימושים המרבי.",
       "couponMinTotal": "הקופון תקף בהזמנה מינימלית של {min}.",
       "orderNotPayable": "ההזמנה בוטלה כי לא שולמה תוך 60 דקות, והפריטים חזרו למלאי. אפשר להוסיף אותם שוב לעגלה ולבצע את ההזמנה מחדש."
-    }
+    },
+    "shipTo": "משלוח אל",
+    "newAddressOption": "כתובת חדשה",
+    "manageAddresses": "ניהול כתובות",
+    "saveAddress": "לשמור את הכתובת בחשבון שלי",
+    "defaultAddressTag": "(ברירת מחדל)"
   },
   "orderConfirmation": {
     "thankYou": "תודה רבה!",

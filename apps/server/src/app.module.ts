@@ -16,6 +16,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { SiteConfigModule } from './site-config/site-config.module';
 import { EmailModule } from './email/email.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
+import { AddressesModule } from './addresses/addresses.module';
 import { CustomersModule } from './customers/customers.module';
 
 @Module({
@@ -37,6 +38,7 @@ import { CustomersModule } from './customers/customers.module';
     SiteConfigModule,
     EmailModule,
     AdminUsersModule,
+    AddressesModule,
     CustomersModule,
   ],
 })

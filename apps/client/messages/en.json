@@ -28,7 +28,52 @@
     "verifyBannerText": "We sent a confirmation link to <email></email>. Confirming helps us keep your account secure — you can keep shopping in the meantime.",
     "resendVerification": "Resend email",
     "verificationSent": "Sent! Check your inbox.",
-    "verificationSendError": "Couldn't send the email right now. Please try again later."
+    "verificationSendError": "Couldn't send the email right now. Please try again later.",
+    "profileTitle": "Personal details",
+    "edit": "Edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "profileSaved": "Your details were saved.",
+    "profileSaveError": "We couldn't save your details. Please try again.",
+    "myAddresses": "My Addresses",
+    "myAddressesDescription": "Manage your saved shipping addresses",
+    "passwordTitle": "Password",
+    "passwordDescription": "Use a strong password you don't use on other sites.",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "passwordSignOutNote": "For your security, you will be signed out on all other devices.",
+    "passwordChanged": "Your password was changed and you were signed out on all other devices.",
+    "samePassword": "The new password must be different from the current one.",
+    "socialOnlyPassword": "You sign in with Google, so there's no password to change here."
+  },
+  "addresses": {
+    "title": "My Addresses",
+    "backToAccount": "Back to my account",
+    "empty": "You haven't saved any addresses yet.",
+    "add": "Add address",
+    "newAddress": "New address",
+    "editAddress": "Edit address",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDelete": "Delete this address?",
+    "confirmDeleteYes": "Yes, delete",
+    "cancel": "Cancel",
+    "save": "Save address",
+    "saving": "Saving…",
+    "default": "Default",
+    "setDefault": "Set as default",
+    "makeDefault": "Use as my default address",
+    "recipientName": "Recipient name",
+    "apartmentShort": "Apt. {apartment}",
+    "loadError": "We couldn't load your addresses. Please try again.",
+    "retry": "Try again",
+    "saveError": "We couldn't save the address. Please check the details and try again.",
+    "limitReached": "You can save up to {max} addresses. Delete one to add another.",
+    "deleteError": "We couldn't delete the address. Please try again.",
+    "setDefaultError": "We couldn't update your default address. Please try again."
   },
   "auth": {
     "welcomeBack": "Welcome Back",
@@ -80,7 +125,8 @@
     "emailVerified": "Thanks! Your email address has been confirmed.",
     "verifyLinkInvalid": "This verification link is invalid or has expired. You can request a new one from your account page.",
     "goToAccount": "Go to my account",
-    "continueShopping": "Continue shopping"
+    "continueShopping": "Continue shopping",
+    "wrongCurrentPassword": "The current password is incorrect"
   },
   "nav": {
     "men": "Men",
@@ -863,7 +909,12 @@
       "couponLimitReached": "This coupon has reached its usage limit.",
       "couponMinTotal": "This coupon requires a minimum order of {min}.",
       "orderNotPayable": "This order expired because it wasn't paid within 60 minutes, and its items were released back to stock. You can add them to your cart and place the order again."
-    }
+    },
+    "shipTo": "Ship to",
+    "newAddressOption": "A new address",
+    "manageAddresses": "Manage addresses",
+    "saveAddress": "Save this address to my account",
+    "defaultAddressTag": "(default)"
   },
   "orderConfirmation": {
     "thankYou": "Thank You!",
