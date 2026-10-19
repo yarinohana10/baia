@@ -13,6 +13,20 @@ export function dayKey(date: Date): string {
   return dayKeyFormat.format(date);
 }
 
+/** The last `days` store-calendar days, oldest first, ending with today in Israel. */
+export function lastDayKeys(days: number, now = new Date()): string[] {
+  const [y, m, d] = dayKey(now).split('-').map(Number);
+  return Array.from({ length: days }, (_, i) => new Date(Date.UTC(y, m - 1, d - (days - 1 - i))).toISOString().slice(0, 10));
+}
+
+/**
+ * Earliest instant that can fall on `firstKey` in Israel (UTC midnight minus the
+ * largest Israel offset, +3h). Rows from the extra hours land outside the day map and are ignored.
+ */
+function rangeStartFor(firstKey: string): Date {
+  return new Date(Date.parse(`${firstKey}T00:00:00Z`) - 3 * 60 * 60 * 1000);
+}
+
 export const MAX_DAYS = 365;
 
 /** Day ranges are clamped to 1–365; non-numbers fall back to 30. */
@@ -107,8 +121,8 @@ export class AnalyticsService {
 
   async getSales(requestedDays = 30) {
     const days = clampDays(requestedDays);
-    const startDate = this.startOfDay();
-    startDate.setDate(startDate.getDate() - (days - 1));
+    const keys = lastDayKeys(days);
+    const startDate = rangeStartFor(keys[0]);
 
     const orders = await this.prisma.order.findMany({
       where: {
@@ -120,11 +134,7 @@ export class AnalyticsService {
 
     const dayMap = new Map<string, { orders: number; revenue: number }>();
 
-    for (let i = 0; i < days; i++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + i);
-      dayMap.set(dayKey(d), { orders: 0, revenue: 0 });
-    }
+    for (const key of keys) dayMap.set(key, { orders: 0, revenue: 0 });
 
     for (const order of orders) {
       const key = dayKey(order.createdAt);
@@ -285,8 +295,8 @@ export class AnalyticsService {
 
   async getCustomerGrowth(requestedDays = 30) {
     const days = clampDays(requestedDays);
-    const startDate = this.startOfDay();
-    startDate.setDate(startDate.getDate() - (days - 1));
+    const keys = lastDayKeys(days);
+    const startDate = rangeStartFor(keys[0]);
 
     const customers = await this.prisma.user.findMany({
       where: {
@@ -298,11 +308,7 @@ export class AnalyticsService {
 
     const dayMap = new Map<string, number>();
 
-    for (let i = 0; i < days; i++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + i);
-      dayMap.set(dayKey(d), 0);
-    }
+    for (const key of keys) dayMap.set(key, 0);
 
     for (const customer of customers) {
       const key = dayKey(customer.createdAt);
@@ -409,8 +415,8 @@ export class AnalyticsService {
 
   async getAverageOrderValue(requestedDays = 30) {
     const days = clampDays(requestedDays);
-    const startDate = this.startOfDay();
-    startDate.setDate(startDate.getDate() - (days - 1));
+    const keys = lastDayKeys(days);
+    const startDate = rangeStartFor(keys[0]);
 
     const orders = await this.prisma.order.findMany({
       where: {
@@ -422,11 +428,7 @@ export class AnalyticsService {
 
     const dayMap = new Map<string, { totalRevenue: number; count: number }>();
 
-    for (let i = 0; i < days; i++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + i);
-      dayMap.set(dayKey(d), { totalRevenue: 0, count: 0 });
-    }
+    for (const key of keys) dayMap.set(key, { totalRevenue: 0, count: 0 });
 
     for (const order of orders) {
       const key = dayKey(order.createdAt);
