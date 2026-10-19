@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Search } from 'lucide-react';
 import { useRouter } from '@/i18n/navigation';
 import { api } from '@/lib/api';
 import { shopErrorMessage, type ErrorMessage } from '@/lib/shop-errors';
 import { orderPageHref } from '@/lib/orders';
+import { orderLookupSchema } from '@baia/shared';
+import { clearIssue, invalidProps, validateForm, type FieldIssues } from '@/lib/form-errors';
+import { FieldError } from '@/components/forms/FieldError';
 
 export const lookupFieldClass =
   'mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-ocean-500 focus:outline-none';
@@ -25,14 +28,19 @@ export function OrderLookupForm() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [issues, setIssues] = useState<FieldIssues>({});
+  const id = useId();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    const check = validateForm(orderLookupSchema, { orderNumber, email });
+    setIssues(check.errors);
+    if (!check.success) return;
     setSubmitting(true);
     setError(null);
     try {
-      const res = await api.post('/orders/lookup', { orderNumber: orderNumber.trim(), email: email.trim() });
+      const res = await api.post('/orders/lookup', check.data);
       router.push(orderPageHref(res.data.order.id, res.data.accessToken));
     } catch (err) {
       setError(shopErrorMessage(err, locale));
@@ -52,9 +60,14 @@ export function OrderLookupForm() {
           autoComplete="off"
           placeholder="BA-XXXXXXXX-XXXXXX"
           value={orderNumber}
-          onChange={(e) => setOrderNumber(e.target.value)}
+          onChange={(e) => {
+            setOrderNumber(e.target.value);
+            setIssues((v) => clearIssue(v, 'orderNumber'));
+          }}
+          {...invalidProps(issues, 'orderNumber', `${id}-orderNumber-error`)}
           className={`${lookupFieldClass} font-mono uppercase`}
         />
+        <FieldError id={`${id}-orderNumber-error`} issue={issues.orderNumber} />
       </label>
       <label className={lookupLabelClass}>
         {t('email')}
@@ -66,9 +79,14 @@ export function OrderLookupForm() {
           dir="ltr"
           autoComplete="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setIssues((v) => clearIssue(v, 'email'));
+          }}
+          {...invalidProps(issues, 'email', `${id}-email-error`)}
           className={lookupFieldClass}
         />
+        <FieldError id={`${id}-email-error`} issue={issues.email} />
       </label>
       {error && (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">

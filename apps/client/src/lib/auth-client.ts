@@ -1,5 +1,6 @@
 import { createAuthClient } from 'better-auth/react';
 import { locales, defaultLocale, type Locale } from '@/i18n/config';
+import { publicAuthUrl } from './api-urls';
 
 /** Locale of the page the user is on, from the URL (`/he/...` or `/en/...`). */
 export function currentLocale(): Locale {
@@ -9,7 +10,8 @@ export function currentLocale(): Locale {
 }
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:8000',
+  // The storefront origin in proxy mode (first-party session cookie), else the API origin.
+  baseURL: publicAuthUrl(),
   fetchOptions: {
     // Lets the server send verification/reset/welcome emails in the user's language.
     onRequest(context) {

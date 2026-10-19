@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AlertTriangle, CalendarClock, CheckCircle2, Info } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
-import { PHONE_PATTERN } from '@/lib/addresses';
+import { PHONE_PATTERN, publicCancellationSchema, type PublicCancellationPayload } from '@baia/shared';
+import { clearIssue, invalidProps, validateForm, type FieldIssues } from '@/lib/form-errors';
+import { FieldError } from '@/components/forms/FieldError';
 import { shopErrorMessage, type ErrorMessage } from '@/lib/shop-errors';
 import { CANCELLATION_REASONS, orderPageHref, type CancellationReason, type CustomerOrder } from '@/lib/orders';
 import { cn } from '@/lib/utils';
@@ -36,29 +38,34 @@ export function CancelOrderForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  const [issues, setIssues] = useState<FieldIssues>({});
+  const id = useId();
 
-  const send = async (useInstant: boolean) => {
-    const res = await api.post<Result>('/cancellations', {
-      orderNumber: orderNumber.trim(),
-      email: email.trim(),
-      reason,
-      details: details.trim() || undefined,
-      contactPhone: phone.trim() || undefined,
-      instant: useInstant,
-    });
+  const send = async (payload: PublicCancellationPayload, useInstant: boolean) => {
+    const res = await api.post<Result>('/cancellations', { ...payload, instant: useInstant });
     setResult(res.data);
   };
+
+  const errorId = (field: string) => `${id}-${field}-error`;
+  const edited = (field: string) => setIssues((v) => clearIssue(v, field));
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (submitting || !reason) return;
+    const check = validateForm(publicCancellationSchema, { orderNumber, email, reason, details, contactPhone: phone });
+    setIssues(check.errors);
+    if (!check.success) return;
+    const payload = check.data;
     setSubmitting(true);
     setError(null);
     try {
       if (found) {
-        await send(found.order.cancellation?.canSelfCancel === true && (instant || !found.order.cancellation.canRequest));
+        await send(
+          payload,
+          found.order.cancellation?.canSelfCancel === true && (instant || !found.order.cancellation.canRequest),
+        );
       } else {
-        const res = await api.post<Found>('/orders/lookup', { orderNumber: orderNumber.trim(), email: email.trim() });
+        const res = await api.post<Found>('/orders/lookup', { orderNumber: payload.orderNumber, email: payload.email });
         const info = res.data.order.cancellation;
         if (info?.canSelfCancel) {
           // Let the shopper choose (or confirm) before anything happens.
@@ -68,7 +75,7 @@ export function CancelOrderForm() {
         } else if (!info?.canRequest) {
           setError({ key: 'cancellationNotAllowed' });
         } else {
-          await send(false);
+          await send(payload, false);
         }
       }
     } catch (err) {
@@ -118,9 +125,14 @@ export function CancelOrderForm() {
             placeholder="BA-XXXXXXXX-XXXXXX"
             value={orderNumber}
             disabled={!!found}
-            onChange={(e) => setOrderNumber(e.target.value)}
+            onChange={(e) => {
+              setOrderNumber(e.target.value);
+              edited('orderNumber');
+            }}
+            {...invalidProps(issues, 'orderNumber', errorId('orderNumber'))}
             className={`${lookupFieldClass} font-mono uppercase disabled:bg-gray-50`}
           />
+          <FieldError id={errorId('orderNumber')} issue={issues.orderNumber} />
         </label>
         <label className={lookupLabelClass}>
           {t('email')}
@@ -132,9 +144,14 @@ export function CancelOrderForm() {
             autoComplete="email"
             value={email}
             disabled={!!found}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              edited('email');
+            }}
+            {...invalidProps(issues, 'email', errorId('email'))}
             className={`${lookupFieldClass} disabled:bg-gray-50`}
           />
+          <FieldError id={errorId('email')} issue={issues.email} />
         </label>
       </div>
       <label className={lookupLabelClass}>
@@ -146,16 +163,25 @@ export function CancelOrderForm() {
           autoComplete="tel"
           pattern={PHONE_PATTERN}
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => {
+            setPhone(e.target.value);
+            edited('contactPhone');
+          }}
+          {...invalidProps(issues, 'contactPhone', errorId('contactPhone'))}
           className={lookupFieldClass}
         />
+        <FieldError id={errorId('contactPhone')} issue={issues.contactPhone} />
       </label>
       <label className={lookupLabelClass}>
         {tCancel('reason')}
         <select
           required
           value={reason}
-          onChange={(e) => setReason(e.target.value as CancellationReason)}
+          onChange={(e) => {
+            setReason(e.target.value as CancellationReason);
+            edited('reason');
+          }}
+          {...invalidProps(issues, 'reason', errorId('reason'))}
           className={lookupFieldClass}
         >
           <option value="" disabled>
@@ -167,6 +193,7 @@ export function CancelOrderForm() {
             </option>
           ))}
         </select>
+        <FieldError id={errorId('reason')} issue={issues.reason} />
       </label>
       <label className={lookupLabelClass}>
         {tCancel('details')}
@@ -174,9 +201,14 @@ export function CancelOrderForm() {
           rows={4}
           maxLength={1000}
           value={details}
-          onChange={(e) => setDetails(e.target.value)}
+          onChange={(e) => {
+            setDetails(e.target.value);
+            edited('details');
+          }}
+          {...invalidProps(issues, 'details', errorId('details'))}
           className={lookupFieldClass}
         />
+        <FieldError id={errorId('details')} issue={issues.details} />
       </label>
 
       {found && info && (

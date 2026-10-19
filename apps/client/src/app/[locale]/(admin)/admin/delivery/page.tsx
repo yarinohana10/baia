@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { deliverySettingsSchema, pickupPointSchema } from '@baia/shared';
+import { invalidProps, validateForm, type FieldIssues } from '@/lib/form-errors';
+import { FieldError } from '@/components/forms/FieldError';
 
 type DeliverySettings = {
   shippingCost: string;
@@ -34,7 +37,12 @@ type PickupPoint = {
 type PointDraft = { name: string; city: string; address: string; hours: string; sortOrder: string; isActive: boolean };
 
 const EMPTY_DRAFT: PointDraft = { name: '', city: '', address: '', hours: '', sortOrder: '0', isActive: true };
-const ETA_PATTERN = /^\d{1,2}(-\d{1,2})?$/;
+
+/** Prices are kept to agorot: extra decimals are rounded, as before, rather than rejected. */
+const roundAmount = (v: string) => {
+  const n = Number(v);
+  return v.trim() === '' || !Number.isFinite(n) ? v : Math.round(n * 100) / 100;
+};
 
 type Notice = { kind: 'success' | 'error'; text: string } | null;
 
@@ -48,6 +56,7 @@ export default function AdminDeliveryPage() {
   const [draft, setDraft] = useState<PointDraft>(EMPTY_DRAFT);
   const [pointError, setPointError] = useState<string | null>(null);
   const [pointBusy, setPointBusy] = useState(false);
+  const [pointIssues, setPointIssues] = useState<FieldIssues>({});
 
   useEffect(() => {
     api
@@ -77,31 +86,25 @@ export default function AdminDeliveryPage() {
     loadPoints();
   }, [loadPoints]);
 
-  const amountValid = (v: string) => v.trim() !== '' && Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 100000;
-  const hoursValid = (v: string) => /^\d+$/.test(v) && Number(v) <= 24 * 14;
-  const settingsValid =
-    !!settings &&
-    amountValid(settings.shippingCost) &&
-    amountValid(settings.pickupPointCost) &&
-    amountValid(settings.freeShippingThreshold) &&
-    ETA_PATTERN.test(settings.courierEtaDays) &&
-    ETA_PATTERN.test(settings.pickupEtaDays) &&
-    hoursValid(settings.selfCancelWindowHours);
+  // Validated live (the shared schema converts the form strings to the API's numbers).
+  const settingsCheck = settings
+    ? validateForm(deliverySettingsSchema, {
+        ...settings,
+        shippingCost: roundAmount(settings.shippingCost),
+        pickupPointCost: roundAmount(settings.pickupPointCost),
+        freeShippingThreshold: roundAmount(settings.freeShippingThreshold),
+      })
+    : null;
+  const settingsValid = !!settingsCheck?.success;
+  const settingsIssues: FieldIssues = settingsCheck?.errors ?? {};
 
   const saveSettings = async (e: FormEvent) => {
     e.preventDefault();
-    if (!settings || !settingsValid || saving) return;
+    if (!settingsCheck?.success || saving) return;
     setSaving(true);
     setNotice(null);
     try {
-      await api.put('/admin/site-config', {
-        shippingCost: Math.round(Number(settings.shippingCost) * 100) / 100,
-        pickupPointCost: Math.round(Number(settings.pickupPointCost) * 100) / 100,
-        freeShippingThreshold: Math.round(Number(settings.freeShippingThreshold) * 100) / 100,
-        courierEtaDays: settings.courierEtaDays.trim(),
-        pickupEtaDays: settings.pickupEtaDays.trim(),
-        selfCancelWindowHours: Number(settings.selfCancelWindowHours),
-      });
+      await api.put('/admin/site-config', settingsCheck.data);
       await revalidateCatalog();
       setNotice({ kind: 'success', text: t('saved') });
     } catch {
@@ -113,6 +116,7 @@ export default function AdminDeliveryPage() {
 
   const startEdit = (point: PickupPoint | null) => {
     setPointError(null);
+    setPointIssues({});
     if (point) {
       setEditing(point.id);
       setDraft({
@@ -132,18 +136,15 @@ export default function AdminDeliveryPage() {
   const savePoint = async (e: FormEvent) => {
     e.preventDefault();
     if (!editing || pointBusy) return;
-    const body = {
-      name: draft.name.trim(),
-      city: draft.city.trim(),
-      address: draft.address.trim(),
-      hours: draft.hours.trim(),
-      sortOrder: Math.max(0, Math.trunc(Number(draft.sortOrder) || 0)),
-      isActive: draft.isActive,
-    };
-    if (!body.name || !body.city || !body.address) {
-      setPointError(t('pointRequiredFields'));
+    const check = validateForm(pickupPointSchema, draft);
+    setPointIssues(check.errors);
+    if (!check.success) {
+      const missing = (['name', 'city', 'address'] as const).some((f) => check.errors[f]?.key === 'validation.required');
+      setPointError(missing ? t('pointRequiredFields') : t('pointInvalid'));
       return;
     }
+    // Blank hours clear the field; a blank sort order means 0.
+    const body = { ...check.data, hours: check.data.hours ?? '', sortOrder: check.data.sortOrder ?? 0 };
     setPointBusy(true);
     setPointError(null);
     try {
@@ -177,7 +178,7 @@ export default function AdminDeliveryPage() {
     }
   };
 
-  const field = (key: keyof DeliverySettings, label: string, opts: { hint?: string; suffix?: string; valid: boolean }) => (
+  const field = (key: keyof DeliverySettings, label: string, opts: { hint?: string; suffix?: string }) => (
     <div className="space-y-1.5">
       <Label htmlFor={`delivery-${key}`} className="text-xs uppercase tracking-wide text-muted-foreground">
         {label}
@@ -190,7 +191,8 @@ export default function AdminDeliveryPage() {
           inputMode={key.endsWith('EtaDays') ? 'text' : 'decimal'}
           value={settings?.[key] ?? ''}
           onChange={(e) => setSettings((s) => (s ? { ...s, [key]: e.target.value } : s))}
-          aria-invalid={!opts.valid}
+          aria-invalid={!!settingsIssues[key]}
+          aria-describedby={settingsIssues[key] ? `delivery-${key}-error` : undefined}
           className={cn(opts.suffix && 'pe-14')}
         />
         {opts.suffix && (
@@ -199,6 +201,7 @@ export default function AdminDeliveryPage() {
           </span>
         )}
       </div>
+      <FieldError id={`delivery-${key}-error`} issue={settingsIssues[key]} className="text-destructive" />
       {opts.hint && <p className="text-xs text-muted-foreground">{opts.hint}</p>}
     </div>
   );
@@ -207,15 +210,18 @@ export default function AdminDeliveryPage() {
     <form onSubmit={savePoint} className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4 sm:grid-cols-2">
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor="point-name">{t('pointName')}</Label>
-        <Input id="point-name" maxLength={120} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required />
+        <Input id="point-name" maxLength={120} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required {...invalidProps(pointIssues, 'name', 'point-name-error')} />
+        <FieldError id="point-name-error" issue={pointIssues.name} className="text-destructive" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="point-city">{t('pointCity')}</Label>
-        <Input id="point-city" maxLength={80} value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} required />
+        <Input id="point-city" maxLength={80} value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} required {...invalidProps(pointIssues, 'city', 'point-city-error')} />
+        <FieldError id="point-city-error" issue={pointIssues.city} className="text-destructive" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="point-address">{t('pointAddress')}</Label>
-        <Input id="point-address" maxLength={200} value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} required />
+        <Input id="point-address" maxLength={200} value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} required {...invalidProps(pointIssues, 'address', 'point-address-error')} />
+        <FieldError id="point-address-error" issue={pointIssues.address} className="text-destructive" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="point-hours">{t('pointHours')}</Label>
@@ -225,7 +231,9 @@ export default function AdminDeliveryPage() {
           placeholder={t('pointHoursPlaceholder')}
           value={draft.hours}
           onChange={(e) => setDraft({ ...draft, hours: e.target.value })}
+          {...invalidProps(pointIssues, 'hours', 'point-hours-error')}
         />
+        <FieldError id="point-hours-error" issue={pointIssues.hours} className="text-destructive" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="point-sort">{t('pointSort')}</Label>
@@ -236,7 +244,9 @@ export default function AdminDeliveryPage() {
           dir="ltr"
           value={draft.sortOrder}
           onChange={(e) => setDraft({ ...draft, sortOrder: e.target.value })}
+          {...invalidProps(pointIssues, 'sortOrder', 'point-sort-error')}
         />
+        <FieldError id="point-sort-error" issue={pointIssues.sortOrder} className="text-destructive" />
       </div>
       <label className="flex items-center gap-2 text-sm sm:col-span-2">
         <input
@@ -299,27 +309,23 @@ export default function AdminDeliveryPage() {
           ) : (
             <form onSubmit={saveSettings} className="space-y-6">
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {field('shippingCost', t('courierPrice'), { suffix: '₪', valid: amountValid(settings.shippingCost) })}
-                {field('pickupPointCost', t('pickupPrice'), { suffix: '₪', valid: amountValid(settings.pickupPointCost) })}
+                {field('shippingCost', t('courierPrice'), { suffix: '₪' })}
+                {field('pickupPointCost', t('pickupPrice'), { suffix: '₪' })}
                 {field('freeShippingThreshold', t('freeThreshold'), {
                   suffix: '₪',
                   hint: t('freeThresholdHint'),
-                  valid: amountValid(settings.freeShippingThreshold),
                 })}
                 {field('courierEtaDays', t('courierEta'), {
                   suffix: t('days'),
                   hint: t('etaHint'),
-                  valid: ETA_PATTERN.test(settings.courierEtaDays),
                 })}
                 {field('pickupEtaDays', t('pickupEta'), {
                   suffix: t('days'),
                   hint: t('etaHint'),
-                  valid: ETA_PATTERN.test(settings.pickupEtaDays),
                 })}
                 {field('selfCancelWindowHours', t('cancelWindow'), {
                   suffix: t('hours'),
                   hint: t('cancelWindowHint'),
-                  valid: hoursValid(settings.selfCancelWindowHours),
                 })}
               </div>
               {!settingsValid && <p className="text-sm text-destructive">{t('invalid')}</p>}

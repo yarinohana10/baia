@@ -1,17 +1,8 @@
+import type { SavedAddress } from '@baia/shared';
 import { api } from '@/lib/api';
 
 /** A saved shipping address, as returned by GET /addresses. */
-export type Address = {
-  id: string;
-  recipientName: string;
-  phone: string;
-  city: string;
-  street: string;
-  number: string;
-  apartment: string | null;
-  zip: string | null;
-  isDefault: boolean;
-};
+export type Address = SavedAddress;
 
 export type AddressInput = {
   recipientName: string;
@@ -33,11 +24,8 @@ export const EMPTY_ADDRESS: AddressInput = {
   zip: '',
 };
 
-/** Same rule as the API's address/order DTOs (HTML patterns are implicitly anchored). */
-export const PHONE_PATTERN = '\\+?[0-9][0-9\\s\\-]{7,18}';
-
-/** Max saved addresses per account (mirrors the server's MAX_ADDRESSES_PER_USER). */
-export const MAX_ADDRESSES = 20;
+/** Phone rule for `<input pattern>` and the address book limit, shared with the API. */
+export { PHONE_PATTERN, MAX_ADDRESSES } from '@baia/shared';
 
 export function toInput(address: Address): AddressInput {
   return {

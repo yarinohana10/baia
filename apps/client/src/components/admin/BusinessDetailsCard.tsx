@@ -10,6 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { BUSINESS_DETAILS_FIELDS, businessDetailsSchema } from '@baia/shared';
+import { clearIssue, firstInvalidField, invalidProps, validateForm, type FieldIssues } from '@/lib/form-errors';
+import { FieldError } from '@/components/forms/FieldError';
 
 type BusinessFields = {
   businessName: string;
@@ -23,17 +26,7 @@ type BusinessFields = {
   accessibilityCoordinatorEmail: string;
 };
 
-const FIELDS = [
-  'businessName',
-  'companyId',
-  'businessAddress',
-  'businessPhone',
-  'contactEmail',
-  'whatsappNumber',
-  'accessibilityCoordinatorName',
-  'accessibilityCoordinatorPhone',
-  'accessibilityCoordinatorEmail',
-] as const satisfies readonly (keyof BusinessFields)[];
+const FIELDS = BUSINESS_DETAILS_FIELDS satisfies readonly (keyof BusinessFields)[];
 
 type ApiFieldError = { field: string; code: string };
 
@@ -55,6 +48,7 @@ export function BusinessDetailsCard() {
   const [values, setValues] = useState<BusinessFields | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [issues, setIssues] = useState<FieldIssues>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -76,12 +70,17 @@ export function BusinessDetailsCard() {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!values || saving) return;
+    const check = validateForm(businessDetailsSchema, values);
+    setIssues(check.errors);
+    if (!check.success) {
+      const first = firstInvalidField(check.errors, FIELDS);
+      if (first) document.getElementById(`biz-${first}`)?.focus();
+      return;
+    }
     setSaving(true);
     setMessage(null);
     try {
-      const body: Record<string, string | null> = {};
-      for (const key of FIELDS) body[key] = values[key].trim();
-      body.whatsappNumber = values.whatsappNumber.replace(/\D/g, '') || null;
+      const body = check.data;
       await api.put('/admin/site-config', body);
       setValues({ ...values, whatsappNumber: body.whatsappNumber ?? '' });
       setMessage({ type: 'success', text: t('businessSaved') });
@@ -93,8 +92,10 @@ export function BusinessDetailsCard() {
     }
   }
 
-  const set = (key: keyof BusinessFields) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (key: keyof BusinessFields) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setValues((prev) => (prev ? { ...prev, [key]: e.target.value } : prev));
+    setIssues((prev) => clearIssue(prev, key));
+  };
 
   const labelClass = 'text-xs uppercase tracking-wide text-muted-foreground';
   const hintClass = 'font-body text-xs text-muted-foreground';
@@ -117,7 +118,9 @@ export function BusinessDetailsCard() {
         value={values?.[key] ?? ''}
         onChange={set(key)}
         aria-describedby={opts.hint ? `biz-${key}-hint` : undefined}
+        {...invalidProps(issues, key, `biz-${key}-error`)}
       />
+      <FieldError id={`biz-${key}-error`} issue={issues[key]} className="font-body text-destructive" />
       {opts.hint && (
         <p id={`biz-${key}-hint`} className={hintClass}>
           {opts.hint}

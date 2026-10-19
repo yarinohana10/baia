@@ -1,20 +1,12 @@
 import { isAxiosError } from 'axios';
+import type { ContactPayload } from '@baia/shared';
 import { api } from '@/lib/api';
 
-export type ContactInput = {
-  name: string;
-  email: string;
-  phone?: string;
-  orderNumber?: string;
-  subject?: string;
-  message: string;
-  locale: string;
-  /** Honeypot; always empty for humans. */
-  website?: string;
-};
+/** A validated contact form (see `contactSchema`); `website` is the honeypot, always empty for humans. */
+export type ContactInput = ContactPayload;
 
 /** Same rule as the API's ContactMessage DTO (HTML patterns are implicitly anchored). */
-export const CONTACT_PHONE_PATTERN = '\\+?[0-9][0-9\\s\\-]{7,18}';
+export { PHONE_PATTERN as CONTACT_PHONE_PATTERN } from '@baia/shared';
 
 export type ContactError = 'rateLimited' | 'invalid' | 'failed';
 

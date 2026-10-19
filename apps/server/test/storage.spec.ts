@@ -71,6 +71,28 @@ describe('S3StorageService', () => {
       const url = service.getUrl('products/p1/img.jpg');
       expect(url).toBe('http://localhost:4566/baia-assets/products/p1/img.jpg');
     });
+
+    it('omits the bucket when the public URL already points at it (R2 public domain / CDN)', () => {
+      process.env.S3_PUBLIC_URL = 'https://images.baia.co.il/';
+      process.env.S3_PUBLIC_URL_INCLUDES_BUCKET = 'false';
+      try {
+        expect(new S3StorageService().getUrl('products/p1/img.jpg')).toBe('https://images.baia.co.il/products/p1/img.jpg');
+      } finally {
+        delete process.env.S3_PUBLIC_URL_INCLUDES_BUCKET;
+      }
+    });
+
+    it('honours S3_FORCE_PATH_STYLE for non-localhost endpoints (MinIO on a Docker network)', () => {
+      const { S3Client } = require('@aws-sdk/client-s3');
+      process.env.S3_ENDPOINT = 'http://minio:9000';
+      process.env.S3_FORCE_PATH_STYLE = 'true';
+      try {
+        new S3StorageService();
+        expect(S3Client).toHaveBeenLastCalledWith(expect.objectContaining({ forcePathStyle: true, endpoint: 'http://minio:9000' }));
+      } finally {
+        delete process.env.S3_FORCE_PATH_STYLE;
+      }
+    });
   });
 
   describe('getBucket', () => {

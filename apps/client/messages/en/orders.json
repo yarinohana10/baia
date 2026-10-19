@@ -448,5 +448,24 @@
         "declined": "Declined"
       }
     }
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalid": "This value is not valid",
+    "tooLong": "Up to {max} characters",
+    "tooShort": "At least {min} characters",
+    "emailInvalid": "Please enter a valid email address",
+    "phoneInvalid": "Invalid phone number. Digits only, e.g. 050-1234567",
+    "consentRequired": "Please tick the consent box to continue",
+    "acceptTerms": "Please accept the terms and privacy policy to continue",
+    "pickupPointRequired": "Please choose a pickup point to continue",
+    "reasonRequired": "Please choose a cancellation reason",
+    "passwordTooShort": "Password must be at least {min} characters",
+    "passwordsMismatch": "Passwords do not match",
+    "whatsappInvalid": "WhatsApp number in international format, digits only (e.g. 972501234567)",
+    "etaInvalid": "Enter a number of days or a range, e.g. 3-5",
+    "amountInvalid": "Enter a valid amount (up to two decimal places)",
+    "wholeNumber": "Enter a whole number",
+    "outOfRange": "This value is out of range"
   }
 }

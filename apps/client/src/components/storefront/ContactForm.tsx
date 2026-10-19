@@ -3,7 +3,10 @@
 import { useId, useState, type FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CheckCircle2, Loader2 } from 'lucide-react';
+import { contactSchema } from '@baia/shared';
 import { CONTACT_PHONE_PATTERN, contactErrorKind, sendContactMessage, type ContactError } from '@/lib/contact';
+import { clearIssue, firstInvalidField, invalidProps, validateForm, type FieldIssues } from '@/lib/form-errors';
+import { FieldError } from '@/components/forms/FieldError';
 
 const SUBJECTS = ['general', 'sizing', 'order', 'exchange', 'cancel', 'other'] as const;
 type SubjectKey = (typeof SUBJECTS)[number];
@@ -22,6 +25,12 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
   const [sending, setSending] = useState(false);
   const [sentName, setSentName] = useState<string | null>(null);
   const [error, setError] = useState<ContactError | null>(null);
+  const [issues, setIssues] = useState<FieldIssues>({});
+  const errorId = (field: string) => `${id}-${field}-error`;
+  const fieldProps = (name: string) => ({
+    ...invalidProps(issues, name, errorId(name)),
+    onChange: () => setIssues((v) => clearIssue(v, name)),
+  });
 
   const field =
     'mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-100';
@@ -40,21 +49,28 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
     const data = new FormData(form);
     const value = (k: string) => String(data.get(k) ?? '').trim();
     const subjectKey = value('subject') as SubjectKey;
+    const check = validateForm(contactSchema, {
+      name: value('name'),
+      email: value('email'),
+      phone: value('phone'),
+      orderNumber: value('orderNumber'),
+      subject: SUBJECTS.includes(subjectKey) ? t(`subjectOptions.${subjectKey}`) : undefined,
+      message: value('message'),
+      locale: locale === 'en' ? 'en' : 'he',
+      website: String(data.get('website') ?? ''),
+    });
+    setIssues(check.errors);
+    if (!check.success) {
+      const first = firstInvalidField(check.errors, ['name', 'email', 'phone', 'orderNumber', 'message']);
+      if (first) (form.elements.namedItem(first) as HTMLElement | null)?.focus();
+      return;
+    }
 
     setSending(true);
     setError(null);
     try {
-      await sendContactMessage({
-        name: value('name'),
-        email: value('email'),
-        phone: value('phone'),
-        orderNumber: value('orderNumber'),
-        subject: SUBJECTS.includes(subjectKey) ? t(`subjectOptions.${subjectKey}`) : undefined,
-        message: value('message'),
-        locale,
-        website: value('website'),
-      });
-      setSentName(value('name'));
+      await sendContactMessage(check.data);
+      setSentName(check.data.name);
       form.reset();
     } catch (err) {
       setError(contactErrorKind(err));
@@ -89,7 +105,8 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
             {t('name')}
             {req}
           </label>
-          <input id={`${id}-name`} name="name" required maxLength={100} autoComplete="name" className={field} />
+          <input id={`${id}-name`} name="name" required maxLength={100} autoComplete="name" className={field} {...fieldProps('name')} />
+          <FieldError id={errorId('name')} issue={issues.name} />
         </div>
         <div>
           <label htmlFor={`${id}-email`} className={label}>
@@ -105,7 +122,9 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
             autoComplete="email"
             dir="ltr"
             className={`${field} rtl:text-right`}
+            {...fieldProps('email')}
           />
+          <FieldError id={errorId('email')} issue={issues.email} />
         </div>
         <div>
           <label htmlFor={`${id}-phone`} className={label}>
@@ -119,13 +138,23 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
             pattern={CONTACT_PHONE_PATTERN}
             dir="ltr"
             className={`${field} rtl:text-right`}
+            {...fieldProps('phone')}
           />
+          <FieldError id={errorId('phone')} issue={issues.phone} />
         </div>
         <div>
           <label htmlFor={`${id}-order`} className={label}>
             {t('orderNumber')}
           </label>
-          <input id={`${id}-order`} name="orderNumber" maxLength={40} dir="ltr" className={`${field} rtl:text-right`} />
+          <input
+            id={`${id}-order`}
+            name="orderNumber"
+            maxLength={40}
+            dir="ltr"
+            className={`${field} rtl:text-right`}
+            {...fieldProps('orderNumber')}
+          />
+          <FieldError id={errorId('orderNumber')} issue={issues.orderNumber} />
         </div>
       </div>
       <div>
@@ -145,7 +174,16 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
           {t('message')}
           {req}
         </label>
-        <textarea id={`${id}-message`} name="message" required maxLength={5000} rows={6} className={field} />
+        <textarea
+          id={`${id}-message`}
+          name="message"
+          required
+          maxLength={5000}
+          rows={6}
+          className={field}
+          {...fieldProps('message')}
+        />
+        <FieldError id={errorId('message')} issue={issues.message} />
       </div>
 
       {/* Honeypot: hidden from people and assistive tech; bots fill it in. */}

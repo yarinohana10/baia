@@ -1,15 +1,10 @@
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import type { EmailService } from '../email/email.service';
+import { PLACEHOLDER_SECRETS } from '../config/env';
 import { DEFAULT_EMAIL_LOCALE, EMAIL_LOCALES, type EmailLocale } from '../email/email.types';
 
 const DEV_SECRET = 'baia-dev-secret-not-for-production';
-const KNOWN_PLACEHOLDER_SECRETS = new Set([
-  'baia-dev-secret',
-  DEV_SECRET,
-  'change-me-to-a-random-secret',
-  'generate-a-random-secret-here',
-  'docker-dev-secret-change-me-in-production',
-]);
+const KNOWN_PLACEHOLDER_SECRETS = PLACEHOLDER_SECRETS;
 
 /** Token lifetimes, in seconds. */
 export const VERIFY_EMAIL_EXPIRES_IN = 24 * 60 * 60;
@@ -216,6 +211,13 @@ export function createAuth({ database, email, env = process.env }: CreateAuthOpt
       },
     },
     advanced: {
+      // Client IP for rate limiting comes from X-Forwarded-For (set by Railway's
+      // edge and passed through by the storefront proxy). A single-value header
+      // is used as is; list proxy IPs/CIDRs in AUTH_TRUSTED_PROXIES if a chain
+      // of proxies appends to it.
+      ...(parseList(env.AUTH_TRUSTED_PROXIES).length
+        ? { ipAddress: { trustedProxies: parseList(env.AUTH_TRUSTED_PROXIES) } }
+        : {}),
       cookiePrefix: env.AUTH_COOKIE_PREFIX || 'baia',
       // In production cookies get the `__Secure-` prefix and the Secure flag.
       useSecureCookies: isProduction,

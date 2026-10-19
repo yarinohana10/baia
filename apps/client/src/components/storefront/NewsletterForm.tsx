@@ -3,9 +3,9 @@
 import { useId, useState, type FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CheckCircle2, Loader2 } from 'lucide-react';
+import { newsletterSubscribeSchema } from '@baia/shared';
 import { subscribeToNewsletter } from '@/lib/newsletter';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { validateForm } from '@/lib/form-errors';
 
 /**
  * Footer newsletter opt-in. The consent box is never pre-ticked and the API
@@ -23,13 +23,14 @@ export function NewsletterForm() {
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (status === 'sending') return;
-    const value = email.trim();
-    if (!EMAIL_RE.test(value)) return setError(t('newsletterInvalidEmail'));
-    if (!consent) return setError(t('newsletterConsentRequired'));
+    const check = validateForm(newsletterSubscribeSchema, { email, consent, source: 'footer' });
+    if (!check.success) {
+      return setError(t(check.errors.email ? 'newsletterInvalidEmail' : 'newsletterConsentRequired'));
+    }
     setError(null);
     setStatus('sending');
     try {
-      await subscribeToNewsletter(value, locale, 'footer');
+      await subscribeToNewsletter(check.data.email, locale, 'footer');
       setStatus('done');
     } catch {
       setStatus('idle');

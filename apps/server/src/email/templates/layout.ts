@@ -390,6 +390,11 @@ a[x-apple-data-detectors] { color:inherit !important; text-decoration:none !impo
 [data-ogsc] .em-link { color:#6cc3d5 !important; }
 `;
 
+/** Hosted logo: the storefront serves /email/baia-logo.png; EMAIL_LOGO_URL overrides (e.g. a CDN). */
+export function logoUrl(siteUrl: string): string {
+  return process.env.EMAIL_LOGO_URL || `${siteUrl.replace(/\/$/, '')}/email/baia-logo.png`;
+}
+
 export function renderLayout(parts: LayoutParts, ctx: LayoutContext = defaultLayoutContext()): string {
   const dirName = dirFor(parts.locale);
   const d: Dir = { dir: dirName, start: dirName === 'rtl' ? 'right' : 'left', end: dirName === 'rtl' ? 'left' : 'right' };
@@ -456,8 +461,10 @@ export function renderLayout(parts: LayoutParts, ctx: LayoutContext = defaultLay
     <!--[if mso]><table ${TABLE} width="600" align="center"><tr><td><![endif]-->
     <table ${TABLE} width="100%" dir="${d.dir}" style="max-width:600px;margin:0 auto;">
       <tr><td align="center" style="padding:8px 0 20px;">
-        <div dir="ltr" class="em-text" style="font-family:${SERIF};font-size:30px;line-height:34px;letter-spacing:8px;color:${C.text};">BAIA</div>
-        <div dir="ltr" class="em-muted" style="font-family:${FONT};font-size:10px;line-height:16px;letter-spacing:4px;color:${C.muted};">${e(t.tagline)}</div>
+        <!-- Logo PNG (SVG isn't supported by Gmail/Outlook). Light pill keeps it legible in dark mode; alt text shows when images are blocked. -->
+        <table ${TABLE} align="center"><tr><td bgcolor="#ffffff" style="background:#ffffff;border-radius:10px;padding:10px 18px;">
+          <img src="${e(logoUrl(ctx.branding.siteUrl))}" width="220" height="44" alt="BAIA SWIMWEAR" style="display:block;width:220px;height:44px;border:0;outline:none;text-decoration:none;font-family:${SERIF};font-size:22px;letter-spacing:6px;color:#1B4965;">
+        </td></tr></table>
       </td></tr>
       <tr><td class="em-card em-card-pad" dir="${d.dir}" bgcolor="${C.card}" style="background:${C.card};border-radius:12px;padding:36px 32px;text-align:${d.start};">
         <h1 dir="${d.dir}" class="em-h1" style="margin:0 0 20px;font-family:${SERIF};font-size:26px;line-height:34px;font-weight:normal;color:${C.text};text-align:${d.start};">${e(parts.heading)}</h1>

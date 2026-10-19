@@ -5,7 +5,9 @@
 
 import type { OrderPaymentFields } from './payment';
 
-export type DeliveryMethod = 'COURIER' | 'PICKUP_POINT';
+import type { DeliveryMethod } from '@baia/shared';
+
+export type { DeliveryMethod };
 
 export type OrderStatus =
   | 'PENDING_PAYMENT'
@@ -16,16 +18,8 @@ export type OrderStatus =
   | 'CANCELLED'
   | 'REFUNDED';
 
-export type CancellationReason = 'SIZE' | 'CHANGED_MIND' | 'ORDERED_BY_MISTAKE' | 'SHIPPING_DELAY' | 'OTHER';
-
-/** Order of the options in the reason select. */
-export const CANCELLATION_REASONS: CancellationReason[] = [
-  'SIZE',
-  'CHANGED_MIND',
-  'ORDERED_BY_MISTAKE',
-  'SHIPPING_DELAY',
-  'OTHER',
-];
+/** Shared with the API (also the order of the options in the reason select). */
+export { CANCELLATION_REASONS, type CancellationReason } from '@baia/shared';
 
 export type CancellationInfo = {
   canSelfCancel: boolean;

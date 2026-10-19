@@ -1,5 +1,6 @@
 import type { Category, Product, ProductList, SiteConfig, SortOption, CardProduct, Facets } from './types';
 import { filterApiParams, type ListingFilters } from './query';
+import { serverApiUrl } from '../api-urls';
 
 /**
  * Server-side catalogue reads. Uses Next's data cache (ISR) with tags so an admin
@@ -7,7 +8,8 @@ import { filterApiParams, type ListingFilters } from './query';
  * Every read fails soft (returns empty) so a slow/down API never breaks a build or page.
  */
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1';
+// Private-network API address on Railway (API_INTERNAL_URL), else the public URL.
+const API_URL = serverApiUrl();
 
 export const REVALIDATE_SECONDS = 300;
 

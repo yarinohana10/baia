@@ -5,7 +5,10 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import { useSession } from '@/lib/auth-client';
+import { checkoutSchema, toCreateOrderPayload, type CreateOrderPayload } from '@baia/shared';
 import { addressesApi, PHONE_PATTERN, sameAddress, streetLine, type Address, type AddressInput } from '@/lib/addresses';
+import { clearIssue, firstInvalidField, invalidProps, validateForm, type FieldIssues } from '@/lib/form-errors';
+import { FieldError } from '@/components/forms/FieldError';
 import { formatPrice } from '@/lib/catalog/pricing';
 import { errorCode, shopErrorMessage, type ErrorMessage } from '@/lib/shop-errors';
 import { cartSubtotal, etaFor, lineIssue, shippingFor, useCartStore, type DeliveryMethod } from '@/store/cart';
@@ -20,6 +23,20 @@ const inputClass =
 const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
 
 type AppliedCoupon = { code: string; discount: number; subtotal: number };
+
+/** checkoutSchema field → input id, in on-screen order (for focusing the first invalid field). */
+const FIELD_INPUTS = {
+  recipientName: 'checkout-name',
+  customerEmail: 'checkout-email',
+  phone: 'checkout-phone',
+  shippingCity: 'checkout-city',
+  shippingStreet: 'checkout-street',
+  shippingNumber: 'checkout-number',
+  shippingApartment: 'checkout-apartment',
+  shippingZip: 'checkout-zip',
+  couponCode: 'checkout-coupon',
+} as const;
+const FIELD_ORDER = Object.keys(FIELD_INPUTS);
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -53,6 +70,13 @@ export default function CheckoutPage() {
   const [couponChecking, setCouponChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ErrorMessage | null>(null);
+  const [issues, setIssues] = useState<FieldIssues>({});
+  const edited = (field: string) => setIssues((v) => clearIssue(v, field));
+  /** aria wiring + the translated error under a checkout input. */
+  const fieldAria = (field: keyof typeof FIELD_INPUTS) => invalidProps(issues, field, `${FIELD_INPUTS[field]}-error`);
+  const fieldError = (field: keyof typeof FIELD_INPUTS) => (
+    <FieldError id={`${FIELD_INPUTS[field]}-error`} issue={issues[field]} className="text-red-500" />
+  );
   // An order already created from the cart (e.g. the shopper came back from
   // the payment page): continue to pay it instead of creating a second order.
   const [pendingOrder, setPendingOrder] = useState<{ id: string; token?: string } | null>(null);
@@ -184,10 +208,39 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting || (!pendingOrder && hasIssues)) return;
-    if (!pendingOrder && isPickup && !pickupPoint) {
-      setPickupMissing(true);
-      document.getElementById('checkout-delivery')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
+    let payload: CreateOrderPayload | null = null;
+    if (!pendingOrder) {
+      const check = validateForm(checkoutSchema, {
+        customerEmail: email,
+        recipientName,
+        phone,
+        locale: locale === 'en' ? 'en' : 'he',
+        couponCode: appliedCoupon?.code,
+        deliveryMethod,
+        marketingConsent,
+        acceptTerms: termsAccepted,
+        ...(isPickup
+          ? { pickupPointId: pickupPoint?.id }
+          : {
+              shippingCity: city,
+              shippingStreet: street,
+              shippingNumber: number,
+              shippingApartment: apartment,
+              shippingZip: zip,
+            }),
+      });
+      setIssues(check.errors);
+      if (!check.success) {
+        const first = firstInvalidField(check.errors, FIELD_ORDER) as keyof typeof FIELD_INPUTS | undefined;
+        if (check.errors.pickupPointId) {
+          setPickupMissing(true);
+          document.getElementById('checkout-delivery')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (first && FIELD_INPUTS[first]) {
+          document.getElementById(FIELD_INPUTS[first])?.focus();
+        }
+        return;
+      }
+      payload = toCreateOrderPayload(check.data);
     }
     setError(null);
     setSubmitting(true);
@@ -196,24 +249,8 @@ export default function CheckoutPage() {
     try {
       if (!order) {
         // The cart is resolved server-side from the session / guest cookie.
-        const res = await api.post('/orders', {
-          customerEmail: email.trim(),
-          recipientName: recipientName.trim(),
-          phone: phone.trim(),
-          locale: locale === 'en' ? 'en' : 'he',
-          couponCode: appliedCoupon?.code,
-          deliveryMethod,
-          marketingConsent,
-          ...(isPickup
-            ? { pickupPointId: pickupPoint?.id }
-            : {
-                shippingCity: city,
-                shippingStreet: street,
-                shippingNumber: number,
-                shippingApartment: apartment || undefined,
-                shippingZip: zip || undefined,
-              }),
-        });
+        // `payload` is set whenever there is no pending order (validated above).
+        const res = await api.post('/orders', payload);
         // Guests get a one-time access token; signed-in users are matched by session.
         order = { id: res.data.id, token: res.data.accessToken };
         setPendingOrder(order);
@@ -310,10 +347,15 @@ export default function CheckoutPage() {
                 autoComplete="name"
                 maxLength={100}
                 value={recipientName}
-                onChange={(e) => setRecipientName(e.target.value)}
+                onChange={(e) => {
+                  setRecipientName(e.target.value);
+                  edited('recipientName');
+                }}
+                {...fieldAria('recipientName')}
                 className={inputClass}
                 required
               />
+              {fieldError('recipientName')}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -325,12 +367,17 @@ export default function CheckoutPage() {
                   dir="ltr"
                   maxLength={254}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    edited('customerEmail');
+                  }}
+                  {...fieldAria('customerEmail')}
                   aria-describedby="checkout-email-hint"
                   disabled={locked}
                   className={inputClass}
                   required
                 />
+                {fieldError('customerEmail')}
               </div>
               <div>
                 <label htmlFor="checkout-phone" className={labelClass}>{tCheckout('phone')}</label>
@@ -342,10 +389,15 @@ export default function CheckoutPage() {
                   pattern={PHONE_PATTERN}
                   title={tCheckout('phoneHint')}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    edited('phone');
+                  }}
+                  {...fieldAria('phone')}
                   className={inputClass}
                   required
                 />
+                {fieldError('phone')}
               </div>
             </div>
             <p id="checkout-email-hint" className="text-xs text-gray-500">
@@ -471,10 +523,15 @@ export default function CheckoutPage() {
                   autoComplete="address-level2"
                   maxLength={100}
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onChange={(e) => {
+                    setCity(e.target.value);
+                    edited('shippingCity');
+                  }}
+                  {...fieldAria('shippingCity')}
                   className={inputClass}
                   required
                 />
+                {fieldError('shippingCity')}
               </div>
               <div>
                 <label htmlFor="checkout-street" className={labelClass}>{tCheckout('street')}</label>
@@ -484,10 +541,15 @@ export default function CheckoutPage() {
                   autoComplete="address-line1"
                   maxLength={150}
                   value={street}
-                  onChange={(e) => setStreet(e.target.value)}
+                  onChange={(e) => {
+                    setStreet(e.target.value);
+                    edited('shippingStreet');
+                  }}
+                  {...fieldAria('shippingStreet')}
                   className={inputClass}
                   required
                 />
+                {fieldError('shippingStreet')}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -498,10 +560,15 @@ export default function CheckoutPage() {
                   type="text"
                   maxLength={20}
                   value={number}
-                  onChange={(e) => setNumber(e.target.value)}
+                  onChange={(e) => {
+                    setNumber(e.target.value);
+                    edited('shippingNumber');
+                  }}
+                  {...fieldAria('shippingNumber')}
                   className={inputClass}
                   required
                 />
+                {fieldError('shippingNumber')}
               </div>
               <div>
                 <label htmlFor="checkout-apartment" className={labelClass}>{tDelivery('apartmentFloor')}</label>
@@ -511,9 +578,14 @@ export default function CheckoutPage() {
                   maxLength={60}
                   placeholder={tDelivery('apartmentPlaceholder')}
                   value={apartment}
-                  onChange={(e) => setApartment(e.target.value)}
+                  onChange={(e) => {
+                    setApartment(e.target.value);
+                    edited('shippingApartment');
+                  }}
+                  {...fieldAria('shippingApartment')}
                   className={inputClass}
                 />
+                {fieldError('shippingApartment')}
               </div>
               <div>
                 <label htmlFor="checkout-zip" className={labelClass}>{tCheckout('zip')}</label>
@@ -523,9 +595,14 @@ export default function CheckoutPage() {
                   autoComplete="postal-code"
                   maxLength={20}
                   value={zip}
-                  onChange={(e) => setZip(e.target.value)}
+                  onChange={(e) => {
+                    setZip(e.target.value);
+                    edited('shippingZip');
+                  }}
+                  {...fieldAria('shippingZip')}
                   className={inputClass}
                 />
+                {fieldError('shippingZip')}
               </div>
             </div>
             {offerSaveAddress && !pendingOrder && (
@@ -665,7 +742,10 @@ export default function CheckoutPage() {
               <input
                 type="checkbox"
                 checked={termsAccepted || locked}
-                onChange={(e) => setTermsAccepted(e.target.checked)}
+                onChange={(e) => {
+                  setTermsAccepted(e.target.checked);
+                  edited('acceptTerms');
+                }}
                 disabled={locked}
                 required
                 className="mt-0.5 accent-ocean-700"
@@ -685,6 +765,7 @@ export default function CheckoutPage() {
                 })}
               </span>
             </label>
+            <FieldError id="checkout-terms-error" issue={issues.acceptTerms} className="text-red-500" />
           </div>
 
           {hasIssues && !pendingOrder && (

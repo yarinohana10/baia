@@ -7,6 +7,16 @@ import { setMyMarketingConsent } from '@/lib/newsletter';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { registerFormSchema } from '@baia/shared';
+import { firstInvalidField, validateForm } from '@/lib/form-errors';
+
+const FIELD_ORDER = ['name', 'email', 'password', 'confirmPassword'] as const;
+const FIELD_INPUT_ID: Record<(typeof FIELD_ORDER)[number], string> = {
+  name: 'fullName',
+  email: 'email',
+  password: 'password',
+  confirmPassword: 'confirmPassword',
+};
 
 function GoogleIcon() {
   return (
@@ -21,6 +31,7 @@ function GoogleIcon() {
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
+  const tRoot = useTranslations();
   const locale = useLocale();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -51,15 +62,23 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
-    if (password !== confirmPassword) {
-      setError(t('passwordsDoNotMatch'));
+    const check = validateForm(registerFormSchema, { name, email, password, confirmPassword, marketingConsent: newsletter });
+    if (!check.success) {
+      const first = firstInvalidField(check.errors, FIELD_ORDER);
+      const issue = first ? check.errors[first] : undefined;
+      if (first && issue) {
+        setError(first === 'confirmPassword' ? t('passwordsDoNotMatch') : tRoot(issue.key, issue.values));
+        const inputId = FIELD_INPUT_ID[first as (typeof FIELD_ORDER)[number]];
+        if (inputId) document.getElementById(inputId)?.focus();
+      }
       return;
     }
 
     setLoading(true);
 
     try {
-      const result = await signUp.email({ name, email, password });
+      const { name: validName, email: validEmail, password: validPassword } = check.data;
+      const result = await signUp.email({ name: validName, email: validEmail, password: validPassword });
       if (result.error) {
         setError(t(authErrorKey(result.error)));
       } else {
