@@ -40,7 +40,7 @@ export class CategoriesService {
 
     return categories.map((cat) => ({
       ...this.resolveCategoryImage(cat),
-      children: cat.children.map((child: any) => this.resolveCategoryImage(child)),
+      children: cat.children.map((child) => this.resolveCategoryImage(child)),
     }));
   }
 
@@ -56,7 +56,7 @@ export class CategoriesService {
     if (!category) throw new NotFoundException('Category not found');
     return {
       ...this.resolveCategoryImage(category),
-      children: category.children.map((child: any) => this.resolveCategoryImage(child)),
+      children: category.children.map((child) => this.resolveCategoryImage(child)),
       parent: category.parent ? this.resolveCategoryImage(category.parent) : null,
     };
   }

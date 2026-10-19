@@ -6,16 +6,9 @@ import useEmblaCarousel from 'embla-carousel-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, Expand } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLightbox } from '@/hooks/catalog/useLightbox';
+import type { GalleryImage } from '@/lib/catalog/variant-selection';
 import { GalleryLightbox } from './product/GalleryLightbox';
-
-export type GalleryImage = {
-  id: string;
-  url: string;
-  color?: string | null;
-  altText?: string | null;
-  altTextHe?: string | null;
-  altTextEn?: string | null;
-};
 
 type Props = {
   images: GalleryImage[];
@@ -41,7 +34,7 @@ export default function ProductGallery({ images, productName }: Props) {
     dragFree: true,
   });
   const [selected, setSelected] = useState(0);
-  const [lightbox, setLightbox] = useState<number | null>(null);
+  const lightbox = useLightbox();
   const tPdp = useTranslations('pdp.gallery');
 
   const imagesKey = images.map((img) => img.id).join(',');
@@ -61,9 +54,11 @@ export default function ProductGallery({ images, productName }: Props) {
   useEffect(() => {
     if (!mainApi) return;
     onSelect();
-    mainApi.on('select', onSelect).on('reInit', onSelect);
+    mainApi.on('select', onSelect);
+    mainApi.on('reInit', onSelect);
     return () => {
-      mainApi.off('select', onSelect).off('reInit', onSelect);
+      mainApi.off('select', onSelect);
+      mainApi.off('reInit', onSelect);
     };
   }, [mainApi, onSelect]);
 
@@ -135,7 +130,7 @@ export default function ProductGallery({ images, productName }: Props) {
                 {/* Embla swallows the click that ends a swipe, so this only fires on a real tap/click */}
                 <button
                   type="button"
-                  onClick={() => setLightbox(i)}
+                  onClick={() => lightbox.openAt(i)}
                   tabIndex={i === selected ? 0 : -1}
                   aria-label={tPdp('open', { n: i + 1 })}
                   className="absolute inset-0 cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ocean-600"
@@ -185,9 +180,9 @@ export default function ProductGallery({ images, productName }: Props) {
 
       <GalleryLightbox
         images={images}
-        startIndex={lightbox}
+        lightbox={lightbox}
         onClose={(index) => {
-          setLightbox(null);
+          lightbox.close();
           if (index !== selected) mainApi?.scrollTo(index, true);
         }}
         altFor={altFor}

@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { Dialog } from '@base-ui/react/dialog';
 import { useLocale, useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { GalleryImage } from '../ProductGallery';
+import type { GalleryImage } from '@/lib/catalog/variant-selection';
+import type { LightboxController } from '@/hooks/catalog/useLightbox';
 
 type Props = {
   images: GalleryImage[];
-  /** Index to open at; null = closed. */
-  startIndex: number | null;
+  /** Open state, current image and zoom (owned by the gallery). */
+  lightbox: LightboxController;
   /** Called with the image the shopper ended on, so the gallery can follow. */
   onClose: (index: number) => void;
   altFor: (img: GalleryImage, index: number) => string;
@@ -23,26 +24,15 @@ type Props = {
  * pointer (desktop); arrows/keys move between images; Esc closes and focus
  * returns to the image that opened it. On phones the browser's pinch-zoom works.
  */
-export function GalleryLightbox({ images, startIndex, onClose, altFor, productName }: Props) {
+export function GalleryLightbox({ images, lightbox, onClose, altFor, productName }: Props) {
   const t = useTranslations('pdp.gallery');
   const tGallery = useTranslations('product.gallery');
   const isRtl = useLocale() === 'he';
-  const [index, setIndex] = useState(0);
-  const [zoomed, setZoomed] = useState(false);
   const [origin, setOrigin] = useState('50% 50%');
-
-  useEffect(() => {
-    if (startIndex !== null) {
-      setIndex(startIndex);
-      setZoomed(false);
-    }
-  }, [startIndex]);
+  const { index, zoomed, toggleZoom } = lightbox;
 
   const count = images.length;
-  const go = (delta: number) => {
-    setZoomed(false);
-    setIndex((i) => (i + delta + count) % count);
-  };
+  const go = (delta: number) => lightbox.step(delta, count);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (count < 2) return;
@@ -64,7 +54,7 @@ export function GalleryLightbox({ images, startIndex, onClose, altFor, productNa
   };
 
   const img = images[index];
-  const open = startIndex !== null && !!img;
+  const open = lightbox.isOpen && !!img;
 
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !next && onClose(index)}>
@@ -82,7 +72,7 @@ export function GalleryLightbox({ images, startIndex, onClose, altFor, productNa
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setZoomed((z) => !z)}
+                onClick={toggleZoom}
                 aria-pressed={zoomed}
                 aria-label={zoomed ? t('zoomOut') : t('zoomIn')}
                 className="hidden size-10 items-center justify-center rounded-full hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:flex"
@@ -102,7 +92,7 @@ export function GalleryLightbox({ images, startIndex, onClose, altFor, productNa
             <div className="relative flex-1 overflow-hidden">
               <button
                 type="button"
-                onClick={() => setZoomed((z) => !z)}
+                onClick={toggleZoom}
                 onPointerMove={onPointerMove}
                 aria-label={zoomed ? t('zoomOut') : t('zoomIn')}
                 className={cn(
@@ -155,10 +145,7 @@ export function GalleryLightbox({ images, startIndex, onClose, altFor, productNa
                   role="tab"
                   aria-selected={i === index}
                   aria-label={tGallery('showImage', { n: i + 1 })}
-                  onClick={() => {
-                    setZoomed(false);
-                    setIndex(i);
-                  }}
+                  onClick={() => lightbox.show(i)}
                   className={cn(
                     'relative size-14 shrink-0 overflow-hidden rounded-md border-2 transition-opacity',
                     i === index ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100',

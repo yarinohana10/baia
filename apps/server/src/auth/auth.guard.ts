@@ -41,7 +41,7 @@ export class AuthGuard implements CanActivate {
     request.session = session.session;
 
     if (needsRole) {
-      const userRole = (session.user as any).role;
+      const userRole = (session.user as { role?: string }).role ?? '';
       if (!requiredRoles.includes(userRole)) {
         throw new ForbiddenException('Insufficient permissions');
       }

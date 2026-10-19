@@ -10,10 +10,8 @@ import { orderPageHref } from '@/lib/orders';
 import { orderLookupSchema } from '@baia/shared';
 import { clearIssue, invalidProps, validateForm, type FieldIssues } from '@/lib/form-errors';
 import { FieldError } from '@/components/forms/FieldError';
-
-export const lookupFieldClass =
-  'mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-ocean-500 focus:outline-none';
-export const lookupLabelClass = 'block text-sm font-semibold text-gray-900';
+import { useBusyAction } from '@/hooks/storefront/useBusyAction';
+import { lookupFieldClass, lookupLabelClass } from './styles';
 
 /**
  * Order number + email → POST /orders/lookup → the order page, carrying the
@@ -26,7 +24,7 @@ export function OrderLookupForm() {
   const router = useRouter();
   const [orderNumber, setOrderNumber] = useState('');
   const [email, setEmail] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, runSubmit] = useBusyAction();
   const [error, setError] = useState<ErrorMessage | null>(null);
   const [issues, setIssues] = useState<FieldIssues>({});
   const id = useId();
@@ -37,15 +35,17 @@ export function OrderLookupForm() {
     const check = validateForm(orderLookupSchema, { orderNumber, email });
     setIssues(check.errors);
     if (!check.success) return;
-    setSubmitting(true);
     setError(null);
-    try {
-      const res = await api.post('/orders/lookup', check.data);
-      router.push(orderPageHref(res.data.order.id, res.data.accessToken));
-    } catch (err) {
-      setError(shopErrorMessage(err, locale));
-      setSubmitting(false);
-    }
+    await runSubmit(async () => {
+      try {
+        const res = await api.post('/orders/lookup', check.data);
+        router.push(orderPageHref(res.data.order.id, res.data.accessToken));
+        return 'navigating';
+      } catch (err) {
+        setError(shopErrorMessage(err, locale));
+        return 'done';
+      }
+    });
   };
 
   return (

@@ -1,13 +1,11 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ListingHeader } from '@/components/storefront/ListingHeader';
-import { ProductGrid } from '@/components/storefront/ProductGrid';
-import { ListingFilters } from '@/components/storefront/filters/ListingFilters';
-import { FilteredEmpty } from '@/components/storefront/filters/FilteredEmpty';
-import { Pagination } from '@/components/storefront/Pagination';
 import { EmptyCategory } from '@/components/storefront/EmptyCategory';
-import { getCategories, getFacets, getProducts, toCardProduct } from '@/lib/catalog/server';
-import { PAGE_SIZE, activeFilterCount, clearFilters, listingHref, parseListingQuery } from '@/lib/catalog/query';
+import { ListingResults } from '@/components/storefront/listing/ListingResults';
+import { getCategories, getFacets, getProducts } from '@/lib/catalog/server';
+import { PAGE_SIZE, activeFilterCount, parseListingQuery } from '@/lib/catalog/query';
+import { categoryLinks } from '@/lib/catalog/names';
 import { pageMetadata } from '@/lib/seo';
 
 type Props = {
@@ -41,38 +39,21 @@ export default async function NewArrivalsPage({ params, searchParams }: Props) {
     getTranslations('storefront.category'),
     getTranslations('seo'),
   ]);
-  const basePath = '/new-arrivals';
-  const filtered = activeFilterCount(query) > 0;
+  const countLabel = tCat('count', { count: total });
 
   return (
     <div className="container-page py-8">
-      <ListingHeader title={tSeo('newArrivalsTitle')} countLabel={tCat('count', { count: total })} />
-      {products.length === 0 && !filtered ? (
-        <EmptyCategory
-          suggestions={categories.map((c) => ({
-            label: locale === 'he' ? c.nameHe : c.nameEn,
-            href: `/category/${c.slug}`,
-          }))}
-        />
-      ) : (
-        <>
-          <ListingFilters
-            basePath={basePath}
-            query={query}
-            facets={facets}
-            total={total}
-            countLabel={tCat('count', { count: total })}
-          />
-          {products.length === 0 ? (
-            <FilteredEmpty clearHref={listingHref(basePath, clearFilters(query))} />
-          ) : (
-            <>
-              <ProductGrid products={products.map(toCardProduct)} priorityCount={4} />
-              <Pagination basePath={basePath} query={query} totalPages={totalPages} />
-            </>
-          )}
-        </>
-      )}
+      <ListingHeader title={tSeo('newArrivalsTitle')} countLabel={countLabel} />
+      <ListingResults
+        basePath="/new-arrivals"
+        query={query}
+        facets={facets}
+        products={products}
+        total={total}
+        totalPages={totalPages}
+        countLabel={countLabel}
+        empty={<EmptyCategory suggestions={categoryLinks(categories, locale)} />}
+      />
     </div>
   );
 }

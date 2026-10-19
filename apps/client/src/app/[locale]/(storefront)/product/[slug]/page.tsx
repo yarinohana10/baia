@@ -3,12 +3,11 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Breadcrumbs } from '@/components/storefront/Breadcrumbs';
 import { ProductDetails } from '@/components/storefront/product/ProductDetails';
 import { RelatedProducts } from '@/components/storefront/product/RelatedProducts';
+import { localizedName } from '@/lib/catalog/names';
 import { getProduct, getRelatedProducts, getSiteConfig, toCardProduct } from '@/lib/catalog/server';
 import { businessInfo } from '@/lib/site';
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
-
-const nameOf = (c: { nameHe: string; nameEn: string }, locale: string) => (locale === 'he' ? c.nameHe : c.nameEn);
 
 /**
  * Product page. Rendered on the server from the cached catalogue (SEO + fast
@@ -32,9 +31,9 @@ export default async function ProductPage({ params }: Props) {
   const cat = product.category;
   const crumbs = [
     { label: t('home'), href: '/' },
-    ...(cat?.parent ? [{ label: nameOf(cat.parent, locale), href: `/category/${cat.parent.slug}` }] : []),
-    ...(cat ? [{ label: nameOf(cat, locale), href: `/category/${cat.slug}` }] : []),
-    { label: nameOf(product, locale) },
+    ...(cat?.parent ? [{ label: localizedName(cat.parent, locale), href: `/category/${cat.parent.slug}` }] : []),
+    ...(cat ? [{ label: localizedName(cat, locale), href: `/category/${cat.slug}` }] : []),
+    { label: localizedName(product, locale) },
   ];
 
   return (
@@ -44,6 +43,7 @@ export default async function ProductPage({ params }: Props) {
       </div>
 
       <ProductDetails
+        key={product.id}
         product={product}
         whatsappNumber={info.whatsappNumber}
         shipping={{

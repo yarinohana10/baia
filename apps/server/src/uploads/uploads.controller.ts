@@ -14,6 +14,7 @@ import { fieldValidationException } from '../common/validation';
 import { UploadsService } from './uploads.service';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { Request } from 'express';
+import type { AuthenticatedRequest } from '../common/session';
 
 @Controller('admin/uploads')
 @UseGuards(AuthGuard)
@@ -30,7 +31,7 @@ export class UploadsController {
     if (!file) {
       throw fieldValidationException([{ field: 'file', code: 'required', message: 'A file is required' }]);
     }
-    const userId = (req as any).user?.id;
+    const userId = (req as AuthenticatedRequest).user?.id;
     return this.uploadsService.upload(
       file.buffer,
       file.originalname,

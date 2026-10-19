@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Check, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isClosed, stepDate, timelineIndex, TIMELINE_STEPS, type CustomerOrder } from '@/lib/orders';
+import { DAY_MONTH, formatOrderDate } from './order-dates';
 
 /**
  * התקבלה → שולמה → בטיפול → נשלחה → נמסרה, or a "cancelled" banner.
@@ -18,7 +19,6 @@ export function OrderTimeline({
 }) {
   const t = useTranslations('orderPage.timeline');
   const locale = useLocale();
-  const dateFormat = new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-IL', { day: 'numeric', month: 'numeric' });
 
   if (isClosed(order.status)) {
     return (
@@ -27,7 +27,7 @@ export function OrderTimeline({
         <span>
           {order.status === 'REFUNDED' ? t('refunded') : t('cancelled')}
           {order.cancelledAt && !compact && (
-            <span className="text-gray-400"> · {dateFormat.format(new Date(order.cancelledAt))}</span>
+            <span className="text-gray-400"> · {formatOrderDate(DAY_MONTH, order.cancelledAt, locale)}</span>
           )}
         </span>
       </div>
@@ -70,7 +70,7 @@ export function OrderTimeline({
             </span>
             {!compact && done && date && (
               <span className="text-[10px] text-gray-400" dir="ltr">
-                {dateFormat.format(new Date(date))}
+                {formatOrderDate(DAY_MONTH, date, locale)}
               </span>
             )}
           </li>

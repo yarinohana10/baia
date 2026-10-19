@@ -4,6 +4,9 @@ import { auth } from '../auth/auth';
 
 export type SessionUser = { id: string; email: string; role?: string };
 
+/** An Express request after AuthGuard has attached the signed-in user. */
+export type AuthenticatedRequest = Request & { user?: SessionUser };
+
 /**
  * Resolve the better-auth session user for endpoints that serve both guests
  * and logged-in users. Returns null for guests or on any auth error (never

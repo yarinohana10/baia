@@ -1,162 +1,47 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useReducer, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { isAxiosError } from 'axios';
+import { Plus } from 'lucide-react';
 import { api } from '@/lib/api';
-import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useAdminList } from '@/hooks/admin/useAdminList';
+import type { ListPage } from '@/hooks/admin/admin-list';
+import { CLOSED_COUPON_EDITOR, couponEditorReducer, couponPayload } from '@/hooks/admin/coupon-editor';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, X, Eye, EyeOff } from 'lucide-react';
+import { FormFeedback, type Feedback } from '@/components/admin/common/FormFeedback';
+import { CouponForm } from '@/components/admin/coupons/CouponForm';
+import { CouponsTable } from '@/components/admin/coupons/CouponsTable';
+import { couponErrorKey, type Coupon } from '@/components/admin/coupons/types';
 
-type Coupon = {
-  id: string;
-  code: string;
-  discountType: 'PERCENTAGE' | 'FIXED';
-  value: string;
-  minCartValue: string | null;
-  maxUses: number | null;
-  currentUses: number;
-  isActive: boolean;
-  expiresAt: string | null;
-  _count: { orders: number };
-};
-
-function selectClassName() {
-  return cn(
-    'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-  );
-}
-
-// Expiry is stored as the end of a calendar day in Israel; show and edit it in that zone.
-const STORE_TIME_ZONE = 'Asia/Jerusalem';
-
-/** `YYYY-MM-DD` of the instant in Israel time (for `<input type="date">`). */
-function toStoreDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: STORE_TIME_ZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date(dateStr));
-}
-
-function formatDate(dateStr: string) {
-  const [year, month, day] = toStoreDate(dateStr).split('-');
-  return `${month}/${day}/${year}`;
-}
-
-type Feedback = { type: 'success' | 'error'; text: string };
-type ApiFieldError = { field: string; code: string };
-
-type CouponErrorKey =
-  | 'duplicateCode'
-  | 'invalidCode'
-  | 'invalidPercentage'
-  | 'invalidFixedValue'
-  | 'invalidMinCart'
-  | 'invalidMaxUses'
-  | 'invalidExpiry'
-  | 'saveFailed';
-
-function couponErrorKey(err: unknown, discountType: 'PERCENTAGE' | 'FIXED'): CouponErrorKey {
-  if (!isAxiosError(err)) return 'saveFailed';
-  if (err.response?.status === 409) return 'duplicateCode';
-  const errors: ApiFieldError[] = err.response?.data?.errors ?? [];
-  const fields = new Set(errors.map((e) => e.field));
-  if (fields.has('code')) return 'invalidCode';
-  if (fields.has('value')) return discountType === 'PERCENTAGE' ? 'invalidPercentage' : 'invalidFixedValue';
-  if (fields.has('minCartValue')) return 'invalidMinCart';
-  if (fields.has('maxUses')) return 'invalidMaxUses';
-  if (fields.has('expiresAt')) return 'invalidExpiry';
-  return 'saveFailed';
-}
-
-function isExpired(c: Coupon) {
-  return c.expiresAt !== null && new Date(c.expiresAt) < new Date();
-}
-
-function isMaxedOut(c: Coupon) {
-  return c.maxUses !== null && c.currentUses >= c.maxUses;
-}
+const selectCoupons = (data: Coupon[]): ListPage<Coupon> => ({
+  items: data,
+  total: data.length,
+  totalPages: 1,
+  meta: undefined,
+});
 
 export default function CouponsPage() {
   const t = useTranslations('admin.coupons');
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<Coupon | null>(null);
-
-  const [code, setCode] = useState('');
-  const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'FIXED'>('PERCENTAGE');
-  const [value, setValue] = useState('');
-  const [minCartValue, setMinCartValue] = useState('');
-  const [maxUses, setMaxUses] = useState('');
-  const [expiresAt, setExpiresAt] = useState('');
+  const list = useAdminList({ url: '/admin/coupons', select: selectCoupons });
+  const [editor, dispatch] = useReducer(couponEditorReducer, CLOSED_COUPON_EDITOR);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<Feedback | null>(null);
-
-  const fetchCoupons = async () => {
-    try {
-      const res = await api.get('/admin/coupons');
-      setCoupons(res.data);
-    } catch {
-      setMessage({ type: 'error', text: t('loadFailed') });
-    }
-  };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchCoupons(); }, []);
-
-  const resetForm = () => {
-    setCode('');
-    setDiscountType('PERCENTAGE');
-    setValue('');
-    setMinCartValue('');
-    setMaxUses('');
-    setExpiresAt('');
-    setEditing(null);
-    setShowForm(false);
-  };
-
-  const startEdit = (c: Coupon) => {
-    setCode(c.code);
-    setDiscountType(c.discountType);
-    setValue(parseFloat(c.value).toString());
-    setMinCartValue(c.minCartValue ? parseFloat(c.minCartValue).toString() : '');
-    setMaxUses(c.maxUses?.toString() || '');
-    setExpiresAt(c.expiresAt ? toStoreDate(c.expiresAt) : '');
-    setEditing(c);
-    setShowForm(true);
-  };
+  const feedback: Feedback | null = list.error ? { type: 'error', text: t('loadFailed') } : message;
 
   const handleSubmit = async () => {
     if (submitting) return;
-    // Cleared optional fields are sent as null so they are removed on update.
-    const payload = {
-      code: code.trim(),
-      discountType,
-      value: parseFloat(value),
-      minCartValue: minCartValue.trim() ? parseFloat(minCartValue) : null,
-      maxUses: maxUses.trim() ? parseInt(maxUses, 10) : null,
-      // A calendar day: the API keeps the coupon valid until the end of it (Israel time).
-      expiresAt: expiresAt || null,
-    };
-
+    const { editing, draft } = editor;
     setSubmitting(true);
     setMessage(null);
     try {
-      if (editing) {
-        await api.put(`/admin/coupons/${editing.id}`, payload);
-      } else {
-        await api.post('/admin/coupons', payload);
-      }
+      const payload = couponPayload(draft);
+      if (editing) await api.put(`/admin/coupons/${editing.id}`, payload);
+      else await api.post('/admin/coupons', payload);
       setMessage({ type: 'success', text: t(editing ? 'updatedSuccess' : 'createdSuccess') });
-      resetForm();
-      fetchCoupons();
+      dispatch({ type: 'close' });
+      list.reload();
     } catch (err) {
-      setMessage({ type: 'error', text: t(couponErrorKey(err, discountType)) });
+      setMessage({ type: 'error', text: t(couponErrorKey(err, draft.discountType)) });
     } finally {
       setSubmitting(false);
     }
@@ -167,15 +52,12 @@ export default function CouponsPage() {
     setMessage(null);
     try {
       const res = await api.delete<{ deleted: boolean; deactivated?: boolean }>(`/admin/coupons/${id}`);
-      setMessage({
-        type: 'success',
-        text: t(res.data.deactivated ? 'deactivatedInstead' : 'deletedSuccess'),
-      });
-      if (editing?.id === id) resetForm();
+      setMessage({ type: 'success', text: t(res.data.deactivated ? 'deactivatedInstead' : 'deletedSuccess') });
+      if (editor.editing?.id === id) dispatch({ type: 'close' });
     } catch {
       setMessage({ type: 'error', text: t('deleteFailed') });
     }
-    fetchCoupons();
+    list.reload();
   };
 
   const toggleActive = async (c: Coupon) => {
@@ -185,225 +67,37 @@ export default function CouponsPage() {
     } catch {
       setMessage({ type: 'error', text: t('saveFailed') });
     }
-    fetchCoupons();
+    list.reload();
   };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="font-serif text-2xl font-bold tracking-normal text-foreground">{t('title')}</h1>
-        <Button
-          onClick={() => { resetForm(); setShowForm(true); }}
-          className="gap-2 bg-ocean-700 text-white hover:bg-ocean-800"
-        >
+        <Button onClick={() => dispatch({ type: 'create' })} className="gap-2 bg-ocean-700 text-white hover:bg-ocean-800">
           <Plus size={16} /> {t('createCoupon')}
         </Button>
       </div>
 
-      {message && (
-        <div
-          role={message.type === 'error' ? 'alert' : 'status'}
-          className={`mb-6 rounded-xl px-4 py-3 font-body text-sm ${
-            message.type === 'success'
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-destructive border border-red-200'
-          }`}
-        >
-          {message.text}
-        </div>
+      {feedback && <FormFeedback feedback={feedback} />}
+
+      {editor.open && (
+        <CouponForm
+          draft={editor.draft}
+          isEdit={!!editor.editing}
+          submitting={submitting}
+          onChange={(changes) => dispatch({ type: 'change', changes })}
+          onSubmit={handleSubmit}
+          onClose={() => dispatch({ type: 'close' })}
+        />
       )}
 
-      {/* Form */}
-      {showForm && (
-        <Card className="mb-6">
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="font-serif">{editing ? t('editCoupon') : t('newCoupon')}</CardTitle>
-              <Button type="button" variant="ghost" size="icon-sm" onClick={resetForm} className="text-muted-foreground" aria-label={t('closeForm')}>
-                <X size={16} />
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="coupon-code">{t('code')}</Label>
-                <Input
-                  id="coupon-code"
-                  type="text"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  maxLength={30}
-                  className="uppercase"
-                  placeholder="SUMMER25"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="coupon-discountType">{t('type')}</Label>
-                <select
-                  id="coupon-discountType"
-                  value={discountType}
-                  onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'FIXED')}
-                  className={selectClassName()}
-                >
-                  <option value="PERCENTAGE">{t('percentage')}</option>
-                  <option value="FIXED">{t('fixedAmount')}</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="coupon-value">
-                  {`${t('value')} ${discountType === 'PERCENTAGE' ? '(%)' : '(₪)'}`}
-                </Label>
-                <Input
-                  id="coupon-value"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder={discountType === 'PERCENTAGE' ? '25' : '50'}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="coupon-minCartValue">{t('minCartValue')}</Label>
-                <Input
-                  id="coupon-minCartValue"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={minCartValue}
-                  onChange={(e) => setMinCartValue(e.target.value)}
-                  placeholder={t('optional')}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="coupon-maxUses">{t('maxUses')}</Label>
-                <Input
-                  id="coupon-maxUses"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={maxUses}
-                  onChange={(e) => setMaxUses(e.target.value)}
-                  placeholder={t('unlimited')}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="coupon-expiresAt">{t('expires')}</Label>
-                <Input
-                  id="coupon-expiresAt"
-                  type="date"
-                  value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!code || !value || submitting}
-              className="bg-ocean-700 text-white hover:bg-ocean-800"
-            >
-              {editing ? t('update') : t('create')}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Table */}
-      <Card className="overflow-hidden p-0">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-muted border-b border-border">
-              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('code')}</th>
-              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('discount')}</th>
-              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('minCart')}</th>
-              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('usage')}</th>
-              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('expires')}</th>
-              <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('status')}</th>
-              <th className="text-end px-4 py-3 font-medium text-muted-foreground">{t('actions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {coupons.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                  {t('noCoupons')}
-                </td>
-              </tr>
-            ) : (
-              coupons.map((c) => (
-                <tr key={c.id} className="border-b border-border hover:bg-muted/50">
-                  <td className="px-4 py-3 font-mono font-medium">{c.code}</td>
-                  <td className="px-4 py-3">
-                    {c.discountType === 'PERCENTAGE'
-                      ? `${parseFloat(c.value)}%`
-                      : `₪${parseFloat(c.value).toFixed(2)}`}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {c.minCartValue ? `₪${parseFloat(c.minCartValue).toFixed(2)}` : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {c.currentUses}{c.maxUses ? ` / ${c.maxUses}` : ''}{' '}
-                    <span className="text-xs text-muted-foreground">({c._count.orders} {t('orders')})</span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {c.expiresAt ? formatDate(c.expiresAt) : t('never')}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isExpired(c) ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-destructive">{t('expired')}</span>
-                    ) : isMaxedOut(c) ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{t('maxed')}</span>
-                    ) : c.isActive ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600">{t('active')}</span>
-                    ) : (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{t('inactive')}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => toggleActive(c)}
-                        className="text-muted-foreground hover:text-ocean-600"
-                        aria-label={c.isActive ? t('deactivate') : t('activateCoupon')}
-                      >
-                        {c.isActive ? <Eye size={14} /> : <EyeOff size={14} />}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => startEdit(c)}
-                        className="text-muted-foreground hover:text-ocean-600"
-                        aria-label={t('editAction')}
-                      >
-                        <Pencil size={14} />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => handleDelete(c.id)}
-                        className="text-muted-foreground hover:text-destructive"
-                        aria-label={t('deleteAction')}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </Card>
+      <CouponsTable
+        coupons={list.items}
+        onToggleActive={toggleActive}
+        onEdit={(coupon) => dispatch({ type: 'edit', coupon })}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }

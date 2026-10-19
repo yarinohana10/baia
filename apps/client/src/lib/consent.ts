@@ -5,6 +5,8 @@
  */
 export const CONSENT_COOKIE = 'baia_consent';
 export type ConsentChoice = 'essential' | 'all';
+/** Window event fired by `writeConsent()` (detail: the choice). */
+export const CONSENT_EVENT = 'baia:consent';
 
 /** 180 days, then we ask again. */
 const MAX_AGE_SECONDS = 180 * 24 * 60 * 60;
@@ -34,7 +36,7 @@ export function writeConsent(choice: ConsentChoice): void {
   if (typeof document === 'undefined') return;
   const secure = window.location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${CONSENT_COOKIE}=${choice}; Path=/; Max-Age=${MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
-  window.dispatchEvent(new CustomEvent('baia:consent', { detail: choice }));
+  window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: choice }));
 }
 
 /** True only after the visitor chose "accept all". */

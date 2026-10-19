@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Cookie } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
-import { readConsent, writeConsent, type ConsentChoice } from '@/lib/consent';
+import { writeConsent, type ConsentChoice } from '@/lib/consent';
+import { useConsentChoice } from '@/hooks/storefront/useConsentChoice';
 
 /**
  * Minimal, non-blocking cookie notice. Shows until the visitor picks
@@ -13,18 +14,16 @@ import { readConsent, writeConsent, type ConsentChoice } from '@/lib/consent';
  */
 export function CookieConsent() {
   const t = useTranslations('legal.cookies');
-  const [open, setOpen] = useState(false);
+  // `undefined` until hydrated (no banner in the server markup), then the cookie's value.
+  const consent = useConsentChoice();
+  // Also hides the banner when the browser refuses the cookie.
+  const [dismissed, setDismissed] = useState(false);
 
-  // Read after mount so server and client markup match.
-  useEffect(() => {
-    setOpen(readConsent() === null);
-  }, []);
-
-  if (!open) return null;
+  if (consent !== null || dismissed) return null;
 
   const choose = (choice: ConsentChoice) => {
     writeConsent(choice);
-    setOpen(false);
+    setDismissed(true);
   };
 
   return (

@@ -1,17 +1,15 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { Link } from '@/i18n/navigation';
 import { ListingHeader } from '@/components/storefront/ListingHeader';
-import { ProductGrid } from '@/components/storefront/ProductGrid';
-import { ListingFilters } from '@/components/storefront/filters/ListingFilters';
-import { FilteredEmpty } from '@/components/storefront/filters/FilteredEmpty';
-import { Pagination } from '@/components/storefront/Pagination';
 import { EmptyCategory } from '@/components/storefront/EmptyCategory';
+import { ListingResults } from '@/components/storefront/listing/ListingResults';
+import { SubcategoryNav } from '@/components/storefront/listing/SubcategoryNav';
 import { suggestedCollections } from '@/lib/catalog/collections';
 import { JsonLd } from '@/components/storefront/JsonLd';
-import { getCategories, getCategory, getFacets, getProducts, toCardProduct } from '@/lib/catalog/server';
-import { PAGE_SIZE, activeFilterCount, clearFilters, listingHref, parseListingQuery } from '@/lib/catalog/query';
+import { getCategories, getCategory, getFacets, getProducts } from '@/lib/catalog/server';
+import { PAGE_SIZE, activeFilterCount, parseListingQuery } from '@/lib/catalog/query';
+import { categoryLinks, localizedName } from '@/lib/catalog/names';
 import { absoluteUrl, breadcrumbJsonLd, pageMetadata } from '@/lib/seo';
 import type { Category } from '@/lib/catalog/types';
 
@@ -20,15 +18,13 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const nameOf = (c: { nameHe: string; nameEn: string }, locale: string) => (locale === 'he' ? c.nameHe : c.nameEn);
-
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { locale, slug } = await params;
   const query = parseListingQuery(await searchParams);
   const category = await getCategory(slug);
   if (!category) return {};
   const t = await getTranslations({ locale, namespace: 'seo' });
-  const name = nameOf(category, locale);
+  const name = localizedName(category, locale);
   const meta = pageMetadata({
     locale,
     path: `/category/${slug}`,
@@ -41,6 +37,17 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     meta.robots = { index: false, follow: true };
   }
   return meta;
+}
+
+type Crumb = { label: string; href: string };
+
+/** Home > parent category (if any) > this category (at `href`). */
+function categoryCrumbs(category: Category, href: string, parent: Category | undefined, locale: string, homeLabel: string): Crumb[] {
+  return [
+    { label: homeLabel, href: '/' },
+    ...(parent ? [{ label: localizedName(parent, locale), href: `/category/${parent.slug}` }] : []),
+    { label: localizedName(category, locale), href },
+  ];
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
@@ -63,90 +70,48 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     getProducts({ categoryId: scopeId, page: query.page, limit: PAGE_SIZE, sort: query.sort, filters: query }),
     getFacets({ categoryId: scopeId }),
   ]);
-  const filtered = activeFilterCount(query) > 0;
 
-  const name = nameOf(category, locale);
-  const parent: Category | undefined = category.parentId
-    ? allCategories.find((c) => c.id === category.parentId)
-    : undefined;
+  const name = localizedName(category, locale);
+  const parent = category.parentId ? allCategories.find((c) => c.id === category.parentId) : undefined;
   const basePath = `/category/${slug}`;
-
-  const crumbs = [
-    { label: t('home'), href: '/' },
-    ...(parent ? [{ label: nameOf(parent, locale), href: `/category/${parent.slug}` }] : []),
-    { label: name, href: basePath },
-  ];
-
-  const topLevel = allCategories.map((c) => ({ label: nameOf(c, locale), href: `/category/${c.slug}` }));
+  const crumbs = categoryCrumbs(category, basePath, parent, locale, t('home'));
+  const topLevel = categoryLinks(allCategories, locale);
   const suggestions = [
     ...suggestedCollections(topLevel, parent ? `/category/${parent.slug}` : basePath),
     { label: t('newArrivals.title'), href: '/new-arrivals' },
   ];
-
-  const pill = 'px-4 py-1.5 text-sm border rounded-lg transition-colors';
-  const pillState = (active: boolean) =>
-    active ? 'border-ocean-700 bg-ocean-700 text-white' : 'border-gray-300 hover:border-ocean-500';
+  const countLabel = tSeo('count', { count: total });
+  const showSubcategories = children.length > 0 && (total > 0 || !!activeChild || activeFilterCount(query) > 0);
 
   return (
     <>
-      <JsonLd
-        data={breadcrumbJsonLd(
-          crumbs.map((c) => ({ name: c.label, url: absoluteUrl(locale, c.href === '/' ? '/' : c.href) })),
-        )}
-      />
+      <JsonLd data={breadcrumbJsonLd(crumbs.map((c) => ({ name: c.label, url: absoluteUrl(locale, c.href) })))} />
 
       <div className="container-page py-8">
-        <ListingHeader title={name} countLabel={tSeo('count', { count: total })} />
+        <ListingHeader title={name} countLabel={countLabel} />
 
-        {/* Sub-categories */}
-        {children.length > 0 && (total > 0 || activeChild || filtered) && (
-          <nav aria-label={tSeo('filterLabel')} className="mb-8">
-            <ul className="flex flex-wrap gap-2">
-              <li>
-                <Link
-                  href={listingHref(basePath, { ...clearFilters(query), type: undefined })}
-                  aria-current={!activeChild ? 'page' : undefined}
-                  className={`${pill} inline-block ${pillState(!activeChild)}`}
-                >
-                  {tSeo('all')}
-                </Link>
-              </li>
-              {children.map((child) => (
-                <li key={child.id}>
-                  <Link
-                    href={listingHref(basePath, { ...clearFilters(query), type: child.slug })}
-                    aria-current={activeChild?.id === child.id ? 'page' : undefined}
-                    className={`${pill} inline-block ${pillState(activeChild?.id === child.id)}`}
-                  >
-                    {nameOf(child, locale)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        {showSubcategories && (
+          <SubcategoryNav
+            basePath={basePath}
+            query={query}
+            items={children}
+            activeId={activeChild?.id}
+            locale={locale}
+            label={tSeo('filterLabel')}
+            allLabel={tSeo('all')}
+          />
         )}
 
-        {products.length === 0 && !filtered ? (
-          <EmptyCategory name={activeChild ? nameOf(activeChild, locale) : name} suggestions={suggestions} />
-        ) : (
-          <>
-            <ListingFilters
-              basePath={basePath}
-              query={query}
-              facets={facets}
-              total={total}
-              countLabel={tSeo('count', { count: total })}
-            />
-            {products.length === 0 ? (
-              <FilteredEmpty clearHref={listingHref(basePath, clearFilters(query))} />
-            ) : (
-              <>
-                <ProductGrid products={products.map(toCardProduct)} priorityCount={4} />
-                <Pagination basePath={basePath} query={query} totalPages={totalPages} />
-              </>
-            )}
-          </>
-        )}
+        <ListingResults
+          basePath={basePath}
+          query={query}
+          facets={facets}
+          products={products}
+          total={total}
+          totalPages={totalPages}
+          countLabel={countLabel}
+          empty={<EmptyCategory name={localizedName(activeChild ?? category, locale)} suggestions={suggestions} />}
+        />
       </div>
     </>
   );

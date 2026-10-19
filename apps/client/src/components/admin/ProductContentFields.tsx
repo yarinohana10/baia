@@ -1,39 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-
-/** Product-page content (fabric / care / fit), per language. Max lengths match the API DTO. */
-export type ProductContent = {
-  fabricHe: string;
-  fabricEn: string;
-  careHe: string;
-  careEn: string;
-  fitHe: string;
-  fitEn: string;
-};
-
-export const CONTENT_FIELDS = ['fabric', 'care', 'fit'] as const;
-export const CONTENT_MAX: Record<(typeof CONTENT_FIELDS)[number], number> = { fabric: 1000, care: 2000, fit: 1000 };
-
-export const emptyContent = (p?: Partial<Record<keyof ProductContent, string | null>>): ProductContent => ({
-  fabricHe: p?.fabricHe ?? '',
-  fabricEn: p?.fabricEn ?? '',
-  careHe: p?.careHe ?? '',
-  careEn: p?.careEn ?? '',
-  fitHe: p?.fitHe ?? '',
-  fitEn: p?.fitEn ?? '',
-});
-
-/** API payload: trimmed, empty -> null. */
-export function contentPayload(c: ProductContent): Record<keyof ProductContent, string | null> {
-  return Object.fromEntries(
-    Object.entries(c).map(([k, v]) => [k, v.trim() || null]),
-  ) as Record<keyof ProductContent, string | null>;
-}
+import { CONTENT_FIELDS, CONTENT_MAX, type ProductContent } from './product-form/product-content';
 
 type Lang = 'He' | 'En';
 
@@ -58,12 +30,16 @@ export function ProductContentFields({
   const missingEn = CONTENT_FIELDS.some((f) => value[`${f}He`].trim() && !value[`${f}En`].trim());
 
   // Show the tab that holds a server error, so the invalid field can get focus.
+  // Adjusted during render when the errors change (rather than in an effect).
   const heError = hasError('He');
   const enError = hasError('En');
-  useEffect(() => {
+  const errorState = `${heError}|${enError}`;
+  const [seenErrorState, setSeenErrorState] = useState(errorState);
+  if (errorState !== seenErrorState) {
+    setSeenErrorState(errorState);
     if (heError) setLang('He');
     else if (enError) setLang('En');
-  }, [heError, enError]);
+  }
 
   return (
     <div className="space-y-4">

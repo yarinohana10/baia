@@ -55,7 +55,8 @@ export function OrderEmailsPanel({
   const [data, setData] = useState<{ orderId: string; rows: EmailLogRow[] } | null>(null);
   const [failedFor, setFailedFor] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [notice, setNotice] = useState<Notice>(null);
+  // Kept with the order it belongs to, so a different order starts with a clean slate.
+  const [noticeFor, setNoticeFor] = useState<{ orderId: string; notice: Notice } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -73,25 +74,24 @@ export function OrderEmailsPanel({
     };
   }, [orderId, refreshKey, reloadKey]);
 
-  // A different order starts with a clean slate.
-  useEffect(() => setNotice(null), [orderId]);
-
   const resend = useCallback(async () => {
     if (sending || !confirm(t('confirmResend', { email: customerEmail }))) return;
     setSending(true);
-    setNotice(null);
+    setNoticeFor(null);
     try {
       const res = await api.post<{ status: 'SENT' | 'FAILED' }>(
         `/admin/orders/${encodeURIComponent(orderId)}/resend-confirmation`,
       );
-      setNotice(
-        res.data.status === 'SENT'
-          ? { kind: 'success', text: t('resent', { email: customerEmail }) }
-          : { kind: 'error', text: t('resendFailed') },
-      );
+      setNoticeFor({
+        orderId,
+        notice:
+          res.data.status === 'SENT'
+            ? { kind: 'success', text: t('resent', { email: customerEmail }) }
+            : { kind: 'error', text: t('resendFailed') },
+      });
     } catch (err) {
       const notAllowed = isAxiosError(err) && err.response?.status === 409;
-      setNotice({ kind: 'error', text: notAllowed ? t('resendNotAllowed') : t('resendFailed') });
+      setNoticeFor({ orderId, notice: { kind: 'error', text: notAllowed ? t('resendNotAllowed') : t('resendFailed') } });
     } finally {
       setSending(false);
       setReloadKey((k) => k + 1);
@@ -100,6 +100,7 @@ export function OrderEmailsPanel({
 
   const dateTimeFormat = EMAIL_TIME_FORMAT[locale === 'he' ? 'he' : 'en'];
   const rows = data?.orderId === orderId ? data.rows : null;
+  const notice = noticeFor?.orderId === orderId ? noticeFor.notice : null;
   const templateLabel = (name: string) => (t.has(`templates.${name}`) ? t(`templates.${name}`) : name);
 
   return (

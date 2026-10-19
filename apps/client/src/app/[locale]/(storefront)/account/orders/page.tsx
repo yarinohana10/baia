@@ -10,6 +10,7 @@ import { trackingUrl, type CustomerOrder } from '@/lib/orders';
 import { OrderTimeline } from '@/components/storefront/orders/OrderTimeline';
 import { OrderCancellation } from '@/components/storefront/orders/OrderCancellation';
 import { PaymentMethodLine } from '@/components/storefront/orders/PaymentMethodLine';
+import { formatOrderDate, ORDER_DATE } from '@/components/storefront/orders/order-dates';
 
 const statusColors: Record<string, string> = {
   PENDING_PAYMENT: 'bg-yellow-50 text-yellow-600',
@@ -66,8 +67,6 @@ export default function MyOrdersPage() {
       .catch(() => setError(true))
       .finally(() => setLoadingMore(false));
   };
-
-  const dateFormat = new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-IL', { dateStyle: 'medium' });
 
   const replaceOrder = (updated: OrderSummary) =>
     setOrders((list) => list.map((o) => (o.id === updated.id ? { ...o, ...updated } : o)));
@@ -129,7 +128,7 @@ export default function MyOrdersPage() {
                     <div className="min-w-0">
                       <p className="font-mono text-sm font-medium" dir="ltr">{order.orderNumber}</p>
                       <p className="text-xs text-gray-400">
-                        {dateFormat.format(new Date(order.createdAt))} &middot; {t('itemCount', { count })}
+                        {formatOrderDate(ORDER_DATE, order.createdAt, locale)} &middot; {t('itemCount', { count })}
                       </p>
                       {names && <p className="text-xs text-gray-500 line-clamp-1">{names}</p>}
                     </div>

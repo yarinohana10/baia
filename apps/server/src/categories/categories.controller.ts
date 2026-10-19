@@ -18,6 +18,7 @@ import { AuthGuard, Roles } from '../auth/auth.guard';
 import { Request } from 'express';
 import { fieldValidationException, strictValidationPipe } from '../common/validation';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
+import type { AuthenticatedRequest } from '../common/session';
 
 @Controller()
 @UsePipes(strictValidationPipe)
@@ -68,7 +69,7 @@ export class CategoriesController {
     if (!file?.buffer) {
       throw fieldValidationException([{ field: 'file', code: 'required', message: 'An image file is required' }]);
     }
-    const userId = (req as any).user?.id;
+    const userId = (req as AuthenticatedRequest).user?.id;
     return this.categoriesService.uploadImage(
       id,
       file.buffer,

@@ -34,20 +34,38 @@ type WishlistStore = {
   syncUser: () => Promise<void>;
 };
 
-const STORAGE_KEY = 'baia_wishlist';
+/** Versioned so a future change to the snapshot shape can ignore or migrate old data. */
+export const STORAGE_KEY = 'baia_wishlist:v1';
+/** Pre-versioning key: same shape as v1, moved over on first read. */
+export const LEGACY_STORAGE_KEY = 'baia_wishlist';
 const MAX_LOCAL_ITEMS = 100; // matches the server's merge limit
 
-function readLocal(): Record<string, WishlistProduct> {
+type LocalWishlist = Record<string, WishlistProduct>;
+
+function parseList(raw: string | null): LocalWishlist {
+  const parsed: unknown = JSON.parse(raw || '{}');
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as LocalWishlist) : {};
+}
+
+/** Moves a list saved under the unversioned key to the current key (once). */
+function migrateLegacy(): void {
+  const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (legacy === null) return;
+  if (localStorage.getItem(STORAGE_KEY) === null) localStorage.setItem(STORAGE_KEY, legacy);
+  localStorage.removeItem(LEGACY_STORAGE_KEY);
+}
+
+export function readLocal(): LocalWishlist {
   if (typeof window === 'undefined') return {};
   try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    migrateLegacy();
+    return parseList(localStorage.getItem(STORAGE_KEY));
   } catch {
     return {};
   }
 }
 
-function writeLocal(products: Record<string, WishlistProduct>) {
+function writeLocal(products: LocalWishlist) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
   } catch {

@@ -132,15 +132,15 @@ export async function LegalPage({
             <section key={s.id} id={s.id} aria-labelledby={`${s.id}-title`} className="scroll-mt-28 border-b border-gray-100 pb-8 last:border-0">
               <h2 id={`${s.id}-title`}>{s.title}</h2>
               <div className="space-y-3">
-                {s.paragraphs?.map((p, i) => <p key={i}>{p}</p>)}
+                {s.paragraphs?.map((p) => <p key={p}>{p}</p>)}
                 {s.items && s.items.length > 0 && (
                   <ul>
-                    {s.items.map((item, i) => (
-                      <li key={i}>{item}</li>
+                    {s.items.map((item) => (
+                      <li key={item}>{item}</li>
                     ))}
                   </ul>
                 )}
-                {s.after?.map((p, i) => <p key={`a${i}`}>{p}</p>)}
+                {s.after?.map((p) => <p key={p}>{p}</p>)}
               </div>
             </section>
           ))}
