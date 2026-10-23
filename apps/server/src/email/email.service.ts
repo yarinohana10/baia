@@ -12,6 +12,7 @@ import { defaultBranding, lazyPrismaEmailStore, mergeBranding, trimError } from 
 import { isCustomerFacing, renderTemplate, type EmailTemplateData, type EmailTemplateName } from './templates';
 import { ConsoleEmailTransport } from './transports/console.transport';
 import { SmtpEmailTransport } from './transports/smtp.transport';
+import { ResendEmailTransport } from './transports/resend.transport';
 
 export interface SendTemplateOptions<K extends EmailTemplateName> {
   to: string;
@@ -235,13 +236,17 @@ export function createEmailTransportFromEnv(env: NodeJS.ProcessEnv = process.env
       password: env.SMTP_PASSWORD || undefined,
     });
   }
+  if (provider === 'resend') {
+    if (!env.RESEND_API_KEY) throw new Error('EMAIL_PROVIDER=resend requires RESEND_API_KEY');
+    return new ResendEmailTransport({ apiKey: env.RESEND_API_KEY });
+  }
   if (provider === 'console') {
     if (env.NODE_ENV === 'production') {
       console.warn('[email] EMAIL_PROVIDER is "console" in production - emails will NOT be delivered. Configure SMTP_* env vars.');
     }
     return new ConsoleEmailTransport({ quiet: env.NODE_ENV === 'test' });
   }
-  throw new Error(`Unknown EMAIL_PROVIDER "${provider}" (expected "smtp" or "console")`);
+  throw new Error(`Unknown EMAIL_PROVIDER "${provider}" (expected "smtp", "resend" or "console")`);
 }
 
 export function createEmailServiceFromEnv(env: NodeJS.ProcessEnv = process.env): EmailService {
