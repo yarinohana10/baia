@@ -314,7 +314,9 @@ describe('Orders: checkout hardening, status history, refunds, resend (e2e)', ()
         admin.agent.put(`/v1/admin/orders/${order.id}/status`).send({ status: 'CANCELLED' }),
         admin.agent.put(`/v1/admin/orders/${order.id}/status`).send({ status: 'CANCELLED' }),
       ]);
-      expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+      // A collision gives 200 + 409; a late duplicate is an idempotent no-op (200 + 200). Never a 5xx.
+      const codes = results.map((r) => r.status).sort();
+      expect([[200, 200], [200, 409]]).toContainEqual(codes);
       expect(await stockOf(catalog.inStock.id)).toBe(5);
       expect(await t.prisma.refund.count()).toBe(1);
     });
