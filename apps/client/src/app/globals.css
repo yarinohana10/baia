@@ -247,3 +247,39 @@
 @media (prefers-reduced-motion: reduce) {
   .marquee-track { animation: none; }
 }
+
+/* Instant, accessible tooltip for icon buttons: <el className="tip" data-tip="Label" aria-label="Label">.
+   Native `title` tooltips wait ~1s and can't be styled. Hover-capable devices only; keyboard focus shows it too. */
+.tip[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  z-index: 70;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--color-ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 90ms ease-out;
+}
+[dir='rtl'] .tip[data-tip]::after {
+  translate: 50% 0;
+}
+@media (hover: hover) {
+  .tip[data-tip]:hover::after,
+  .tip[data-tip]:focus-visible::after {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tip[data-tip]::after {
+    transition: none;
+  }
+}

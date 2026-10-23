@@ -37,7 +37,7 @@ function LocaleSwitcher({ pathname, className, onAfterSwitch }: LocaleSwitcherPr
         onAfterSwitch?.();
       }}
       className={className}
-      aria-label={t('switchLang')} title={t('switchLang')}
+      aria-label={t('switchLang')} data-tip={t('switchLang')}
       lang={target}
     >
       {target === 'en' ? 'EN' : 'עב'}
@@ -46,7 +46,7 @@ function LocaleSwitcher({ pathname, className, onAfterSwitch }: LocaleSwitcherPr
 }
 
 const iconButton =
-  'relative inline-flex size-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-ink/5';
+  'tip relative inline-flex size-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-ink/5';
 
 export function Header({ nav }: { nav: NavItem[] }) {
   const t = useTranslations('common');
@@ -105,7 +105,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               aria-label={menuOpen ? ts('closeMenu') : ts('menu')}
-              title={menuOpen ? ts('closeMenu') : ts('menu')}
+              data-tip={menuOpen ? ts('closeMenu') : ts('menu')}
             >
               {menuOpen ? <X size={22} strokeWidth={1.6} /> : <Menu size={22} strokeWidth={1.6} />}
             </button>
@@ -144,7 +144,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
               aria-expanded={searchOpen}
               aria-controls="header-search"
               aria-label={searchOpen ? ts('search.close') : ts('search.open')}
-              title={searchOpen ? ts('search.close') : ts('search.open')}
+              data-tip={searchOpen ? ts('search.close') : ts('search.open')}
             >
               {searchOpen ? <X size={20} strokeWidth={1.6} /> : <Search size={20} strokeWidth={1.6} />}
             </button>
@@ -153,31 +153,31 @@ export function Header({ nav }: { nav: NavItem[] }) {
 
             {session?.user ? (
               <>
-                <Link href="/account" className={iconButton} aria-label={t('myAccount')} title={t('myAccount')}>
+                <Link href="/account" className={iconButton} aria-label={t('myAccount')} data-tip={t('myAccount')}>
                   <User size={20} strokeWidth={1.6} />
                 </Link>
                 <button
                   type="button"
                   onClick={handleSignOut}
                   className={`${iconButton} max-sm:hidden`}
-                  aria-label={t('signOut')} title={t('signOut')}
+                  aria-label={t('signOut')} data-tip={t('signOut')}
                 >
                   <LogOut size={18} strokeWidth={1.6} />
                 </button>
               </>
             ) : (
-              <Link href="/login" className={iconButton} aria-label={t('signIn')} title={t('signIn')}>
+              <Link href="/login" className={iconButton} aria-label={t('signIn')} data-tip={t('signIn')}>
                 <User size={20} strokeWidth={1.6} />
               </Link>
             )}
 
             {isAdmin && (
-              <Link href="/admin" className={`${iconButton} max-sm:hidden`} aria-label={t('adminPanel')} title={t('adminPanel')}>
+              <Link href="/admin" className={`${iconButton} max-sm:hidden`} aria-label={t('adminPanel')} data-tip={t('adminPanel')}>
                 <LayoutDashboard size={19} strokeWidth={1.6} />
               </Link>
             )}
 
-            <button type="button" onClick={openDrawer} className={`${iconButton} -me-2`} aria-label={t('cartTooltip')} title={t('cartTooltip')}>
+            <button type="button" onClick={openDrawer} className={`${iconButton} -me-2`} aria-label={t('cartTooltip')} data-tip={t('cartTooltip')}>
               <ShoppingBag size={20} strokeWidth={1.6} />
               {cartCount > 0 && (
                 <span className="absolute end-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral px-1 text-[10px] font-bold text-white">
