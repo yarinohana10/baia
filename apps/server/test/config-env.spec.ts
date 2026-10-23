@@ -29,7 +29,9 @@ function prodEnv(overrides: Record<string, string | undefined> = {}): Record<str
     S3_ACCESS_KEY: 'AKIAEXAMPLE',
     S3_SECRET_KEY: 'secret-example',
     S3_BUCKET: 'baia-assets',
+    ADMIN_NOTIFY_EMAIL: 'orders@baia.co.il',
     PAYMENT_PROVIDER: 'mock',
+    OWNER_EMAIL: 'owner@baia.co.il',
     ...overrides,
   };
 }
@@ -84,6 +86,12 @@ describe('server env validation', () => {
       expect(result.warnings.join(' ')).toMatch(/PAYMENT_PROVIDER=mock/);
     });
 
+    it('validates OWNER_EMAIL and lowercases it', () => {
+      expect(errorsOf(prodEnv({ OWNER_EMAIL: 'not-an-email' })).join('\n')).toMatch(/OWNER_EMAIL must be an email/);
+      const result = parseEnv(prodEnv({ OWNER_EMAIL: 'Owner@Baia.co.il' }));
+      expect(result.success && result.config.auth.ownerEmail).toBe('owner@baia.co.il');
+    });
+
     it('lists EVERY missing variable at once', () => {
       const errors = errorsOf({ NODE_ENV: 'production' });
       const text = errors.join('\n');
@@ -96,6 +104,7 @@ describe('server env validation', () => {
         'EMAIL_FROM',
         'STORAGE_PROVIDER',
         'PAYMENT_PROVIDER',
+        'OWNER_EMAIL',
       ]) {
         expect(text).toContain(name);
       }
@@ -224,9 +233,33 @@ describe('server env validation: S3 endpoints', () => {
       S3_SECRET_KEY: 's',
       S3_BUCKET: 'b',
       PAYMENT_PROVIDER: 'mock',
+      OWNER_EMAIL: 'owner@baia.co.il',
     };
     expect(parseEnv({ ...base, S3_PUBLIC_URL: 'https://images.baia.co.il' }).success).toBe(true);
     const bad = parseEnv({ ...base, S3_PUBLIC_URL: 'http://images.baia.co.il' });
     expect(!bad.success && bad.errors.join('\n')).toMatch(/S3_PUBLIC_URL must use https/);
   });
 });
+
+describe('server env validation: payments flag and business inbox', () => {
+  it('requires ADMIN_NOTIFY_EMAIL in production when EMAIL_PROVIDER=smtp', () => {
+    expect(errorsOf(prodEnv({ ADMIN_NOTIFY_EMAIL: undefined })).join('\n')).toMatch(/ADMIN_NOTIFY_EMAIL is required/);
+    expect(errorsOf(prodEnv({ ADMIN_NOTIFY_EMAIL: undefined, EMAIL_PROVIDER: 'console', SMTP_HOST: undefined })).join('\n')).not.toMatch(
+      /ADMIN_NOTIFY_EMAIL is required/,
+    );
+  });
+
+  it('PAYMENTS_ENABLED defaults to off in production and on elsewhere, and can be overridden', () => {
+    const enabled = (env: Record<string, string | undefined>) => {
+      const result = parseEnv(env);
+      if (!result.success) throw new Error(result.errors.join('; '));
+      return result.config.payment.enabled;
+    };
+    expect(enabled(prodEnv())).toBe(false);
+    expect(enabled(prodEnv({ PAYMENTS_ENABLED: 'true' }))).toBe(true);
+    expect(enabled({ NODE_ENV: 'development' })).toBe(true);
+    expect(enabled({ NODE_ENV: 'development', PAYMENTS_ENABLED: 'false' })).toBe(false);
+    expect(errorsOf(prodEnv({ PAYMENTS_ENABLED: 'maybe' })).join('\n')).toMatch(/PAYMENTS_ENABLED must be true or false/);
+  });
+});
+

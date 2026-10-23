@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Heart, Trash2 } from 'lucide-react';
@@ -14,7 +15,10 @@ import { useWishlistStore } from '@/store/wishlist';
 export default function WishlistPage() {
   const t = useTranslations('common');
   const tWishlist = useTranslations('wishlist');
-  const { products, ready, mode, remove } = useWishlistStore();
+  const { products, ready, mode, remove, refreshGuest } = useWishlistStore();
+  useEffect(() => {
+    if (ready && mode === 'guest') void refreshGuest();
+  }, [ready, mode, refreshGuest]);
   const items = Object.values(products);
 
   if (!ready) {

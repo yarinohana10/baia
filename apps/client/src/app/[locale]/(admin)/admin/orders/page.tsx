@@ -1,60 +1,99 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { FilterChips } from '@/components/admin/common/FilterChips';
+import { Banknote } from 'lucide-react';
+import { api } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 import { NoticeBanner, type Notice } from '@/components/admin/common/NoticeBanner';
 import { Pagination } from '@/components/admin/common/Pagination';
-import { SearchField } from '@/components/admin/common/SearchField';
 import { OrderDetailDialog } from '@/components/admin/orders/OrderDetailDialog';
-import { OrderStatusForm } from '@/components/admin/orders/OrderStatusForm';
-import { OrdersTable } from '@/components/admin/orders/OrdersTable';
-import { ORDER_STATUSES, type AdminOrder, type AdminOrdersResponse } from '@/components/admin/orders/types';
+import { OrdersCards } from '@/components/admin/orders/OrdersCards';
+import { OrdersFilters } from '@/components/admin/orders/OrdersFilters';
+import { PendingRefundsPanel } from '@/components/admin/orders/PendingRefundsPanel';
+import { exportFileName, filterParams, listParams } from '@/components/admin/orders/order-filters';
+import type {
+  AdminOrder,
+  AdminOrdersResponse,
+  AdminRefundRow,
+  AdminRefundsResponse,
+} from '@/components/admin/orders/types';
 import type { ListPage } from '@/hooks/admin/admin-list';
 import { useAdminList } from '@/hooks/admin/useAdminList';
-import { useListQuery } from '@/hooks/admin/useListQuery';
+import { useFileDownload } from '@/hooks/admin/useFileDownload';
+import { useOrderActions } from '@/hooks/admin/useOrderActions';
 import { useOrderDetail } from '@/hooks/admin/useOrderDetail';
-import { useOrderStatusLabel } from '@/hooks/admin/useOrderStatusLabel';
+import { useOrdersFilters } from '@/hooks/admin/useOrdersFilters';
+
+const PAGE_SIZE = 20;
+const PENDING_REFUNDS = { status: 'PENDING', limit: 50 };
 
 function selectOrdersPage(data: AdminOrdersResponse): ListPage<AdminOrder> {
   return { items: data.orders, total: data.total, totalPages: data.totalPages, meta: undefined };
 }
 
+function selectRefundsPage(data: AdminRefundsResponse): ListPage<AdminRefundRow, { pendingCount: number }> {
+  return { items: data.refunds, total: data.total, totalPages: data.totalPages, meta: { pendingCount: data.pendingCount } };
+}
+
 export default function AdminOrdersPage() {
   const t = useTranslations('admin.orders');
-  const statusLabel = useOrderStatusLabel();
-  const [query, { setSearch, setFilter, setPage, restore }] = useListQuery<string>('');
-  const list = useAdminList({
+  const tc = useTranslations('admin.orderCards');
+  const f = useOrdersFilters();
+  const orders = useAdminList({
     url: '/admin/orders',
-    params: {
-      status: query.filter || undefined,
-      search: query.appliedSearch || undefined,
-      page: query.page,
-      limit: 20,
-    },
+    params: listParams(f.filters, f.page, PAGE_SIZE),
     select: selectOrdersPage,
-    enabled: query.restored,
+    enabled: f.restored,
   });
+  const refunds = useAdminList({ url: '/admin/refunds', params: PENDING_REFUNDS, select: selectRefundsPage });
   const [notice, setNotice] = useState<Notice | null>(null);
-  const detail = useOrderDetail({ setNotice, onUpdated: list.reload });
+  const [showQueue, setShowQueue] = useState(false);
+  const [exportFailed, setExportFailed] = useState(false);
+  const { downloading, download } = useFileDownload();
+  const detail = useOrderDetail({ setNotice });
 
-  // Deep links: /admin/orders?q=<order number> (customer page, emails) and ?status=CONFIRMED (alerts).
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const status = params.get('status');
-    restore({
-      search: params.get('q') || undefined,
-      filter: status && ORDER_STATUSES.includes(status) ? status : undefined,
-    });
-  }, [restore]);
+  const { reload: reloadOrders } = orders;
+  const { reload: reloadRefunds } = refunds;
+  const reloadAll = useCallback(() => {
+    reloadOrders();
+    reloadRefunds();
+  }, [reloadOrders, reloadRefunds]);
+  const actions = useOrderActions({ setNotice, onChanged: reloadAll });
 
-  const shownNotice: Notice | null = list.error ? { kind: 'error', text: t('loadFailed') } : notice;
-  const filterOptions = [{ value: '', label: t('all') }, ...ORDER_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))];
+  const exportOrders = async () => {
+    setExportFailed(false);
+    const ok = await download(
+      () => api.get('/admin/orders/export', { params: filterParams(f.filters), responseType: 'blob' }).then((res) => res.data as Blob),
+      exportFileName(f.filters),
+    );
+    if (!ok) setExportFailed(true);
+  };
+
+  const showOrder = (orderNumber: string) => {
+    f.setSearch(orderNumber);
+    setShowQueue(false);
+  };
+
+  const shownNotice: Notice | null = orders.error ? { kind: 'error', text: t('loadFailed') } : notice;
+  const pendingCount = refunds.meta?.pendingCount ?? 0;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="font-serif text-2xl font-bold tracking-normal text-foreground">{`${t('title')} (${list.total})`}</h1>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-serif text-2xl font-bold tracking-normal text-foreground">{`${t('title')} (${orders.total})`}</h1>
+        {pendingCount > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-expanded={showQueue}
+            onClick={() => setShowQueue((open) => !open)}
+            className="gap-1.5 border-amber-300 text-amber-800"
+          >
+            <Banknote size={14} aria-hidden="true" /> {tc('queue.toggle', { count: pendingCount })}
+          </Button>
+        )}
       </div>
 
       {shownNotice && (
@@ -62,28 +101,35 @@ export default function AdminOrdersPage() {
           notice={shownNotice}
           onDismiss={() => {
             setNotice(null);
-            list.dismissError();
+            orders.dismissError();
           }}
           dismissLabel={t('dismiss')}
           className="mb-6"
         />
       )}
 
-      <SearchField value={query.search} onChange={setSearch} placeholder={t('searchPlaceholder')} className="mb-4" />
-      <FilterChips options={filterOptions} selected={query.filter} onSelect={setFilter} />
-
-      {detail.state.order && (
-        <OrderDetailDialog order={detail.state.order} onClose={detail.closeDetail}>
-          <OrderStatusForm order={detail.state.order} detail={detail} />
-        </OrderDetailDialog>
+      {showQueue && pendingCount > 0 && (
+        <PendingRefundsPanel refunds={refunds.items} actions={actions} onShowOrder={showOrder} />
       )}
 
-      <OrdersTable orders={list.items} onView={detail.openDetail} />
+      <OrdersFilters
+        filters={f.filters}
+        search={f.search}
+        reversed={f.reversed}
+        controls={f.controls}
+        onExport={exportOrders}
+        exporting={downloading}
+        exportFailed={exportFailed}
+      />
+
+      {detail.order && <OrderDetailDialog order={detail.order} onClose={detail.closeDetail} />}
+
+      <OrdersCards orders={orders.items} loaded={orders.loaded} actions={actions} onDetails={detail.openDetail} />
 
       <Pagination
-        page={query.page}
-        totalPages={list.totalPages}
-        onPageChange={setPage}
+        page={f.page}
+        totalPages={orders.totalPages}
+        onPageChange={f.setPage}
         previousLabel={t('previousPage')}
         nextLabel={t('nextPage')}
       />

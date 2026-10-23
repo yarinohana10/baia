@@ -17,7 +17,7 @@ type Props = {
   onNotice: (notice: Notice | null) => void;
 };
 
-/** Delivery prices, ETAs and the self-cancel window, validated live with the shared schema. */
+/** Delivery prices and ETAs, validated live with the shared schema. */
 export function DeliverySettingsForm({ settings, onChange, onNotice }: Props) {
   const t = useTranslations('admin.delivery');
   const [saving, setSaving] = useState(false);
@@ -53,7 +53,6 @@ export function DeliverySettingsForm({ settings, onChange, onNotice }: Props) {
         {field('freeShippingThreshold', t('freeThreshold'), { suffix: '₪', hint: t('freeThresholdHint') })}
         {field('courierEtaDays', t('courierEta'), { suffix: t('days'), hint: t('etaHint') })}
         {field('pickupEtaDays', t('pickupEta'), { suffix: t('days'), hint: t('etaHint') })}
-        {field('selfCancelWindowHours', t('cancelWindow'), { suffix: t('hours'), hint: t('cancelWindowHint') })}
       </div>
       {!check.success && <p className="text-sm text-destructive">{t('invalid')}</p>}
       <Button type="submit" disabled={saving || !check.success} className="bg-ocean-700 text-white hover:bg-ocean-800">

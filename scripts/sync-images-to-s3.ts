@@ -17,23 +17,20 @@ import {
   HeadBucketCommand,
 } from '@aws-sdk/client-s3';
 import * as fs from 'fs';
+import { buildPublicUrl, buildS3ClientConfig } from '../apps/server/src/storage/s3-client-options';
+
+/** process.env without unset/empty entries. */
+function definedEnv(): Record<string, string> {
+  return Object.fromEntries(Object.entries(process.env).filter((e): e is [string, string] => !!e[1]));
+}
 import * as path from 'path';
 
 const prisma = new PrismaClient();
 
 const endpoint = process.env.S3_ENDPOINT || 'http://localhost:4566';
-const region = process.env.S3_REGION || 'us-east-1';
 const bucket = process.env.S3_BUCKET || 'baia-assets';
 
-const s3 = new S3Client({
-  region,
-  endpoint,
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY || 'test',
-    secretAccessKey: process.env.S3_SECRET_KEY || 'test',
-  },
-  forcePathStyle: true,
-});
+const s3 = new S3Client(buildS3ClientConfig({ S3_ENDPOINT: endpoint, ...definedEnv() }));
 
 const CLIENT_PUBLIC = path.resolve(__dirname, '../apps/client/public');
 

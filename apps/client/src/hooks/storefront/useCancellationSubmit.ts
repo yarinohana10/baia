@@ -26,7 +26,7 @@ export async function sendCancellation(
       ? await api.post<CustomerOrder>(`/orders/${id}/cancel`, { reason, details: details || undefined }, config)
       : await api.post<CustomerOrder>(
           `/orders/${id}/cancellation-request`,
-          { reason, details: details || undefined, contactPhone: phone.trim() || undefined },
+          { reason, details: details || undefined, contactPhone: phone.trim() },
           config,
         );
   return res.data;

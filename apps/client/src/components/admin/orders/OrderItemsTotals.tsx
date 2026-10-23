@@ -16,10 +16,13 @@ export function OrderItemsTotals({ order }: { order: AdminOrder }) {
     <div className="border-t border-border pt-3 space-y-1 text-sm">
       {order.items.map((item) => (
         <div key={item.id} className="flex justify-between gap-3">
-          <span>
-            {orderItemName(item, locale)} ({item.color}/{item.size}) x{item.quantity}
+          <span className="min-w-0">
+            {orderItemName(item, locale)}
+            <span className="block text-xs text-muted-foreground">
+              {item.color} / {item.size} · {item.quantity} × {money(item.unitPrice)}
+            </span>
           </span>
-          <span>{money(parseFloat(item.unitPrice) * item.quantity)}</span>
+          <span className="shrink-0">{money(parseFloat(item.unitPrice) * item.quantity)}</span>
         </div>
       ))}
       <div className="border-t border-border pt-2 mt-2 space-y-1">

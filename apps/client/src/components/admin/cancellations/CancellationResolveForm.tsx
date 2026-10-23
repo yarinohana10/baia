@@ -52,8 +52,8 @@ export function CancellationResolveForm({
         adminNote: note.trim() || undefined,
       });
       setDone(action);
-      if (action === 'approve' && res.data?.refundFailed) {
-        onResolved(t('approvedRefundFailed', { number: order.orderNumber }), 'error');
+      if (action === 'approve' && res.data?.refundPending) {
+        onResolved(t('approvedRefundPending', { number: order.orderNumber }), 'error');
       } else {
         onResolved(t(action === 'approve' ? 'approved' : 'rejected', { number: order.orderNumber }), 'success');
       }
@@ -82,7 +82,7 @@ export function CancellationResolveForm({
           aria-invalid={!feeValid}
         />
         <p className="text-xs text-muted-foreground">
-          {request.insideWindow ? t('feeHintInside') : t('feeHintOutside', { amount: money(request.suggestedFee) })}
+          {t('feeHint', { amount: money(request.suggestedFee) })}
         </p>
         {order.paid && feeValue !== null && (
           <p className="text-xs text-foreground">{t('refundPreview', { amount: money(Math.max(0, total - feeValue)) })}</p>

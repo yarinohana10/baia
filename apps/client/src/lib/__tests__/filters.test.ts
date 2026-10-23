@@ -9,7 +9,7 @@ import {
   withFilters,
 } from '../catalog/query';
 import { effectiveSizeSetKey, sizeChartFor, sizeChartIdFor } from '../catalog/size-charts';
-import { discountPercent, lowStockCount, SHOPPER_LOW_STOCK_THRESHOLD, variantPrice } from '../catalog/pricing';
+import { discountPercent, lowStockCount, variantPrice } from '../catalog/pricing';
 
 describe('listing filters <-> URL', () => {
   it('parses filters from search params', () => {
@@ -115,9 +115,9 @@ describe('PDP pricing helpers', () => {
     expect(discountPercent(120, null)).toBe(0);
   });
 
-  it('shows "only N left" from 3 units, tracked stock only', () => {
-    expect(lowStockCount({ stockQuantity: 3 }, SHOPPER_LOW_STOCK_THRESHOLD)).toBe(3);
-    expect(lowStockCount({ stockQuantity: 4 }, SHOPPER_LOW_STOCK_THRESHOLD)).toBeNull();
-    expect(lowStockCount({ stockQuantity: 1, trackInventory: false }, SHOPPER_LOW_STOCK_THRESHOLD)).toBeNull();
+  it('shows "only N left" up to the configured threshold, tracked stock only', () => {
+    expect(lowStockCount({ stockQuantity: 3 }, 3)).toBe(3);
+    expect(lowStockCount({ stockQuantity: 4 }, 3)).toBeNull();
+    expect(lowStockCount({ stockQuantity: 1, trackInventory: false }, 3)).toBeNull();
   });
 });

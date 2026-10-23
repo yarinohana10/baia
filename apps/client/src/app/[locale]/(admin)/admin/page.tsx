@@ -1,21 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, BarChart3, Package, PieChart } from 'lucide-react';
 import { useDashboardData } from '@/hooks/admin/useDashboardData';
-import { CategoryRevenueChart } from '@/components/admin/dashboard/CategoryRevenueChart';
-import { DashboardKpis } from '@/components/admin/dashboard/DashboardKpis';
-import { DashboardSectionCard } from '@/components/admin/dashboard/DashboardSectionCard';
-import { InventoryAlerts } from '@/components/admin/dashboard/InventoryAlerts';
+import { isDashboardEmpty } from '@/hooks/admin/dashboard-data';
+import { DEFAULT_RANGE, type RangeSelection } from '@/lib/admin/analytics-range';
+import { Button } from '@/components/ui/button';
+import { DashboardBody } from '@/components/admin/dashboard/DashboardBody';
+import { DashboardRangeBar } from '@/components/admin/dashboard/DashboardRangeBar';
 import { NeedsAttention } from '@/components/admin/dashboard/NeedsAttention';
-import { OrdersByStatusChart } from '@/components/admin/dashboard/OrdersByStatusChart';
-import { RecentActivityCard } from '@/components/admin/dashboard/RecentActivityCard';
-import { SalesOverviewCard } from '@/components/admin/dashboard/SalesOverviewCard';
-import { TopProductsList } from '@/components/admin/dashboard/TopProductsList';
 
 export default function AdminDashboard() {
   const t = useTranslations('admin.dashboard');
-  const { data, counts } = useDashboardData();
+  const [selection, setSelection] = useState<RangeSelection>(DEFAULT_RANGE);
+  const { data, loading, counts, reload } = useDashboardData(selection);
 
   if (!data) {
     return (
@@ -25,51 +23,33 @@ export default function AdminDashboard() {
     );
   }
 
-  const { overview, salesDays, ordersByStatus, topProducts, categoryRevenue, aovData, inventoryData } = data;
-
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="font-serif text-[32px] leading-tight text-foreground">{t('title')}</h1>
         <p className="mt-1 font-body text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <NeedsAttention counts={counts} />
+      <NeedsAttention attention={data.attention} counts={counts} />
 
-      <DashboardKpis overview={overview} aovData={aovData} />
+      <DashboardRangeBar
+        selection={selection}
+        onChange={setSelection}
+        resolved={data.summary?.range ?? data.sales?.range ?? null}
+        loading={loading}
+      />
 
-      {/* Row 1: Sales Chart + Recent Activity */}
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <SalesOverviewCard days={salesDays} />
-        <RecentActivityCard orders={overview?.recentOrders ?? []} />
-      </div>
-
-      {/* Row 2: Orders by Status + Top Products + Revenue by Category */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <DashboardSectionCard icon={BarChart3} title={t('ordersByStatus')}>
-          {ordersByStatus.length > 0 ? (
-            <OrdersByStatusChart data={ordersByStatus} />
-          ) : (
-            <p className="py-8 text-center font-body text-sm text-muted-foreground">{t('noOrderData')}</p>
-          )}
-        </DashboardSectionCard>
-
-        <DashboardSectionCard icon={Package} title={t('topProducts')}>
-          <TopProductsList products={topProducts} />
-        </DashboardSectionCard>
-
-        <DashboardSectionCard icon={PieChart} title={t('revenueByCategory')}>
-          <CategoryRevenueChart data={categoryRevenue} />
-        </DashboardSectionCard>
-      </div>
-
-      {/* Row 3: Inventory Alerts */}
-      {inventoryData && (inventoryData.outOfStockCount > 0 || inventoryData.lowStockCount > 0) && (
-        <div className="mt-6">
-          <DashboardSectionCard icon={AlertTriangle} iconClassName="text-amber-600" title={t('inventory')}>
-            <InventoryAlerts data={inventoryData} />
-          </DashboardSectionCard>
+      {isDashboardEmpty(data) ? (
+        <div className="flex flex-col items-center gap-3 py-16">
+          <p role="alert" className="font-body text-sm text-muted-foreground">
+            {t('sectionFailed')}
+          </p>
+          <Button type="button" variant="outline" size="sm" onClick={reload}>
+            {t('retry')}
+          </Button>
         </div>
+      ) : (
+        <DashboardBody data={data} selection={selection} loading={loading} onRetry={reload} />
       )}
     </div>
   );

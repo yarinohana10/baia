@@ -25,14 +25,21 @@ import { readGuestCartKeyHash, type CartOwner } from '../cart/cart-identity';
 import {
   AdminOrdersExportQueryDto,
   AdminOrdersQueryDto,
+  AdminRefundsQueryDto,
+  CompleteRefundDto,
   CreateOrderDto,
+  FailRefundDto,
   OrderAccessDto,
   OrderLookupDto,
+  ResendOrderEmailDto,
   UpdateOrderStatusDto,
 } from './dto/order.dto';
-import { allowedTransitions } from './order-status';
 import { OrderMailer } from './order-mailer';
-import type { OrderStatus } from '../generated/prisma';
+import type { OrderStatus, RefundStatus } from '../generated/prisma';
+import { RefundsService } from './refunds.service';
+import { PaymentsEnabledGuard } from '../payment/payments-enabled';
+import { addDays, startOfDay } from '../analytics/date-range';
+import type { AuthenticatedRequest } from '../common/session';
 import {
   ORDER_ACCESS_COOKIE_MAX_AGE_MS,
   extractOrderToken,
@@ -49,9 +56,11 @@ export class OrdersController {
   constructor(
     private readonly ordersService: OrdersService,
     private readonly orderMailer: OrderMailer,
+    private readonly refunds: RefundsService,
   ) {}
 
   @Post('orders')
+  @UseGuards(PaymentsEnabledGuard)
   @RateLimit({ limit: 10, windowMs: MINUTE })
   @Header('Cache-Control', 'no-store')
   async createOrder(@Req() req: Request, @Body() body: CreateOrderDto) {
@@ -183,6 +192,7 @@ export class OrdersController {
     return this.ordersService.findAll({
       status,
       search: search || undefined,
+      ...israelDayRange(query.from, query.to),
       page: page ? Math.max(1, parseInt(page) || 1) : 1,
       limit: limit ? Math.min(100, Math.max(1, parseInt(limit) || 20)) : 20,
     });
@@ -194,16 +204,10 @@ export class OrdersController {
   @Roles('ADMIN')
   @Header('Cache-Control', 'no-store')
   async exportCsv(@Query() query: AdminOrdersExportQueryDto, @Res() res: Response) {
-    const parse = (v: string | undefined, endOfDay: boolean) => {
-      if (!v) return undefined;
-      const d = new Date(v.length === 10 ? `${v}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z` : v);
-      if (Number.isNaN(d.getTime())) throw new BadRequestException('Invalid date');
-      return d;
-    };
     const csv = await this.ordersService.exportCsv({
-      from: parse(query.from, false),
-      to: parse(query.to, true),
+      ...israelDayRange(query.from, query.to),
       status: query.status,
+      search: query.search || undefined,
     });
     const name = `orders-${query.from ?? 'all'}-${query.to ?? new Date().toISOString().slice(0, 10)}.csv`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -215,7 +219,7 @@ export class OrdersController {
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
   async findById(@Param('id') id: string) {
-    return withTransitions(await this.ordersService.findForAdmin(id));
+    return this.withTransitions(await this.ordersService.findForAdmin(id));
   }
 
   /** Emails sent about this order (EmailLog), newest first. */
@@ -237,16 +241,68 @@ export class OrdersController {
     return this.orderMailer.resendConfirmation(id);
   }
 
-  /** Status change. SHIPPED / DELIVERED / CANCELLED / REFUNDED email the customer. */
+  /** Re-renders any order email from the order's current data and sends it again (logged in the order's email list). */
+  @Post('admin/orders/:id/resend-email')
+  @HttpCode(200)
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  @RateLimit({ limit: 20, windowMs: MINUTE })
+  async resendEmail(@Param('id') id: string, @Body() body: ResendOrderEmailDto) {
+    return this.orderMailer.resend(id, body.template);
+  }
+
+  /** Status change. PROCESSING / SHIPPED / DELIVERED / CANCELLED / REFUNDED email the customer. */
   @Put('admin/orders/:id/status')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  async updateStatus(@Param('id') id: string, @Body() body: UpdateOrderStatusDto) {
-    return withTransitions(await this.ordersService.updateStatus(id, body.status, body.trackingNumber));
+  async updateStatus(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: UpdateOrderStatusDto) {
+    const order = await this.ordersService.updateStatus(id, body.status, body.trackingNumber, { actorEmail: req.user?.email });
+    return this.withTransitions(await this.ordersService.findForAdmin(order.id));
+  }
+
+  // ─── Refunds (Refund Pending queue) ─────────────
+
+  @Get('admin/refunds')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  @Header('Cache-Control', 'no-store')
+  listRefunds(@Query() query: AdminRefundsQueryDto) {
+    return this.refunds.list({
+      status: query.status,
+      page: Math.max(1, parseInt(query.page ?? '', 10) || 1),
+      limit: Math.min(100, Math.max(1, parseInt(query.limit ?? '', 10) || 20)),
+    });
+  }
+
+  /** The admin refunded it in the provider's dashboard and confirms it here: order CANCELLED -> REFUNDED. */
+  @Post('admin/refunds/:id/complete')
+  @HttpCode(200)
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  completeRefund(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: CompleteRefundDto) {
+    return this.refunds.complete(id, { providerRef: body.providerRef || null, note: body.note || null }, req.user?.email ?? null);
+  }
+
+  @Post('admin/refunds/:id/fail')
+  @HttpCode(200)
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  failRefund(@Param('id') id: string, @Body() body: FailRefundDto) {
+    return this.refunds.markFailed(id, body.note);
+  }
+
+  /** Admin responses carry the statuses the order may move to next. */
+  private withTransitions<T extends { status: OrderStatus; refunds?: { status: RefundStatus }[] }>(order: T) {
+    return { ...order, allowedTransitions: this.ordersService.adminTransitions(order) };
   }
 }
 
-/** Admin responses carry the statuses the order may move to next. */
-function withTransitions<T extends { status: OrderStatus }>(order: T) {
-  return { ...order, allowedTransitions: allowedTransitions(order.status) };
+/** `from`/`to` are inclusive Israel calendar days; the query wants [start of from, start of the day after to). */
+function israelDayRange(from?: string, to?: string): { from?: Date; to?: Date } {
+  const day = (v: string) => {
+    const d = startOfDay(v);
+    if (Number.isNaN(d.getTime()) || addDays(v, 0) !== v) throw new BadRequestException('Invalid date');
+    return d;
+  };
+  return { from: from ? day(from) : undefined, to: to ? (day(to), startOfDay(addDays(to, 1))) : undefined };
 }

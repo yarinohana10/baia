@@ -151,6 +151,19 @@ export function ProductBasicsCard({ form, dispatch, errors, categories, selectCl
               </span>
             </span>
           </Label>
+          <Label htmlFor="product-back-soon" className="cursor-pointer items-start text-sm font-body">
+            <input
+              id="product-back-soon"
+              type="checkbox"
+              checked={form.backSoon}
+              onChange={(e) => dispatch({ type: 'flag', field: 'backSoon', value: e.target.checked })}
+              className="mt-0.5 accent-ocean-700"
+            />
+            <span>
+              {t('backSoon')}
+              <span className="block text-xs font-normal text-muted-foreground">{t('backSoonHint')}</span>
+            </span>
+          </Label>
           <Label htmlFor="product-featured" className="cursor-pointer items-start text-sm font-body">
             <input
               id="product-featured"

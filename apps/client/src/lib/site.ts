@@ -1,5 +1,5 @@
 import type { SiteConfig } from './catalog/types';
-import { formatPrice } from './catalog/pricing';
+import { LOW_STOCK_THRESHOLD, formatPrice } from './catalog/pricing';
 
 /**
  * Store contact details shown on the Contact page and in structured data.
@@ -22,7 +22,7 @@ export type BusinessInfo = {
   accessibilityCoordinatorName: string;
   accessibilityCoordinatorPhone: string;
   accessibilityCoordinatorEmail: string;
-  selfCancelWindowHours: number;
+  lowStockThreshold: number;
   courierCost: string;
   pickupCost: string;
   freeShippingThreshold: string;
@@ -48,7 +48,7 @@ export function businessInfo(config: SiteConfig | null | undefined): BusinessInf
     accessibilityCoordinatorName: config?.accessibilityCoordinatorName || '',
     accessibilityCoordinatorPhone: config?.accessibilityCoordinatorPhone || config?.businessPhone || '',
     accessibilityCoordinatorEmail: config?.accessibilityCoordinatorEmail || config?.contactEmail || CONTACT_EMAIL,
-    selfCancelWindowHours: config?.selfCancelWindowHours ?? 48,
+    lowStockThreshold: config?.lowStockThreshold ?? LOW_STOCK_THRESHOLD,
     courierCost: formatPrice(num(config?.shippingCost, 29.9)),
     pickupCost: formatPrice(num(config?.pickupPointCost, 19.9)),
     freeShippingThreshold: formatPrice(num(config?.freeShippingThreshold, 249)),

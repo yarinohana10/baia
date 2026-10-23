@@ -10,15 +10,15 @@ import { cn } from '@/lib/utils';
 import { FieldError } from '@/components/forms/FieldError';
 import { useCancelOrderForm } from '@/hooks/storefront/useCancelOrderForm';
 import { cancelsInstantly, type CancelOrderFields } from '@/hooks/storefront/cancelOrderFormState';
-import { CancelModeChoice } from './CancelModeChoice';
 import { CancelOrderResult } from './CancelOrderResult';
 import { ReasonOptions } from './ReasonOptions';
+import { SelfCancelNotice } from './SelfCancelNotice';
 import { lookupFieldClass, lookupLabelClass } from './styles';
 
 /**
- * Public cancellation form. Step 1 checks the order (number + email); inside
- * the free window the shopper may cancel instantly or ask us to call first,
- * otherwise a request is filed. Both go through POST /cancellations.
+ * Public cancellation form. Step 1 checks the order (number + email); an order
+ * that has not shipped is cancelled instantly once confirmed, a shipped one gets
+ * a request (with the contact phone). Both go through POST /cancellations.
  */
 export function CancelOrderForm() {
   const t = useTranslations('cancelOrderPage');
@@ -30,7 +30,6 @@ export function CancelOrderForm() {
 
   if (result) return <CancelOrderResult result={result} />;
 
-  const info = found?.order.cancellation;
   const instant = cancelsInstantly(state);
   const errorId = (field: string) => `${id}-${field}-error`;
   const edit = (field: Exclude<keyof CancelOrderFields, 'reason'>) => (e: { target: { value: string } }) =>
@@ -86,6 +85,7 @@ export function CancelOrderForm() {
           inputMode="tel"
           dir="ltr"
           autoComplete="tel"
+          required
           pattern={PHONE_PATTERN}
           value={fields.phone}
           onChange={edit('phone')}
@@ -120,13 +120,10 @@ export function CancelOrderForm() {
         <FieldError id={errorId('details')} issue={issues.details} />
       </label>
 
-      {found && info && (
-        <CancelModeChoice
-          info={info}
-          unpaid={found.order.status === 'PENDING_PAYMENT'}
-          instant={state.instant}
-          onChange={(value) => dispatch({ type: 'chooseInstant', instant: value })}
-        />
+      {found && (
+        <div className="rounded-xl border border-ocean-200 bg-ocean-50/50 p-4">
+          <SelfCancelNotice unpaid={found.order.status === 'PENDING_PAYMENT'} className="text-gray-700" />
+        </div>
       )}
 
       {!found && (

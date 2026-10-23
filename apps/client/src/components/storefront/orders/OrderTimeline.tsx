@@ -14,7 +14,8 @@ export function OrderTimeline({
   order,
   compact = false,
 }: {
-  order: Pick<CustomerOrder, 'status' | 'createdAt' | 'paidAt' | 'shippedAt' | 'cancelledAt'>;
+  order: Pick<CustomerOrder, 'status' | 'createdAt' | 'paidAt' | 'shippedAt' | 'cancelledAt' | 'refunds'> &
+    Partial<Pick<CustomerOrder, 'deliveredAt' | 'statusEvents'>>;
   compact?: boolean;
 }) {
   const t = useTranslations('orderPage.timeline');

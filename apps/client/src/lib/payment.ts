@@ -13,11 +13,21 @@ export type DeclineCode = 'card_declined' | 'insufficient_funds' | 'provider_err
 
 /** GET /payment/config */
 export type PaymentConfig = {
+  /** PAYMENTS_ENABLED on the server. Off: the shop is browsable but cannot take orders ("Payments coming soon"). */
+  enabled: boolean;
   provider: string;
   testMode: boolean;
   methods: PaymentMethod[];
   installments: { max: number; minTotal: number };
 };
+
+/**
+ * The test banner and test cards are for the mock provider only: whatever the
+ * server says, a real provider never shows test UI.
+ */
+export function normalizePaymentConfig(config: PaymentConfig): PaymentConfig {
+  return { ...config, testMode: config.testMode && config.provider === 'mock' };
+}
 
 /** Body of POST /orders/:id/pay — nothing that could identify the card. */
 export type PayRequest = {

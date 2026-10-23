@@ -159,7 +159,10 @@ model Product {
   categoryId    String
   category      Category         @relation(fields: [categoryId], references: [id])
   isFeatured    Boolean          @default(false)
+  // false = Hidden: not visible on the storefront at all (admin "eye" control).
   isActive      Boolean          @default(true)
+  // true = Back Soon: still visible but not purchasable, even if stock exists.
+  backSoon      Boolean          @default(false)
   // Size set used for variant sizes; null = custom (free-text) sizes
   sizeSetId     String?
   sizeSet       SizeSet?         @relation(fields: [sizeSetId], references: [id], onDelete: SetNull)
@@ -194,6 +197,9 @@ model ProductVariant {
   saleStart     DateTime?
   saleEnd       DateTime?
   isActive      Boolean     @default(true)
+  // Stock-alert dedupe: set when an alert email was sent, cleared on restock above the threshold.
+  lowStockNotifiedAt DateTime?
+  soldOutNotifiedAt  DateTime?
   cartItems     CartItem[]
   orderItems    OrderItem[]
   createdAt     DateTime    @default(now())
@@ -333,8 +339,11 @@ model Order {
 
   paidAt      DateTime?
   shippedAt   DateTime?
+  deliveredAt DateTime?
   cancelledAt DateTime?
   cancellationRequests CancellationRequest[]
+  refunds       Refund[]
+  statusEvents  OrderStatusEvent[]
 
   // Guest access: SHA-256 hash of a 256-bit random token returned once at
   // creation. The raw token is never stored. Null for logged-in orders.
@@ -357,7 +366,61 @@ model Order {
 
   @@index([userId])
   @@index([status, createdAt])
+  @@index([customerEmail])
+  @@index([deliveredAt])
   @@map("orders")
+}
+
+// Audit trail of every status change (who/when), written with the change itself.
+model OrderStatusEvent {
+  id            String       @id @default(cuid())
+  orderId       String
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus    OrderStatus?
+  toStatus      OrderStatus
+  // Email of the admin or customer who triggered it; null for system changes (e.g. sweeper).
+  changedByEmail String?
+  createdAt     DateTime     @default(now())
+
+  @@index([orderId, createdAt])
+  @@map("order_status_events")
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// Money owed back to the customer for a cancelled paid order. Settled by the
+// payment provider (automatically once one is integrated, manually until then).
+model Refund {
+  id               String       @id @default(cuid())
+  orderId          String
+  order            Order        @relation(fields: [orderId], references: [id])
+  amount           Decimal      @db.Decimal(10, 2)
+  status           RefundStatus @default(PENDING)
+  // The payment provider's refund id once settled.
+  providerRef      String?
+  note             String?
+  requestedAt      DateTime     @default(now())
+  completedAt      DateTime?
+  completedByEmail String?
+
+  @@index([orderId])
+  @@index([status])
+  @@map("refunds")
+}
+
+// Admin rights granted by the Owner to an email without an Account yet;
+// applied when that email registers and verifies.
+model AdminInvitation {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  invitedByEmail String
+  createdAt      DateTime @default(now())
+
+  @@map("admin_invitations")
 }
 
 // ─── Payments ─────────────────────────────────────────────────
@@ -461,8 +524,8 @@ model SiteConfig {
   accessibilityCoordinatorPhone String @default("050-0000000")
   accessibilityCoordinatorEmail String @default("hello@baia-swimwear.co.il")
 
-  // Self-service cancellation window (hours after the order is paid).
-  selfCancelWindowHours Int @default(48)
+  // Stock alerts: a variant at or below this quantity is "low stock".
+  lowStockThreshold Int @default(5)
 
   @@map("site_config")
 }

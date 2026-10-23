@@ -38,6 +38,7 @@ export type ServerProduct = {
   sizeSetId?: string | null;
   isFeatured: boolean;
   isActive: boolean;
+  backSoon?: boolean;
   variants: Variant[];
   images: ServerImage[];
 };

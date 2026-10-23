@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
 import { formatPrice } from '@/lib/catalog/pricing';
 import { Package, ChevronRight, AlertTriangle, MapPin, Home, ExternalLink } from 'lucide-react';
-import { trackingUrl, type CustomerOrder } from '@/lib/orders';
+import { statusLabelKey, trackingUrl, type CustomerOrder } from '@/lib/orders';
 import { OrderTimeline } from '@/components/storefront/orders/OrderTimeline';
 import { OrderCancellation } from '@/components/storefront/orders/OrderCancellation';
 import { PaymentMethodLine } from '@/components/storefront/orders/PaymentMethodLine';
@@ -139,7 +139,7 @@ export default function MyOrdersPage() {
                           statusColors[order.status] || 'bg-gray-100 text-gray-500'
                         }`}
                       >
-                        {tStatus.has(order.status) ? tStatus(order.status) : order.status}
+                        {tStatus.has(statusLabelKey(order)) ? tStatus(statusLabelKey(order)) : order.status}
                       </span>
                       <ChevronRight size={14} className="text-gray-400 rtl:rotate-180" />
                     </div>

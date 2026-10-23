@@ -25,6 +25,12 @@ import {
   HeadBucketCommand,
 } from '@aws-sdk/client-s3';
 import * as fs from 'fs';
+import { buildPublicUrl, buildS3ClientConfig } from '../apps/server/src/storage/s3-client-options';
+
+/** process.env without unset/empty entries. */
+function definedEnv(): Record<string, string> {
+  return Object.fromEntries(Object.entries(process.env).filter((e): e is [string, string] => !!e[1]));
+}
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import * as mime from 'mime-types';
@@ -32,18 +38,9 @@ import * as mime from 'mime-types';
 const prisma = new PrismaClient();
 
 const endpoint = process.env.S3_ENDPOINT || 'http://localhost:4566';
-const region = process.env.S3_REGION || 'us-east-1';
-const accessKeyId = process.env.S3_ACCESS_KEY || 'test';
-const secretAccessKey = process.env.S3_SECRET_KEY || 'test';
 const bucket = process.env.S3_BUCKET || 'baia-assets';
-const publicUrl = process.env.S3_PUBLIC_URL || endpoint;
 
-const s3 = new S3Client({
-  region,
-  endpoint,
-  credentials: { accessKeyId, secretAccessKey },
-  forcePathStyle: true,
-});
+const s3 = new S3Client(buildS3ClientConfig({ S3_ENDPOINT: endpoint, ...definedEnv() }));
 
 const CLIENT_PUBLIC = path.resolve(__dirname, '../apps/client/public');
 
@@ -108,7 +105,7 @@ async function migrateProductImages() {
         where: { id: image.id },
         data: {
           uploadId: upload.id,
-          url: `${publicUrl}/${bucket}/${s3Key}`,
+          url: buildPublicUrl(s3Key, { S3_ENDPOINT: endpoint, ...definedEnv() }),
         },
       });
 
@@ -178,7 +175,7 @@ async function migrateCategoryImages() {
         where: { id: category.id },
         data: {
           imageUploadId: upload.id,
-          image: `${publicUrl}/${bucket}/${s3Key}`,
+          image: buildPublicUrl(s3Key, { S3_ENDPOINT: endpoint, ...definedEnv() }),
         },
       });
 
@@ -241,7 +238,7 @@ async function migrateHeroImage() {
       where: { id: 'default' },
       data: {
         heroImageUploadId: upload.id,
-        heroImageUrl: `${publicUrl}/${bucket}/${s3Key}`,
+        heroImageUrl: buildPublicUrl(s3Key, { S3_ENDPOINT: endpoint, ...definedEnv() }),
       },
     });
 

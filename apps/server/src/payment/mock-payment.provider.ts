@@ -35,9 +35,16 @@ export class MockPaymentProvider implements PaymentProvider {
       };
     }
 
+    const card = params.method === 'card';
     return {
       success: true,
       transactionId: `mock_${randomUUID()}`,
+      details: {
+        method: params.method,
+        installments: card ? params.installments : undefined,
+        cardBrand: card ? params.displayHint?.cardBrand : undefined,
+        cardLast4: card ? params.displayHint?.cardLast4 : undefined,
+      },
     };
   }
 

@@ -88,6 +88,16 @@ export class VariantDto {
   @Min(0)
   stockQuantity!: number;
 
+  /**
+   * The quantity the admin form loaded. When sent with an existing variant,
+   * stock changes by (stockQuantity - expectedStockQuantity) instead of being
+   * overwritten, so orders placed meanwhile are not lost.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  expectedStockQuantity?: number;
+
   /** false = unlimited stock (never runs out; quantity is ignored). */
   @IsOptional()
   @IsBoolean()
@@ -237,6 +247,11 @@ export class CreateProductDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /** Back Soon: visible but not purchasable even if stock exists. */
+  @IsOptional()
+  @IsBoolean()
+  backSoon?: boolean;
 
   /** Size set used for the variant size picker; null = custom sizes. */
   @IsOptional()

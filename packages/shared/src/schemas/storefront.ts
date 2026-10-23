@@ -3,6 +3,7 @@ import {
   emailSchema,
   localeSchema,
   optionalPhoneSchema,
+  phoneSchema,
   optionalText,
   requiredText,
   V,
@@ -60,7 +61,7 @@ export const cancellationReasonSchema = z.enum(CANCELLATION_REASONS, {
   errorMap: () => ({ message: V.reasonRequired }),
 });
 
-/** Signed-in / token holder self-cancel inside the free window. */
+/** Signed-in / token holder self-cancel (any time before the order ships). */
 export const selfCancelSchema = z.object({
   reason: cancellationReasonSchema,
   details: optionalText(1000),
@@ -68,7 +69,8 @@ export const selfCancelSchema = z.object({
 
 /** POST /orders/:id/cancellation-request. */
 export const cancellationRequestSchema = selfCancelSchema.extend({
-  contactPhone: optionalPhoneSchema,
+  /** Required: the store must be able to call the customer about a cancellation or return. */
+  contactPhone: phoneSchema,
 });
 export type CancellationRequestPayload = z.output<typeof cancellationRequestSchema>;
 
@@ -76,7 +78,7 @@ export type CancellationRequestPayload = z.output<typeof cancellationRequestSche
 export const publicCancellationSchema = cancellationRequestSchema.extend({
   orderNumber: requiredText(40),
   email: emailSchema,
-  /** Cancel instantly when inside the free window (default: file a request). */
+  /** Ignored by the server (an order that has not shipped is always cancelled instantly); accepted for older clients. */
   instant: z.boolean().optional(),
 });
 export type PublicCancellationFormInput = z.input<typeof publicCancellationSchema>;

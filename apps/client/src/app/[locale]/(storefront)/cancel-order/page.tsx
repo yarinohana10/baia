@@ -4,7 +4,6 @@ import { Clock, PackageX, Scale } from 'lucide-react';
 import { routing } from '@/i18n/routing';
 import { Link } from '@/i18n/navigation';
 import { pageMetadata } from '@/lib/seo';
-import { getSiteConfig } from '@/lib/catalog/server';
 import { OrderHelpLayout } from '@/components/storefront/orders/OrderHelpLayout';
 import { CancelOrderForm } from '@/components/storefront/orders/CancelOrderForm';
 
@@ -22,22 +21,21 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function CancelOrderPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [t, config] = await Promise.all([getTranslations('cancelOrderPage'), getSiteConfig()]);
-  const hours = config?.selfCancelWindowHours ?? 48;
+  const t = await getTranslations('cancelOrderPage');
 
   return (
     <OrderHelpLayout
       locale={locale}
       eyebrow={t('eyebrow')}
       title={t('title')}
-      intro={t('intro', { hours })}
+      intro={t('intro')}
       aside={
         <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 text-sm">
           <div className="flex gap-3">
             <Clock size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
             <div>
-              <p className="font-semibold text-gray-900">{t('policyFreeTitle', { hours })}</p>
-              <p className="mt-1 text-gray-500">{t('policyFreeBody', { hours })}</p>
+              <p className="font-semibold text-gray-900">{t('policyFreeTitle')}</p>
+              <p className="mt-1 text-gray-500">{t('policyFreeBody')}</p>
             </div>
           </div>
           <div className="flex gap-3">

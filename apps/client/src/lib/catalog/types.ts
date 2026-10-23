@@ -1,3 +1,6 @@
+/** Computed by the API: what a shopper can do with a variant / product. */
+export type Availability = 'in_stock' | 'low_stock' | 'sold_out' | 'back_soon' | 'hidden';
+
 export type Variant = {
   id: string;
   color: string;
@@ -7,6 +10,7 @@ export type Variant = {
   /** false = unlimited stock (stockQuantity is ignored). */
   trackInventory?: boolean;
   isActive?: boolean;
+  availability?: Availability;
   priceOverride: string | null;
   salePrice: string | null;
   saleStart: string | null;
@@ -50,6 +54,9 @@ export type Product = {
   basePrice: string;
   isFeatured?: boolean;
   isActive?: boolean;
+  /** Back Soon: visible but not purchasable (set by an Admin). */
+  backSoon?: boolean;
+  availability?: Availability;
   categoryId?: string;
   sizeSetId?: string | null;
   sizeSet?: SizeSetRef | null;
@@ -98,8 +105,8 @@ export type SiteConfig = {
   accessibilityCoordinatorName: string;
   accessibilityCoordinatorPhone: string;
   accessibilityCoordinatorEmail: string;
-  /** Hours after payment in which a customer can cancel instantly. */
-  selfCancelWindowHours: number;
+  /** "Only N left" shows at or under this many units; the same threshold drives admin stock alerts. */
+  lowStockThreshold?: number;
 };
 
 /** Filter options for a listing scope (`GET /products/facets`). */
@@ -120,6 +127,8 @@ export type CardProduct = {
   slug: string;
   basePrice: string;
   createdAt?: string;
+  /** Back Soon: shown disabled, not purchasable. */
+  backSoon?: boolean;
   images: { url: string; color?: string | null }[];
   variants: {
     id?: string;

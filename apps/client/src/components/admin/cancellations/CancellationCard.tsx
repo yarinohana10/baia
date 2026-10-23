@@ -11,11 +11,9 @@ import type { AdminCancellation } from './types';
 /** One cancellation request: order summary, reason, then the resolve form or its outcome. */
 export function CancellationCard({
   request,
-  windowHours,
   onResolved,
 }: {
   request: AdminCancellation;
-  windowHours: number;
   onResolved: (text: string, kind: 'success' | 'error') => void;
 }) {
   const t = useTranslations('admin.cancellations');
@@ -25,7 +23,7 @@ export function CancellationCard({
     <Card>
       <CardContent className="space-y-4">
         <CancellationHeader request={request} />
-        <CancellationBadges request={request} windowHours={windowHours} />
+        <CancellationBadges request={request} />
 
         <div className="rounded-lg bg-muted/50 px-4 py-3 text-sm">
           <p>

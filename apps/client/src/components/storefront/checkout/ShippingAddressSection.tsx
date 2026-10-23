@@ -73,7 +73,8 @@ export function ShippingAddressSection({
           required
         />
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      {/* Phones: number + zip side by side, the longer apartment field on its own line. */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 [&>*:nth-child(2)]:order-last [&>*:nth-child(2)]:col-span-2 sm:[&>*:nth-child(2)]:order-none sm:[&>*:nth-child(2)]:col-span-1">
         <CheckoutField
           field="shippingNumber"
           label={t('number')}

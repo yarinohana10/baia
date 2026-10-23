@@ -26,8 +26,9 @@ export default function ProductCard({ product, priority = false, sizes = DEFAULT
   // Second photo (e.g. back view / on model) swaps in on hover where hover exists.
   const hoverUrl = product.images[1]?.url;
   const discountPct = salePrice ? Math.round(((basePrice - salePrice) / basePrice) * 100) : 0;
-  // Unlimited-stock variants count as Infinity, so they never show as sold out.
-  const outOfStock = totalStock(product.variants) === 0;
+  // Back Soon: set by an Admin, or automatic once every size is sold out.
+  // Unlimited-stock variants count as Infinity, so they never sell out.
+  const outOfStock = product.backSoon === true || totalStock(product.variants) === 0;
 
   return (
     <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100">
@@ -43,7 +44,7 @@ export default function ProductCard({ product, priority = false, sizes = DEFAULT
               sizes={sizes}
               className={`object-contain object-center transition-[transform,opacity] duration-500 ${
                 hoverUrl ? '[@media(hover:hover)]:group-hover:opacity-0' : 'group-hover:scale-105'
-              } ${outOfStock ? 'opacity-70' : ''}`}
+              } ${outOfStock ? 'opacity-70 grayscale' : ''}`}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-ocean-50">
@@ -66,7 +67,7 @@ export default function ProductCard({ product, priority = false, sizes = DEFAULT
           <div className="absolute top-3 start-3 z-10 flex flex-col items-start gap-1.5">
             {outOfStock && (
               <span className="rounded-full bg-charcoal/85 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white">
-                {t('soldOut')}
+                {t('backSoon')}
               </span>
             )}
             {salePrice && !outOfStock && discountPct > 0 && (

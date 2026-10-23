@@ -4,6 +4,7 @@ import { greeting, paymentLines, render, type PaymentInfo } from './helpers';
 import type { Block, FooterReason, InfoBox, ItemRow, LayoutContext, Link } from './layout';
 import { customerTemplates, type CustomerTemplateData } from './customer';
 import { orderTemplates, type OrderTemplateData } from './orders';
+import { inventoryTemplates, type InventoryTemplateData } from './inventory';
 
 /**
  * Data each template expects. To add a new email:
@@ -14,7 +15,7 @@ import { orderTemplates, type OrderTemplateData } from './orders';
  * Templates are pure functions of (data, locale, ctx); `ctx` carries the
  * store details for the footer (EmailService loads them from SiteConfig).
  */
-export interface EmailTemplateData extends CustomerTemplateData, OrderTemplateData {
+export interface EmailTemplateData extends CustomerTemplateData, OrderTemplateData, InventoryTemplateData {
   'verify-email': { name?: string | null; url: string; expiresInHours: number };
   'reset-password': { name?: string | null; url: string; expiresInMinutes: number };
   welcome: { name?: string | null; shopUrl: string };
@@ -43,7 +44,6 @@ export interface EmailTemplateData extends CustomerTemplateData, OrderTemplateDa
     trackUrl?: string | null;
     /** Public cancellation page. */
     cancelUrl?: string | null;
-    cancelWindowHours?: number | null;
     contactUrl?: string | null;
     payment?: PaymentInfo | null;
   };
@@ -63,9 +63,12 @@ export const TEMPLATE_REASONS: Record<EmailTemplateName, FooterReason> = {
   'reset-password': 'account',
   welcome: 'account',
   'welcome-verify': 'account',
+  'admin-invitation': 'account',
   'order-confirmation': 'order',
   'order-shipped': 'order',
+  'order-processing': 'order',
   'order-delivered': 'order',
+  'refund-completed': 'order',
   'order-cancelled': 'order',
   'cancellation-request-received': 'order',
   'cancellation-request-rejected': 'order',
@@ -73,7 +76,9 @@ export const TEMPLATE_REASONS: Record<EmailTemplateName, FooterReason> = {
   'contact-notification': 'internal',
   'admin-new-order': 'internal',
   'admin-cancellation-request': 'internal',
-  'admin-order-self-cancelled': 'internal',
+  'admin-order-cancelled': 'internal',
+  'admin-low-stock': 'internal',
+  'admin-sold-out': 'internal',
 };
 
 export function isCustomerFacing(name: EmailTemplateName): boolean {
@@ -188,7 +193,6 @@ const welcome: EmailTemplate<EmailTemplateData['welcome']> = (data, locale, ctx)
 const orderConfirmation: EmailTemplate<EmailTemplateData['order-confirmation']> = (data, locale, ctx) => {
   const he = locale === 'he';
   const pickup = data.deliveryMethod === 'PICKUP_POINT';
-  const hours = data.cancelWindowHours ?? 48;
 
   const totals = [
     { label: he ? 'סכום ביניים' : 'Subtotal', value: data.subtotal },
@@ -234,8 +238,8 @@ const orderConfirmation: EmailTemplate<EmailTemplateData['order-confirmation']> 
       tone: 'info',
       lines: [
         he
-          ? `התחרטת? אפשר לבטל ללא עלות תוך ${hours} שעות, כל עוד ההזמנה לא נשלחה.`
-          : `Changed your mind? You can cancel free of charge within ${hours} hours, as long as the order hasn't shipped.`,
+          ? 'התחרטת? אפשר לבטל ללא עלות בכל שלב, כל עוד ההזמנה לא נשלחה.'
+          : "Changed your mind? You can cancel free of charge at any time, as long as the order hasn't shipped.",
       ],
     });
   }
@@ -278,6 +282,7 @@ export const templates: { [K in EmailTemplateName]: EmailTemplate<EmailTemplateD
   'order-confirmation': orderConfirmation,
   ...customerTemplates,
   ...orderTemplates,
+  ...inventoryTemplates,
 };
 
 /** Render a template. `branding` defaults to the built-in store details. */

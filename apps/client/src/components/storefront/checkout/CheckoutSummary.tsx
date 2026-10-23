@@ -43,7 +43,7 @@ export function CheckoutSummary({ checkout }: { checkout: Checkout }) {
 
       <p className="text-xs text-center text-gray-400">{tCheckout('secureNote')}</p>
       <p className="text-xs text-center text-gray-400">
-        {tDelivery('cancelPolicy', { hours: shipping.selfCancelWindowHours ?? 48 })}
+        {tDelivery('cancelPolicy')}
       </p>
     </div>
   );

@@ -44,6 +44,7 @@ describe('shopErrorMessage', () => {
     });
     expect(shopErrorMessage(apiError(404, { code: 'COUPON_INVALID' }), 'he').key).toBe('couponInvalid');
     expect(shopErrorMessage(apiError(409, { code: 'ORDER_NOT_PAYABLE' }), 'he').key).toBe('orderNotPayable');
+    expect(shopErrorMessage(apiError(403, { code: 'PAYMENTS_DISABLED' }), 'he').key).toBe('paymentsDisabled');
   });
 
   it('never surfaces raw server messages', () => {

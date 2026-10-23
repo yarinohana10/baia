@@ -15,7 +15,9 @@ before sending real customers to the site.
                                                       • pending-order sweeper (in-process)
                                                        │            │             │
                                                    Postgres     S3 bucket       SMTP
-                                                   (plugin)  (Cloudflare R2)  (Gmail/Resend)
+                                                   (plugin)  (Cloudflare R2)  (Resend/Gmail)
+                                                       ▲
+                                              backup (Cron service, nightly pg_dump -> private R2 bucket)
 ```
 
 Why a proxy: Railway's default domains (`*.up.railway.app`) are on the Public Suffix List, so a
@@ -69,7 +71,7 @@ The server image's working directory is `/app/apps/server`, so the pre-deploy co
 ## 2. Variables
 
 Set the variables from the copy-paste block in [`railway-env.md`](./railway-env.md#copy-paste-railway-setup-a-before-the-custom-domain).
-Secrets (`BETTER_AUTH_SECRET`, `SMTP_PASSWORD`, `S3_SECRET_KEY`) go in **Variables** in the
+Secrets (`BETTER_AUTH_SECRET`, `SMTP_PASSWORD`, `S3_SECRET_KEY`, `BACKUP_S3_SECRET_KEY`) go in **Variables** in the
 dashboard and nowhere else. Generate the auth secret locally:
 
 ```bash
@@ -127,27 +129,31 @@ The schema is managed by **Prisma Migrate** (`apps/server/prisma/migrations`). T
 
 ## 5. First deploy, first admin, seed policy
 
-1. Push to `main` (or click **Deploy**). Watch the server's deploy log: you should see the
+1. Push to `main` (or click **Deploy**). For the full non-developer walkthrough, see [`GO-LIVE.md`](./GO-LIVE.md). Watch the server's deploy log: you should see the
    pre-deploy migration, then `Baia API listening on port 8000 (production)`.
 2. Open `https://<client-domain>/v1/health`. It should return `{"status":"ok",…,"checks":{"database":"ok"}}`.
-3. **Create the first admin** inside the running server container. The production image has no
-   `pnpm`/`tsx`; the CLI is compiled.
+3. **Owner bootstrap.** There is no seeded or default admin. Set `OWNER_EMAIL` (the owner's own
+   address) on the server, then open the live site, **register that exact address** and click the
+   verification link in the email. The account becomes Admin automatically (on verification, and again
+   on every boot). From **Admin › Admins** the Owner adds the other people (for example
+   `baiaswimwear0@gmail.com`): an existing account is promoted at once, an address without an account
+   gets an *Admin Invitation* that takes effect when that person registers and verifies the same email.
+   Only the Owner can add or remove Admins, and deploys never demote anyone (ADR-0006).
+   *Emergency only* (for example the Owner lost the mailbox): the compiled CLI can still promote or
+   create an account from a shell inside the server container:
    ```bash
-   npx -y @railway/cli@latest link            # select project + environment
+   npx -y @railway/cli@latest link
    npx -y @railway/cli@latest ssh --service server
-   # inside the container (cwd /app/apps/server):
-   read -s ADMIN_PASSWORD && export ADMIN_PASSWORD   # type the password, nothing is echoed
-   node dist/cli/create-admin.js --email baiaswimwear0@gmail.com --name "BAIA"
-   unset ADMIN_PASSWORD; exit
+   read -s ADMIN_PASSWORD && export ADMIN_PASSWORD
+   node dist/cli/create-admin.js --email <address> --name "BAIA"; unset ADMIN_PASSWORD; exit
    ```
-   This creates a verified ADMIN, or promotes an existing account. It never deletes users.
-   Alternative: sign up on the site, then run `node dist/cli/create-admin.js --email <that email>`
-   to promote yourself without setting a password.
 4. **Seed policy:** do **not** run `prisma:seed` against production. It creates demo categories and
    products, and it isn't in the production image. Create the real catalogue in **/he/admin**.
 5. In **Admin › Settings**, fill in the business details: legal name, ח.פ./ע.מ., address, phone, and
    **contact email** (`baiaswimwear0@gmail.com`). The contact email receives new-order alerts and
-   is the Reply-To on customer emails. Until it's set, alerts go to the schema default address.
+   is the Reply-To on customer emails. Until it's set, the schema default address
+   (`hello@baia-swimwear.co.il`) is shown. Every placeholder to replace is listed in
+   [`GO-LIVE.md`](./GO-LIVE.md#step-9-replace-every-placeholder-in-admin-settings).
 
 ## 6. Custom domain (`baia.co.il`) and DNS
 
@@ -193,7 +199,7 @@ Limits: about **500 recipients per day**. `From` **must be the Gmail address** (
 anything else). Gmail senders get lower inbox placement than a domain with SPF/DKIM. This is fine
 for launch week, but don't plan to stay on it.
 
-### (b) Recommended: your own domain with Resend or Postmark
+### (b) Recommended for production: your own domain with Resend (or Postmark)
 
 1. Buy or use `baia.co.il`. In Resend or Postmark, add the domain and create the DNS records they
    show you:
@@ -215,6 +221,11 @@ for launch week, but don't plan to stay on it.
 3. Replies: customer emails carry **Reply-To = Admin › Settings › contact email**. Set it to
    `baiaswimwear0@gmail.com` so replies to `orders@` land in the Gmail inbox.
 
+Resend's free plan allows **100 emails/day and 3,000/month** (checked on resend.com/pricing). One
+order sends a customer email and an admin alert, plus welcome/verification emails, so a very busy
+day can hit the daily cap: upgrade before a campaign. The click-by-click setup is in
+[`GO-LIVE.md`](./GO-LIVE.md). Resend shows delivery status in its dashboard, not in SMTP logs.
+
 Test: sign up with a real address and place a test order on staging. Then check the Gmail headers
 (“Show original”) for `SPF: PASS`, `DKIM: PASS` and `DMARC: PASS`.
 
@@ -225,7 +236,9 @@ Test: sign up with a real address and place a test order on staging. Then check 
    creates the DNS record and TLS certificate. The `r2.dev` URL is rate-limited and meant for
    development only.
 3. R2 → **Manage API tokens** → create a token with **Object Read & Write** on this bucket only.
-   Put its keys in `S3_ACCESS_KEY` / `S3_SECRET_KEY`.
+   Put its keys in `S3_ACCESS_KEY` / `S3_SECRET_KEY`. The server never creates buckets in production
+   and a failing bucket check at boot only logs an error (it does not block the deploy); a wrong
+   bucket or key shows up as a failed upload in Admin.
 4. Server: `S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`, `S3_REGION=auto`,
    `S3_BUCKET=baia-assets`, `S3_PUBLIC_URL=https://images.baia.co.il`,
    `S3_PUBLIC_URL_INCLUDES_BUCKET=false`. Client: `IMAGE_REMOTE_PATTERNS=https://images.baia.co.il`.
@@ -237,19 +250,29 @@ Test: sign up with a real address and place a test order on staging. Then check 
    `s3:GetObject` on `arn:aws:s3:::baia-assets/*` for `"Principal": "*"`. Grant the app's IAM user
    only `s3:PutObject`, `s3:DeleteObject`, `s3:GetObject` and `s3:ListBucket` on that bucket.
 
+**Every object in this bucket is public.** Keep database backups in a separate private bucket (§11).
+Uploads are checked by their real content (magic bytes: jpeg, png, webp, avif, gif), not only the
+browser's declared type. **`IMAGE_REMOTE_PATTERNS` must contain the exact host of `S3_PUBLIC_URL`**
+(or `CDN_URL`), for example `https://images.baia.co.il`; otherwise `next/image` refuses the photos.
+It is a build-time variable, so redeploy the client after changing it.
+
 Uploads go to S3 **only**. `STORAGE_PROVIDER=local` is rejected in production because Railway
 containers are rebuilt on every deploy and the files would be lost.
 
-## 9. Payments: decide before launch
+## 9. Payments: held until a provider exists
 
 Only `MockPaymentProvider` exists. With `PAYMENT_PROVIDER=mock`, every "payment" succeeds
-**without charging anything**, and the server logs a warning at boot. Use it for a private
-staging or demo deploy only. Without `PAYMENT_PROVIDER` the API refuses to start in production.
+**without charging anything**. Production therefore runs with `PAYMENT_PROVIDER=mock` and
+**`PAYMENTS_ENABLED=false`** (ADR-0008): the shop is browsable, the checkout says "Payments coming
+soon", and the API refuses to create orders or payments (HTTP 403 `PAYMENTS_DISABLED`). The server logs
+a warning at boot while `mock` is used in production.
 
 To take real money, integrate an Israeli payment provider (e.g. Cardcom, Tranzila, Meshulam/Grow,
-PayPlus, Hyp): implement `PaymentProvider` and a webhook verifier (see `docs/adr/0002`), register
-the provider in `payment-provider.factory.ts`, then set `PAYMENT_PROVIDER=<name>` and
-`PAYMENT_WEBHOOK_SECRET`. Until that's done, **don't open the shop to the public**.
+PayPlus, Hyp): implement `PaymentProvider` (`charge()` / `refund()`) and a `WebhookVerifier` (see
+`docs/adr/0002`), register the provider in `payment-provider.factory.ts`, then set
+`PAYMENT_PROVIDER=<name>`, `PAYMENT_WEBHOOK_SECRET` and finally `PAYMENTS_ENABLED=true`. Refunds are
+manual until then (Refund Pending, ADR-0007). **Never set `PAYMENTS_ENABLED=true` together with
+`PAYMENT_PROVIDER=mock` on the public site.**
 
 ## 10. Background work and scaling
 
@@ -265,19 +288,54 @@ the provider in `payment-provider.factory.ts`, then set `PAYMENT_PROVIDER=<name>
 
 ## 11. Backups
 
-- **Railway Postgres → Backups:** enable scheduled backups (daily, with weekly retention) and take
-  a manual backup before risky migrations. Availability depends on your plan; check the Postgres
-  service's *Backups* tab. Restore into a *new* service first and check it before switching.
-- **Off-platform copy, recommended:** a weekly `pg_dump` to storage outside Railway, for example
-  from your machine:
-  ```bash
-  # DATABASE_PUBLIC_URL: Postgres service → Variables (uses the TCP proxy)
-  pg_dump --format=custom --no-owner "$DATABASE_PUBLIC_URL" > baia-$(date +%F).dump
-  ```
-  Or run it as a Railway cron service (`postgres:16-alpine` image, cron `0 3 * * 0`) that uploads
-  to a *separate* bucket. Test a restore (`pg_restore -d <scratch db> baia-YYYY-MM-DD.dump`) at
-  least once.
-- Product images live in R2. Turn on R2 object versioning or a lifecycle rule if you want undelete.
+Use **both** of the first two options, and test a restore once.
+
+**Option A: Railway's built-in volume backups (Postgres service → Backups tab).** Schedules are
+daily (kept 6 days), weekly (kept 27 days) and monthly (kept 89 days), plus manual backups. Restore
+puts the data on a new volume that you review and **Deploy**; it works only inside the same project
+and environment, and wiping the volume deletes its backups (docs.railway.com/reference/backups,
+checked 2026-10). Which Railway plans include backups was not stated there: verify on your plan.
+
+**Option B: off-platform nightly dump (`scripts/backup-db.sh`).** `pg_dump` (custom format) → gzip →
+a **private** R2 bucket under `backups/`, then prunes to 14 daily + 8 weekly copies. It exits non-zero
+on any failure (dump unreadable, upload or size mismatch, wrong bucket), so Railway shows the run as
+failed. **Use a separate private bucket (`BACKUP_S3_BUCKET`)**: the image bucket is public, and the
+script refuses to run against it. Setup as a Railway Cron service:
+
+1. In the project: **+ New → GitHub Repo** → same repo → name it `backup`.
+2. Settings → Build: Builder Dockerfile, Dockerfile path `scripts/backup/Dockerfile`, root directory
+   empty, watch paths `scripts/backup/**`, `scripts/backup-db.sh`. If your Postgres is not version 17,
+   add the build variable `PG_VERSION` (must be at least the server's major version).
+3. Settings → **Cron Schedule**: `0 1 * * *` (daily at 01:00 UTC; Railway cron is UTC, minimum
+   every 5 minutes, and the process must exit when done: it does). Remove any public domain.
+4. Variables: see the `backup` table in `railway-env.md`. Run once manually and read the log (it should end with
+   `done`). `BACKUP_DRY_RUN=true` checks the dump without uploading.
+
+The cron service is not in `.railway/railway.ts` (whether the IaC supports a cron schedule could
+not be confirmed), so create it in the dashboard.
+
+**Restore procedure** (tested locally against Postgres 16 and an S3 endpoint):
+
+```bash
+# 1. Download the newest dump (R2 dashboard → bucket → backups/ → Download), or with the AWS CLI:
+aws --endpoint-url https://<account-id>.r2.cloudflarestorage.com s3 cp \
+  s3://baia-backups/backups/baia-YYYYMMDDTHHMMSSZ.dump.gz .
+gunzip baia-YYYYMMDDTHHMMSSZ.dump.gz
+# 2. Restore into a NEW scratch database first and look at it:
+createdb -h <host> -U <user> baia_restore
+pg_restore --no-owner --no-privileges --exit-on-error -h <host> -U <user> -d baia_restore baia-YYYYMMDDTHHMMSSZ.dump
+psql -h <host> -U <user> -d baia_restore -c 'select count(*) from orders'
+# 3. Real disaster only: restore into an empty production database. Point `DATABASE_URL` of a
+#    one-off at the Postgres TCP proxy (DATABASE_PUBLIC_URL), run the same pg_restore, then
+#    `prisma migrate status` (should be up to date), and redeploy the server.
+```
+
+Never restore over a live database that still has data. A schema-only error in `pg_restore` with
+`--exit-on-error` means the target was not empty.
+
+**Option C: manual dump from your computer:** `pg_dump --format=custom --no-owner "$DATABASE_PUBLIC_URL" > baia-$(date +%F).dump`.
+
+Product images live in R2. Turn on R2 object versioning or a lifecycle rule if you want undelete.
 
 ## 12. Monitoring and logs
 
@@ -287,8 +345,15 @@ the provider in `payment-provider.factory.ts`, then set `PAYMENT_PROVIDER=<name>
 - **Healthchecks:** `/v1/health` returns 503 when Postgres is unreachable. Railway only uses
   healthchecks during deploys, so add an external **uptime monitor** (UptimeRobot, Better Stack)
   on `https://baia.co.il/v1/health` and `https://baia.co.il/he`, with alerts to your phone or email.
-- **Error tracking:** not integrated yet. Adding Sentry (`@sentry/nestjs` + `@sentry/nextjs`) is on
-  the launch checklist.
+- **Error tracking (Sentry, free tier, optional):** create two Sentry projects (Node.js for the API,
+  Next.js/browser for the storefront), put their DSNs into `SENTRY_DSN` (server) and
+  `NEXT_PUBLIC_SENTRY_DSN` (client, build-time: redeploy). Without the variables nothing runs. The API
+  reports 5xx responses and crashes; the storefront reports render errors and uncaught browser
+  errors. Events are scrubbed of emails, phone numbers, addresses, names, cookies, authorization
+  headers, tokens and URL query strings before leaving the server/browser, and carry the Railway
+  commit SHA as the release. It is a small built-in reporter (no Sentry SDK, no source-map upload),
+  so stack traces show built file names. Reports are rate-limited (20/minute, repeats dropped).
+  A crash that kills the process may not be delivered; Railway logs remain the source of truth.
 - Usage alerts: Railway → Settings → Usage → set a spending limit or alert.
 
 ## 13. Rollback
@@ -305,19 +370,26 @@ the provider in `payment-provider.factory.ts`, then set `PAYMENT_PROVIDER=<name>
 ## 14. Local production simulation
 
 `docker-compose.railway-sim.yml` runs the **same images** in the same topology: the storefront
-proxies to an unpublished API; Postgres, LocalStack S3 and Mailpit come from the dev infra.
+proxies to an unpublished API; Postgres and LocalStack S3 (public-read bucket created by
+`scripts/localstack-init.sh`) run in the project, and email goes to the dev Mailpit by default.
 
 ```bash
-docker compose -p baia-railsim -f docker-compose.railway-sim.yml up -d --build postgres s3
-docker compose -p baia-railsim -f docker-compose.railway-sim.yml run --rm migrate       # = pre-deploy
-docker compose -p baia-railsim -f docker-compose.railway-sim.yml up -d server client
-docker compose -p baia-railsim -f docker-compose.railway-sim.yml exec server \
-  sh -c 'read -s ADMIN_PASSWORD && export ADMIN_PASSWORD && node dist/cli/create-admin.js --email admin@baia-railsim.test'
-open http://localhost:3070        # emails: http://localhost:8025
-docker compose -p baia-railsim -f docker-compose.railway-sim.yml down -v                 # removes only this project
+cp .env.railsim.example .env.railsim        # git-ignored; edit OWNER_EMAIL etc.
+R="docker compose -p baia-railsim --env-file .env.railsim -f docker-compose.railway-sim.yml"
+$R up -d --build postgres s3
+$R run --rm migrate       # = pre-deploy
+$R up -d server client
+open http://localhost:3070        # register OWNER_EMAIL, verify via Mailpit http://localhost:8025
+$R down -v                 # removes only this project
 ```
 
-It uses `PAYMENT_PROVIDER=mock` because it is a simulation. There is no Railway edge locally, so
+**Real email in the simulation (Resend):** uncomment the Resend block in `.env.railsim`
+(`SMTP_HOST=smtp.resend.com`, port 465, secure, user `resend`, `RESEND_API_KEY=...`, and an
+`EMAIL_FROM` on your verified domain). The key lives only in that git-ignored file; use a
+throwaway key. Delete `.env.railsim` or comment the block to return to Mailpit.
+
+It uses `PAYMENT_PROVIDER=mock` with `PAYMENTS_ENABLED=true` so the mock checkout flow can be tested
+(production keeps it `false`). `SENTRY_DSN` is unset. There is no Railway edge locally, so
 requests have no `X-Forwarded-For`. better-auth then logs a one-time warning and rate-limits all
 anonymous auth calls in one shared bucket. On Railway the edge provides the header.
 
@@ -329,17 +401,17 @@ anonymous auth calls in one shared bucket. On Railway the edge provides the head
 - [ ] Railway services `Postgres`, `server` (no public domain, 1 replica) and `client`, configured as in §1
 - [ ] All variables set; both deploys green; `/v1/health` reports `database: ok`
 - [ ] Pre-deploy migration ran (`prisma migrate status` shows `Database schema is up to date`)
-- [ ] First admin created; demo seed **not** run; real catalogue, sizes and prices entered
+- [ ] `OWNER_EMAIL` registered and verified on the live site; Admins added from Admin › Admins; demo seed **not** run; real catalogue, sizes and prices entered
 - [ ] Admin › Settings: business name, ח.פ./ע.מ., address, phone, contact email
 - [ ] Custom domain `baia.co.il` with TLS; `www` redirect; URL variables updated and both services redeployed
 - [ ] R2 bucket on `images.baia.co.il`; an uploaded photo shows on the product page
 - [ ] Email: sender chosen (Gmail App Password or own domain with SPF/DKIM/DMARC); a test order's
       emails arrive in Gmail's inbox, not spam
-- [ ] Backups enabled and one restore tested; off-site `pg_dump` scheduled
+- [ ] Backups: Railway volume backups enabled, the `backup` cron service ran once (log ends with `done`) into a **private** bucket, and one restore tested (§11)
 - [ ] Uptime monitor and alerts on `/v1/health` and the home page
 
 **Still missing before a real public launch**
-- [ ] **A real payment provider.** The mock can't take real money (§9). Add PSP webhook handling,
+- [ ] **A real payment provider.** The mock can't take real money; until then `PAYMENTS_ENABLED=false` (§9). Add PSP webhook handling,
       refunds and an invoice/receipt flow (חשבונית מס/קבלה, e.g. through the PSP or Green Invoice/iCount)
 - [ ] **Legal review** of the terms (תקנון), privacy policy, cancellation policy (חוק הגנת הצרכן,
       the 14-day cancellation right) and the accessibility statement (IS 5568 / WCAG AA), with a lawyer
@@ -348,7 +420,7 @@ anonymous auth calls in one shared bucket. On Railway the edge provides the head
       `hello@baia-swimwear.co.il`
 - [ ] **Analytics and cookie consent:** choose analytics (GA4/Plausible/PostHog), wire it to the
       existing consent banner (essential-only by default), and update the privacy policy
-- [ ] **Error monitoring** (Sentry or similar) for the API and the storefront
+- [ ] **Error monitoring:** optional Sentry DSNs set for the API and the storefront (§12)
 - [ ] Courier chosen: `TRACKING_URL_TEMPLATE` / `TRACKING_CARRIER_NAME`; delivery methods and prices in Admin › Delivery
 - [ ] Google sign-in (optional): OAuth client with the production redirect URI
 - [ ] Load and perf smoke test on the production domain (Lighthouse, a few hundred concurrent requests)

@@ -48,9 +48,8 @@ export function totalStock(variants: StockLike[]): number {
   );
 }
 
+/** Fallback for SiteConfig.lowStockThreshold: the storefront "only N left" hint and admin stock alerts. */
 export const LOW_STOCK_THRESHOLD = 5;
-/** Storefront "only N left" nudge kicks in at this many units (tracked stock only). */
-export const SHOPPER_LOW_STOCK_THRESHOLD = 3;
 
 /** Remaining units to show in an "only N left" hint, or null (never for unlimited stock). */
 export function lowStockCount(v: StockLike, threshold = LOW_STOCK_THRESHOLD): number | null {

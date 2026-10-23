@@ -22,6 +22,7 @@ import { extractOrderToken } from '../orders/order-access';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { ChargeDto, PayDto } from './dto/charge.dto';
 import { PaymentService } from './payment.service';
+import { PaymentsEnabledGuard } from './payments-enabled';
 import { PAYMENT_WEBHOOK_VERIFIER, type WebhookVerifier } from './webhook/webhook-verifier';
 
 @Controller('payment')
@@ -32,7 +33,7 @@ export class PaymentController {
     @Optional() @Inject(PAYMENT_WEBHOOK_VERIFIER) private readonly webhookVerifier: WebhookVerifier | null,
   ) {}
 
-  /** Provider name / test mode for the storefront's payment page. Holds no secrets. */
+  /** Payments flag, provider name and test mode for the storefront. Always reachable (it is how the page learns payments are off); holds no secrets. */
   @Get('config')
   @RateLimit({ limit: 60, windowMs: 60_000 })
   config() {
@@ -40,6 +41,7 @@ export class PaymentController {
   }
 
   @Post('charge')
+  @UseGuards(PaymentsEnabledGuard)
   @HttpCode(200)
   @UsePipes(strictValidationPipe)
   @RateLimit({ limit: 10, windowMs: 60_000 })
@@ -53,6 +55,7 @@ export class PaymentController {
 
   /** Provider webhook — see webhook/webhook-verifier.ts for the design. */
   @Post('webhook')
+  @UseGuards(PaymentsEnabledGuard)
   @HttpCode(200)
   @RateLimit({ limit: 120, windowMs: 60_000 })
   async webhook(@Req() req: Request & { rawBody?: Buffer }) {
@@ -71,7 +74,7 @@ export class PaymentController {
  * This lets a guest who refreshed the confirmation page finish paying.
  */
 @Controller('orders')
-@UseGuards(RateLimitGuard)
+@UseGuards(PaymentsEnabledGuard, RateLimitGuard)
 export class OrderPaymentController {
   constructor(private readonly payments: PaymentService) {}
 

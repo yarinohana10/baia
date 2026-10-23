@@ -6,10 +6,12 @@ import { Plus, Search } from 'lucide-react';
 import { api } from '@/lib/api';
 import { revalidateCatalog } from '@/lib/catalog/revalidate';
 import { Link } from '@/i18n/navigation';
+import { useStockAlerts } from '@/hooks/admin/useStockAlerts';
 import { useAdminList } from '@/hooks/admin/useAdminList';
 import { useListQuery } from '@/hooks/admin/useListQuery';
 import type { ListPage } from '@/hooks/admin/admin-list';
 import { ProductsTable } from '@/components/admin/products/ProductsTable';
+import { StockAlertsPanel } from '@/components/admin/products/StockAlertsPanel';
 import { ProductsNoticeBanner } from '@/components/admin/products/ProductsNoticeBanner';
 import { isNoSizesError, serverMessage } from '@/components/admin/products/product-errors';
 import type { AdminProduct, ProductsNotice } from '@/components/admin/products/types';
@@ -30,6 +32,8 @@ export default function ProductsPage() {
     select: selectProducts,
   });
   const [notice, setNotice] = useState<ProductsNotice | null>(null);
+  // Reload the alerts together with the list (a stock edit or a toggle can change them).
+  const alerts = useStockAlerts(list.items);
   const shownNotice: ProductsNotice | null = list.error ? { kind: 'error', text: t('loadFailed') } : notice;
 
   const handleDelete = async (id: string) => {
@@ -44,7 +48,7 @@ export default function ProductsPage() {
     list.reload();
   };
 
-  const updateProduct = async (product: AdminProduct, data: Partial<Pick<AdminProduct, 'isActive' | 'isFeatured'>>) => {
+  const updateProduct = async (product: AdminProduct, data: Partial<Pick<AdminProduct, 'isActive' | 'isFeatured' | 'backSoon'>>) => {
     try {
       await api.put(`/admin/products/${product.id}`, data);
       await revalidateCatalog();
@@ -80,6 +84,8 @@ export default function ProductsPage() {
         />
       )}
 
+      <StockAlertsPanel items={alerts.items} threshold={alerts.threshold} />
+
       <div className="relative mb-6 max-w-md">
         <Search size={16} className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-[#3f484c]" />
         <input
@@ -95,8 +101,10 @@ export default function ProductsPage() {
 
       <ProductsTable
         products={list.items}
+        lowStockThreshold={alerts.threshold}
         onToggleFeatured={(product) => updateProduct(product, { isFeatured: !product.isFeatured })}
         onToggleActive={(product) => updateProduct(product, { isActive: !product.isActive })}
+        onToggleBackSoon={(product) => updateProduct(product, { backSoon: !product.backSoon })}
         onDelete={handleDelete}
       />
     </div>

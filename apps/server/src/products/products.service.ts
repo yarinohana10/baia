@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService, STORAGE_SERVICE } from '../storage/storage.interface';
 import { Prisma } from '../generated/prisma';
@@ -16,7 +16,8 @@ import {
   VariantDto,
 } from './dto/product.dto';
 import { compareSizes } from './size-sets';
-import { availableStock } from '../common/stock';
+import { availableStock, variantAvailability, type Availability } from '../common/stock';
+import { StockAlertsService } from '../inventory/stock-alerts.service';
 import {
   CatalogFilters,
   EFFECTIVE_PRICE_JOIN,
@@ -73,6 +74,8 @@ function dateOrNull(value: string | null | undefined) {
   return value ? new Date(value) : null;
 }
 
+const DEFAULT_LOW_STOCK_THRESHOLD = 5;
+
 const IMAGE_INCLUDE = { orderBy: { sortOrder: 'asc' }, include: { upload: true } } as const;
 
 @Injectable()
@@ -82,7 +85,48 @@ export class ProductsService {
   constructor(
     private prisma: PrismaService,
     @Inject(STORAGE_SERVICE) private storage: StorageService,
+    @Optional() private stockAlerts?: StockAlertsService,
   ) {}
+
+  /** SiteConfig.lowStockThreshold; the catalog must keep working if it can't be read. */
+  private async lowStockThreshold(): Promise<number> {
+    try {
+      const config = await this.prisma.siteConfig.findUnique({
+        where: { id: 'default' },
+        select: { lowStockThreshold: true },
+      });
+      return config?.lowStockThreshold ?? DEFAULT_LOW_STOCK_THRESHOLD;
+    } catch {
+      return DEFAULT_LOW_STOCK_THRESHOLD;
+    }
+  }
+
+  /**
+   * Adds the computed `availability` to a product and each of its variants
+   * (in_stock | low_stock | sold_out | back_soon | hidden). The product is
+   * back_soon when an Admin set it or every purchasable size is sold out
+   * (shown to customers as Back Soon too, but kept apart for the admin).
+   */
+  private withAvailability<
+    T extends {
+      isActive: boolean;
+      backSoon: boolean;
+      variants?: { isActive: boolean; trackInventory: boolean; stockQuantity: number }[];
+    },
+  >(product: T, threshold: number): T & { availability: Availability; variants: (NonNullable<T['variants']>[number] & { availability: Availability })[] } {
+    const variants = (product.variants ?? []).map((v) => ({
+      ...v,
+      availability: variantAvailability(v, product, threshold),
+    }));
+    const live = variants.filter((v) => v.isActive);
+    let availability: Availability;
+    if (!product.isActive) availability = 'hidden';
+    else if (product.backSoon) availability = 'back_soon';
+    else if (live.length === 0 || live.every((v) => v.availability === 'sold_out')) availability = 'sold_out';
+    else if (live.some((v) => v.availability === 'in_stock')) availability = 'in_stock';
+    else availability = 'low_stock';
+    return { ...product, availability, variants } as never;
+  }
 
   private resolveImageUrl(image: ImageWithUpload): ImageWithUpload {
     if (image.upload) {
@@ -187,8 +231,9 @@ export class ProductsService {
       total = await this.prisma.product.count({ where });
     }
 
+    const threshold = await this.lowStockThreshold();
     return {
-      products: products.map((p) => this.resolveProductImages(p)),
+      products: products.map((p) => this.withAvailability(this.resolveProductImages(p), threshold)),
       total,
       page,
       limit,
@@ -309,13 +354,14 @@ export class ProductsService {
 
     const rank = (p: (typeof candidates)[number]) => ({
       sameCategory: p.categoryId === product.categoryId ? 0 : 1,
-      soldOut: p.variants.some((v) => availableStock(v) > 0) ? 0 : 1,
+      soldOut: !p.backSoon && p.variants.some((v) => availableStock(v) > 0) ? 0 : 1,
     });
+    const threshold = await this.lowStockThreshold();
     return candidates
       .map((p, index) => ({ p, index, r: rank(p) }))
       .sort((a, b) => a.r.sameCategory - b.r.sameCategory || a.r.soldOut - b.r.soldOut || a.index - b.index)
       .slice(0, limit)
-      .map(({ p }) => this.resolveProductImages(p));
+      .map(({ p }) => this.withAvailability(this.resolveProductImages(p), threshold));
   }
 
   private adminWhere(params?: { search?: string; categoryId?: string }) {
@@ -346,7 +392,8 @@ export class ProductsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return products.map((p) => this.resolveProductImages(p));
+    const threshold = await this.lowStockThreshold();
+    return products.map((p) => this.withAvailability(this.resolveProductImages(p), threshold));
   }
 
   /** Paginated admin list: `{ products, total, page, limit, totalPages }`. */
@@ -363,8 +410,9 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
 
+    const threshold = await this.lowStockThreshold();
     return {
-      products: products.map((p) => this.resolveProductImages(p)),
+      products: products.map((p) => this.withAvailability(this.resolveProductImages(p), threshold)),
       total,
       page: params.page,
       limit: params.limit,
@@ -384,7 +432,7 @@ export class ProductsService {
       },
     });
     if (!product || product.isActive === false) throw new NotFoundException('Product not found');
-    return this.resolveProductImages(this.sortVariantsBySize(product));
+    return this.withAvailability(this.resolveProductImages(this.sortVariantsBySize(product)), await this.lowStockThreshold());
   }
 
   async findById(id: string) {
@@ -398,7 +446,7 @@ export class ProductsService {
       },
     });
     if (!product) throw new NotFoundException('Product not found');
-    return this.resolveProductImages(this.sortVariantsBySize(product));
+    return this.withAvailability(this.resolveProductImages(this.sortVariantsBySize(product)), await this.lowStockThreshold());
   }
 
   private sortVariantsBySize<
@@ -544,7 +592,8 @@ export class ProductsService {
     if (v.color !== undefined) data.color = v.color;
     if (v.size !== undefined) data.size = v.size;
     if (v.sku !== undefined) data.sku = v.sku;
-    if (v.stockQuantity !== undefined) data.stockQuantity = v.stockQuantity;
+    // With expectedStockQuantity the edit is applied as a delta (see editStock).
+    if (v.stockQuantity !== undefined && v.expectedStockQuantity === undefined) data.stockQuantity = v.stockQuantity;
     if (v.trackInventory !== undefined) data.trackInventory = v.trackInventory;
     if (v.priceOverride !== undefined) data.priceOverride = decimalOrNull(v.priceOverride);
     if (v.salePrice !== undefined) data.salePrice = decimalOrNull(v.salePrice);
@@ -552,6 +601,37 @@ export class ProductsService {
     if (v.saleEnd !== undefined) data.saleEnd = dateOrNull(v.saleEnd);
     if (v.isActive !== undefined) data.isActive = v.isActive;
     return data;
+  }
+
+  /**
+   * Applies an admin stock edit made against the quantity the form loaded:
+   * stock moves by (new - expected) in one atomic UPDATE, so units sold or
+   * restocked since the form was opened are kept. Removing more than is left
+   * is refused (409) instead of going negative. Returns whether stock changed.
+   */
+  private async editStock(
+    tx: Prisma.TransactionClient,
+    variantId: string,
+    v: { stockQuantity?: number; expectedStockQuantity?: number },
+    field: string,
+  ): Promise<boolean> {
+    if (v.stockQuantity === undefined || v.expectedStockQuantity === undefined) return false;
+    const delta = v.stockQuantity - v.expectedStockQuantity;
+    if (delta === 0) return false;
+    const result = await tx.productVariant.updateMany({
+      where: { id: variantId, ...(delta < 0 ? { stockQuantity: { gte: -delta } } : {}) },
+      data: { stockQuantity: { increment: delta } },
+    });
+    if (result.count !== 1) {
+      throw fieldConflictException([
+        {
+          field,
+          code: 'stockChanged',
+          message: 'Stock changed since the form was opened (items were sold); reload and edit again',
+        },
+      ]);
+    }
+    return true;
   }
 
   // ─── Image storage helpers ───────────────────────
@@ -641,6 +721,7 @@ export class ProductsService {
             sizeSetId: dto.sizeSetId ?? null,
             isFeatured: dto.isFeatured ?? false,
             isActive: dto.isActive ?? true,
+            backSoon: dto.backSoon ?? false,
             variants: {
               create: variants.map((v) => ({
                 color: v.color,
@@ -693,7 +774,7 @@ export class ProductsService {
   async update(id: string, dto: UpdateProductDto) {
     const existing = await this.prisma.product.findUnique({
       where: { id },
-      include: { variants: { select: { id: true, isActive: true } } },
+      include: { variants: { select: { id: true, isActive: true, trackInventory: true } } },
     });
     if (!existing) throw new NotFoundException('Product not found');
 
@@ -730,7 +811,7 @@ export class ProductsService {
     const data: Prisma.ProductUncheckedUpdateInput = {};
     const scalarKeys = [
       'nameHe', 'nameEn', 'descriptionHe', 'descriptionEn', 'slug',
-      'categoryId', 'isFeatured', 'isActive', 'sizeSetId',
+      'categoryId', 'isFeatured', 'isActive', 'backSoon', 'sizeSetId',
       'fabricHe', 'fabricEn', 'careHe', 'careEn', 'fitHe', 'fitEn',
     ] as const;
     for (const key of scalarKeys) {
@@ -738,11 +819,16 @@ export class ProductsService {
     }
     if (dto.basePrice !== undefined) data.basePrice = new Prisma.Decimal(dto.basePrice);
 
+    const stockTouched: string[] = [];
     await this.prisma.$transaction(async (tx) => {
       await tx.product.update({ where: { id }, data });
-      for (const v of variants) {
+      for (const [i, v] of variants.entries()) {
         if (v.id) {
+          const tracked = v.trackInventory ?? existing.variants.find((e) => e.id === v.id)?.trackInventory ?? true;
           await tx.productVariant.update({ where: { id: v.id }, data: this.variantData(v) });
+          // Unlimited variants ignore quantity edits.
+          if (tracked) await this.editStock(tx, v.id, v, `variants.${i}.stockQuantity`);
+          if (v.stockQuantity !== undefined || v.trackInventory !== undefined) stockTouched.push(v.id);
         } else {
           await tx.productVariant.create({
             data: { ...(this.variantData(v) as Prisma.ProductVariantUncheckedCreateInput), productId: id },
@@ -750,6 +836,7 @@ export class ProductsService {
         }
       }
     });
+    void this.stockAlerts?.notifyAfterStockChange(stockTouched);
 
     return this.findById(id);
   }
@@ -832,10 +919,16 @@ export class ProductsService {
       if (conflicts.length) throw fieldConflictException(conflicts);
     }
 
-    return this.prisma.productVariant.update({
-      where: { id: variantId },
-      data: this.variantData(dto),
+    const tracked = dto.trackInventory ?? variant.trackInventory;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.productVariant.update({ where: { id: variantId }, data: this.variantData(dto) });
+      if (!tracked || !(await this.editStock(tx, variantId, dto, 'stockQuantity'))) return row;
+      return tx.productVariant.findUniqueOrThrow({ where: { id: variantId } });
     });
+    if (dto.stockQuantity !== undefined || dto.trackInventory !== undefined) {
+      void this.stockAlerts?.notifyAfterStockChange([variantId]);
+    }
+    return updated;
   }
 
   /**

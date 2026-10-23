@@ -10,14 +10,19 @@
 # allowed here ONLY because this is a simulation (mock confirms orders without
 # charging - it must never be used for a real launch).
 #
-# Usage (a unique project name keeps it apart from the dev stack):
-#   docker compose -p baia-railsim -f docker-compose.railway-sim.yml up -d --build
-#   docker compose -p baia-railsim -f docker-compose.railway-sim.yml run --rm migrate   # = Railway pre-deploy
-#   open http://localhost:3070            (Mailpit UI: http://localhost:8025)
-#   docker compose -p baia-railsim -f docker-compose.railway-sim.yml down -v            # removes ONLY this project
+# Usage (a unique project name keeps it apart from the dev stack). Settings that differ
+# per machine, including the REAL Resend API key, live in the git-ignored .env.railsim
+# (template: .env.railsim.example) and are interpolated below - never write a key in this file.
+#   cp .env.railsim.example .env.railsim              # once
+#   R="docker compose -p baia-railsim --env-file .env.railsim -f docker-compose.railway-sim.yml"
+#   $R up -d --build
+#   $R run --rm migrate                               # = Railway pre-deploy
+#   open http://localhost:3070                        (Mailpit UI: http://localhost:8025)
+#   $R down -v                                        # removes ONLY this project
 #
-# Requires the dev Mailpit (docker-compose.infra.yml) on localhost:1025 for email;
-# without it the API logs the failed sends and keeps working.
+# Email: by default the API sends to the dev Mailpit (docker-compose.infra.yml) on
+# localhost:1025; without it the API logs the failed sends and keeps working.
+# For REAL email through Resend, fill in the Resend block of .env.railsim.
 # Images are served from http://baia-s3.localhost:9070: browsers resolve
 # *.localhost to 127.0.0.1, and the client container maps it to the host.
 
@@ -33,13 +38,19 @@ x-server-env: &server-env
   BETTER_AUTH_URL: http://localhost:3070
   CLIENT_URL: http://localhost:3070
   EMAIL_PROVIDER: smtp
-  SMTP_HOST: host.docker.internal
-  SMTP_PORT: '1025'
-  SMTP_SECURE: 'false'
-  SMTP_USER: railsim
-  SMTP_PASSWORD: railsim
-  EMAIL_FROM: BAIA Swimwear <orders@baia-railsim.test>
-  ADMIN_NOTIFY_EMAIL: owner@baia-railsim.test
+  # Defaults = Mailpit on the host. .env.railsim switches to Resend (smtp.resend.com:465, user "resend").
+  SMTP_HOST: ${SMTP_HOST:-host.docker.internal}
+  SMTP_PORT: ${SMTP_PORT:-1025}
+  SMTP_SECURE: ${SMTP_SECURE:-false}
+  SMTP_USER: ${SMTP_USER:-railsim}
+  SMTP_PASSWORD: ${RESEND_API_KEY:-railsim}
+  EMAIL_FROM: ${EMAIL_FROM:-BAIA Swimwear <orders@baia-railsim.test>}
+  ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-store@baia-railsim.test}
+  # The Owner (pinned Admin). Register this address on the sim site to become Owner.
+  OWNER_EMAIL: ${OWNER_EMAIL:-owner@baia-railsim.test}
+  # The sim tests the mock payment flow; production keeps this false until a real provider exists.
+  PAYMENTS_ENABLED: 'true'
+  # Error reporting stays off in the simulation (SENTRY_DSN deliberately not set).
   STORAGE_PROVIDER: s3
   S3_ENDPOINT: http://s3:4566
   S3_FORCE_PATH_STYLE: 'true'
@@ -68,8 +79,7 @@ services:
       timeout: 3s
       retries: 20
 
-  # S3-compatible storage. (MinIO's images left Docker Hub; LocalStack S3 is
-  # public-read by default, like a bucket with a public-read policy.)
+  # S3-compatible storage (MinIO's images left Docker Hub). Public read comes from the init script.
   s3:
     image: localstack/localstack:3
     environment:
@@ -77,8 +87,13 @@ services:
       DEFAULT_REGION: us-east-1
     ports:
       - '9070:4566'
+    volumes:
+      # Creates the bucket with a public-read policy (like the R2 public domain). The API does
+      # NOT create buckets in production mode, so this is required for images to work.
+      - ./scripts/localstack-init.sh:/etc/localstack/init/ready.d/10-init.sh:ro
     healthcheck:
-      test: ['CMD-SHELL', 'curl -sf http://localhost:4566/_localstack/health | grep -q s3']
+      # Healthy only once the init script created the bucket.
+      test: ['CMD-SHELL', 'awslocal s3api head-bucket --bucket baia-assets']
       interval: 3s
       timeout: 3s
       retries: 40

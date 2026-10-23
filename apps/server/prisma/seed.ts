@@ -5,6 +5,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { backfillSizeSets } from './size-sets';
+import { buildPublicUrl, buildS3ClientConfig } from '../src/storage/s3-client-options';
+
+/** process.env without unset/empty entries, so spreading it never overrides a default with `undefined`. */
+function definedEnv(): Record<string, string> {
+  return Object.fromEntries(Object.entries(process.env).filter((e): e is [string, string] => !!e[1]));
+}
 
 const prisma = new PrismaClient();
 
@@ -16,15 +22,9 @@ let PutObjectCommand: any = null;
 async function getS3() {
   if (!s3Client) {
     const sdk = await import('@aws-sdk/client-s3');
-    s3Client = new sdk.S3Client({
-      region: process.env.S3_REGION || 'us-east-1',
-      endpoint: process.env.S3_ENDPOINT || 'http://localhost:4566',
-      credentials: {
-        accessKeyId: process.env.S3_ACCESS_KEY || 'test',
-        secretAccessKey: process.env.S3_SECRET_KEY || 'test',
-      },
-      forcePathStyle: true,
-    });
+    // Same client settings as the API (path style / R2 / checksums): src/storage/s3-client-options.ts.
+    // Without S3_ENDPOINT the seed targets LocalStack, never AWS.
+    s3Client = new sdk.S3Client(buildS3ClientConfig({ S3_ENDPOINT: 'http://localhost:4566', ...definedEnv() }));
     PutObjectCommand = sdk.PutObjectCommand;
 
     // Ensure bucket exists
@@ -56,8 +56,7 @@ async function uploadToS3(filePath: string, s3Key: string, mimeType: string): Pr
     }),
   );
 
-  const publicUrl = process.env.S3_PUBLIC_URL || process.env.S3_ENDPOINT || 'http://localhost:4566';
-  return `${publicUrl}/${bucket}/${s3Key}`;
+  return buildPublicUrl(s3Key, { S3_ENDPOINT: 'http://localhost:4566', ...definedEnv() });
 }
 
 async function createUploadRecord(

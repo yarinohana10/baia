@@ -36,7 +36,7 @@ export const BUSINESS_DETAILS_FIELDS = Object.keys(businessDetailsSchema.shape) 
 
 /** "3-5" or "2" (days). */
 export const ETA_REGEX = /^\d{1,2}(-\d{1,2})?$/;
-export const MAX_SELF_CANCEL_WINDOW_HOURS = 24 * 14;
+export const MAX_LOW_STOCK_THRESHOLD = 1000;
 
 const amount = (max: number) =>
   numberInput(
@@ -57,15 +57,20 @@ export const deliverySettingsSchema = z.object({
   freeShippingThreshold: amount(1000000),
   courierEtaDays: eta,
   pickupEtaDays: eta,
-  selfCancelWindowHours: numberInput(
+});
+export type DeliverySettingsPayload = z.output<typeof deliverySettingsSchema>;
+
+/** Stock at or under this count raises the low-stock alert (PUT /admin/site-config). */
+export const inventorySettingsSchema = z.object({
+  lowStockThreshold: numberInput(
     z
       .number({ required_error: V.required, invalid_type_error: V.wholeNumber })
       .int(V.wholeNumber)
       .min(0, V.outOfRange)
-      .max(MAX_SELF_CANCEL_WINDOW_HOURS, V.outOfRange),
+      .max(MAX_LOW_STOCK_THRESHOLD, V.outOfRange),
   ),
 });
-export type DeliverySettingsPayload = z.output<typeof deliverySettingsSchema>;
+export type InventorySettingsPayload = z.output<typeof inventorySettingsSchema>;
 
 // ----------------------------------------------------------- pickup points
 

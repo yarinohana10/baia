@@ -21,12 +21,15 @@ export type OrderStatus =
 /** Shared with the API (also the order of the options in the reason select). */
 export { CANCELLATION_REASONS, type CancellationReason } from '@baia/shared';
 
+/**
+ * What the customer may do about cancelling: cancel instantly until the order
+ * ships (`canSelfCancel`), file a request for a shipped / delivered one
+ * (`canRequest`, the parcel must come back).
+ */
 export type CancellationInfo = {
   canSelfCancel: boolean;
-  selfCancelDeadline: string | null;
   canRequest: boolean;
   requiresReturn: boolean;
-  windowHours: number;
   openRequest: { id: string; status: string; reason: string; createdAt: string } | null;
 };
 
@@ -39,6 +42,17 @@ export type CustomerCancellationRequest = {
   createdAt: string;
   resolvedAt: string | null;
 };
+
+/** The customer's view of a Refund (the provider settles it; Refund Pending until then). */
+export type CustomerRefund = {
+  id: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  amount: string;
+  requestedAt: string;
+  completedAt: string | null;
+};
+
+export type OrderStatusEvent = { toStatus: OrderStatus; createdAt: string };
 
 export type OrderItem = {
   id: string;
@@ -73,8 +87,11 @@ export type CustomerOrder = OrderPaymentFields & {
   createdAt: string;
   paidAt: string | null;
   shippedAt: string | null;
+  deliveredAt?: string | null;
   cancelledAt: string | null;
   items: OrderItem[];
+  refunds?: CustomerRefund[];
+  statusEvents?: OrderStatusEvent[];
   cancellationRequests?: CustomerCancellationRequest[];
   cancellation?: CancellationInfo;
 };
@@ -101,12 +118,27 @@ export function isClosed(status: OrderStatus): boolean {
   return status === 'CANCELLED' || status === 'REFUNDED';
 }
 
-/** When each reached step happened (only the ones we record). */
-export function stepDate(order: Pick<CustomerOrder, 'createdAt' | 'paidAt' | 'shippedAt'>, step: TimelineStep): string | null {
+/** When each reached step happened (from the stamps and the status history). */
+export function stepDate(
+  order: Pick<CustomerOrder, 'createdAt' | 'paidAt' | 'shippedAt'> & Partial<Pick<CustomerOrder, 'deliveredAt' | 'statusEvents'>>,
+  step: TimelineStep,
+): string | null {
   if (step === 'received') return order.createdAt;
   if (step === 'paid') return order.paidAt;
   if (step === 'shipped') return order.shippedAt;
-  return null;
+  if (step === 'delivered') return order.deliveredAt ?? null;
+  // "In progress" has no stamp of its own: the first time the order entered it.
+  return order.statusEvents?.find((e) => e.toStatus === 'PROCESSING')?.createdAt ?? null;
+}
+
+/** Translation key under `orderConfirmation.status`: a cancelled order whose money has not been returned shows as "Refund pending". */
+export function statusLabelKey(order: Pick<CustomerOrder, 'status' | 'refunds'>): OrderStatus | 'REFUND_PENDING' {
+  return order.status === 'CANCELLED' && pendingRefund(order) ? 'REFUND_PENDING' : order.status;
+}
+
+/** A refund the provider has not returned yet: the money is on its way / waiting for the store. */
+export function pendingRefund(order: Pick<CustomerOrder, 'refunds'>): CustomerRefund | null {
+  return order.refunds?.find((r) => r.status !== 'COMPLETED') ?? null;
 }
 
 /**

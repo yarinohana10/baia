@@ -7,12 +7,16 @@
 
 - **Customer**: A person who browses, wishlists, and purchases swimwear. May be authenticated (has an Account) or a Guest.
 - **Guest**: A Customer who checks out without creating an Account. Identified only by the email address they provide at checkout.
-- **Admin**: A team member who manages Products, Categories, Discounts, Orders, and site content via the admin panel. Identified by role on their Account.
+- **Admin**: A team member who manages Products, Categories, Discounts, Orders, and site content via the admin panel. Identified by role on their Account, so an Admin must have a registered, email-verified Account.
+- **Owner**: The one Admin (the business owner) who alone may add or remove other Admins. Cannot be removed or demoted.
+- **Admin Invitation**: The Owner's grant of Admin rights to an email address that has no Account yet. It takes effect only when that person registers and verifies the same email. Unrelated to placing orders, which never requires an Account.
 
 ## Core Domain
 
 - **Product**: A swimwear item sold under the Baia brand (e.g., "Classic Swim Shorts"). Holds shared attributes: bilingual name (he/en), bilingual description, base price, images grouped by color, and the Category it belongs to.
 - **Product Variant**: A specific purchasable combination of a Product's color and size (e.g., "Classic Swim Shorts / Black / L"). Each Variant has its own SKU, stock quantity, and optional price override. A Variant may have a Sale Price.
+- **Hidden**: A Product state in which the Product is not visible to Customers anywhere on the storefront. Toggled by the admin "eye" control.
+- **Back Soon**: A Product (or Product Variant) state in which it stays visible but cannot be purchased, shown disabled with a "Back Soon" message on hover. Applies automatically when stock runs out, and can also be set by an Admin. Contrast with **Hidden**.
 - **Category**: A classification for Products, organized in a two-level hierarchy. The top level represents the audience (Men, Women, Children). The second level represents the product type (Swim Shorts, Bikini Sets, etc.). A Category has a `parent_id` that references its parent Category, or null if it is top-level.
 - **SKU**: Stock Keeping Unit — a unique identifier string for each Product Variant.
 
@@ -23,6 +27,10 @@
 - **Order**: A confirmed purchase. Created when a Customer completes checkout. Contains a snapshot of the purchased items, prices at time of purchase, shipping address, and payment reference.
 - **Order Item**: A line in an Order — a snapshot of the Product Variant, quantity, and unit price at the time of purchase.
 - **Order Status**: The lifecycle state of an Order. Transitions: `pending_payment` → `confirmed` → `processing` → `shipped` → `delivered`. Side transitions: `cancelled`, `refunded`.
+- **Order Access Link**: The private link, sent by email and shown after checkout, that lets a Guest view their own Order. A bare order number alone grants no access.
+- **Order Claim**: The attachment of earlier Guest Orders to an Account once the Customer registers and verifies the same email address. Never happens for an unverified email.
+- **Cancellation Request**: A Customer's request, with contact details, for a human to handle cancelling an Order that has already shipped or been delivered. Before shipping a Customer cancels directly.
+- **Refund Pending**: The state of a cancelled paid Order whose money has not yet been returned. An Admin settles it with the payment provider and confirms it in the admin panel.
 - **Shipping Address**: The physical delivery address provided by the Customer at checkout (city, street, number, apartment, zip code).
 - **Shipping Cost**: A flat-rate fee charged for delivery. Waived when the Order subtotal exceeds the Free Shipping Threshold.
 - **Free Shipping Threshold**: An admin-configurable monetary amount. Orders at or above this subtotal ship for free.

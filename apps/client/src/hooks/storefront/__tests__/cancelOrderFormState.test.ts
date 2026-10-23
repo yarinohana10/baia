@@ -10,10 +10,8 @@ import {
 
 const info = (overrides: Partial<CancellationInfo> = {}): CancellationInfo => ({
   canSelfCancel: false,
-  selfCancelDeadline: null,
   canRequest: false,
   requiresReturn: false,
-  windowHours: 48,
   openRequest: null,
   ...overrides,
 });
@@ -43,18 +41,16 @@ describe('cancelOrderFormReducer', () => {
 });
 
 describe('cancelsInstantly', () => {
-  it('cancels instantly inside the window unless the shopper asked to talk first', () => {
-    const both = found(info({ canSelfCancel: true, canRequest: true }));
-    expect(cancelsInstantly({ found: both, instant: true })).toBe(true);
-    expect(cancelsInstantly({ found: both, instant: false })).toBe(false);
-    expect(cancelsInstantly({ found: found(info({ canSelfCancel: true })), instant: false })).toBe(true);
-    expect(cancelsInstantly({ found: null, instant: true })).toBe(false);
+  it('cancels instantly exactly while the order has not shipped', () => {
+    expect(cancelsInstantly({ found: found(info({ canSelfCancel: true })) })).toBe(true);
+    expect(cancelsInstantly({ found: found(info({ canRequest: true, requiresReturn: true })) })).toBe(false);
+    expect(cancelsInstantly({ found: null })).toBe(false);
   });
 });
 
 describe('nextAfterLookup', () => {
-  it('chooses, refuses or files a request', () => {
-    expect(nextAfterLookup(info({ canSelfCancel: true }))).toBe('choose');
+  it('confirms an instant cancel, refuses, or files a request for a shipped order', () => {
+    expect(nextAfterLookup(info({ canSelfCancel: true }))).toBe('confirm');
     expect(nextAfterLookup(info({ openRequest: { id: 'r', status: 'REQUESTED', reason: 'OTHER', createdAt: '' } }))).toBe('alreadyRequested');
     expect(nextAfterLookup(info())).toBe('notAllowed');
     expect(nextAfterLookup(undefined)).toBe('notAllowed');

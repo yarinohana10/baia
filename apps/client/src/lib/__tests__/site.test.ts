@@ -24,7 +24,6 @@ const config = (over: Partial<SiteConfig> = {}): SiteConfig => ({
   accessibilityCoordinatorName: 'דנה',
   accessibilityCoordinatorPhone: '050-1111111',
   accessibilityCoordinatorEmail: 'a11y@baia.test',
-  selfCancelWindowHours: 48,
   ...over,
 });
 
@@ -42,7 +41,6 @@ describe('businessInfo', () => {
 
     const fallback = businessInfo(null);
     expect(fallback.whatsappNumber).toBeNull();
-    expect(fallback.selfCancelWindowHours).toBe(48);
     expect(fallback.contactEmail).toMatch(/@/);
   });
 });

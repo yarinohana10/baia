@@ -51,7 +51,7 @@ describe('Order emails, order lookup and guest tracking (e2e)', () => {
       expect(email.text).toContain(`/en/order-confirmation/${order.id}#token=`);
       expect(email.text).toContain('/en/order-status');
       expect(email.text).toContain('/en/cancel-order');
-      expect(email.text).toContain('48 hours');
+      expect(email.text).toContain('at any time, as long as the order');
       expect(email.text).not.toMatch(/\?token=/);
 
       const linkToken = tokenFromLink(email.text)!;
@@ -67,8 +67,7 @@ describe('Order emails, order lookup and guest tracking (e2e)', () => {
 
     it('alerts the store inbox about the new paid order', async () => {
       const { order } = await paidGuestOrder();
-      const alert = await waitForEmail(mail, (m) => m.to === STORE_INBOX);
-      expect(alert.subject).toContain(order.orderNumber);
+      const alert = await waitForEmail(mail, (m) => m.to === STORE_INBOX && m.subject.includes(order.orderNumber));
       expect(alert.text).toContain('/he/admin/orders?q=');
     });
 
@@ -98,7 +97,7 @@ describe('Order emails, order lookup and guest tracking (e2e)', () => {
         .expect(200);
       expect(res.body.order.id).toBe(order.id);
       expect(res.body.order.accessTokenHash).toBeUndefined();
-      expect(res.body.order.cancellation).toMatchObject({ canSelfCancel: true, canRequest: true });
+      expect(res.body.order.cancellation).toMatchObject({ canSelfCancel: true, canRequest: false });
       await t.http().get(`/v1/orders/${order.id}`).set('X-Order-Token', res.body.accessToken).expect(200);
     });
 
@@ -190,7 +189,7 @@ describe('Order emails, order lookup and guest tracking (e2e)', () => {
       await t.http().post(`/v1/orders/${order.id}/cancel`).set('X-Order-Token', token).send({ reason: 'SIZE' }).expect(200);
       await expect(service.updateStatus(order.id, 'SHIPPED')).rejects.toThrow();
       const row = await t.prisma.order.findUniqueOrThrow({ where: { id: order.id } });
-      expect(row.status).toBe('CANCELLED');
+      expect(row.status).toBe('REFUNDED');
       await admin.agent.put(`/v1/admin/orders/${order.id}/status`).send({ status: 'SHIPPED' }).expect(409);
     });
   });

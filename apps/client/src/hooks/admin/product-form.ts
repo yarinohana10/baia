@@ -1,7 +1,7 @@
 import type { ImageItem } from '@/components/admin/ProductImagesManager';
 import { emptyContent, type ProductContent } from '@/components/admin/product-form/product-content';
 import { categorySizeSet, type ProductCategory, type ServerProduct } from '@/components/admin/product-form/types';
-import { resyncAutoSkus, slugify, type Variant } from '@/components/admin/product-form/stock-variants';
+import { resyncAutoSkus, slugify, withLoadedStock, type Variant } from '@/components/admin/product-form/stock-variants';
 import { toImageItem } from '@/components/admin/product-form/product-payload';
 
 /** Everything the product form edits. */
@@ -16,6 +16,7 @@ export type ProductFormValues = {
   categoryId: string;
   isFeatured: boolean;
   isActive: boolean;
+  backSoon: boolean;
   sizeSetId: string;
   /** Once the admin picks a size set it no longer follows the category. */
   sizeSetTouched: boolean;
@@ -31,7 +32,7 @@ export type ProductFormAction =
   | { type: 'text'; field: TextField; value: string }
   | { type: 'nameEn'; value: string }
   | { type: 'slug'; value: string }
-  | { type: 'flag'; field: 'isActive' | 'isFeatured'; value: boolean }
+  | { type: 'flag'; field: 'isActive' | 'isFeatured' | 'backSoon'; value: boolean }
   | { type: 'content'; content: ProductContent }
   | { type: 'category'; categoryId: string; categories: ProductCategory[] }
   | { type: 'categoriesLoaded'; categories: ProductCategory[] }
@@ -51,10 +52,11 @@ export function initialProductForm(product?: ServerProduct): ProductFormValues {
     categoryId: product?.categoryId || '',
     isFeatured: product?.isFeatured || false,
     isActive: product?.isActive ?? true,
+    backSoon: product?.backSoon ?? false,
     sizeSetId: product?.sizeSetId ?? '',
     sizeSetTouched: !!product,
     autoSlug: !product,
-    variants: product?.variants || [],
+    variants: (product?.variants ?? []).map(withLoadedStock),
     images: (product?.images ?? []).map(toImageItem),
   };
 }

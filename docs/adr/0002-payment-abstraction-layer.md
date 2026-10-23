@@ -20,19 +20,22 @@ We need to build the checkout flow and order lifecycle now, without being blocke
 
 ## Decision
 
-Build a **PaymentProvider abstraction** in NestJS:
+Build a **PaymentProvider abstraction** in NestJS (`apps/server/src/payment/payment.interface.ts`):
 
 ```typescript
 interface PaymentProvider {
-  createPayment(order: Order, returnUrl: string): Promise<PaymentSession>;
-  verifyPayment(paymentId: string): Promise<PaymentResult>;
-  handleWebhook(payload: unknown): Promise<WebhookResult>;
+  readonly name: string;
+  readonly testMode?: boolean;
+  charge(params: PaymentChargeParams): Promise<PaymentResult>;
+  refund(transactionId: string, amount?: number): Promise<PaymentResult>;
 }
 ```
 
-The initial implementation is `MockPaymentProvider` which auto-confirms payments after a short delay (simulating the redirect flow). The checkout UI will follow the real pattern: create order → redirect to payment page → return to confirmation page → webhook confirms.
+Real providers also supply a `WebhookVerifier` that authenticates and parses their callbacks. The amount always comes from the server-side order total, and `idempotencyKey` (the PaymentAttempt id) must be forwarded so a retried call cannot double-charge. Raw card data never reaches the server; real integrations pass an opaque `cardToken`.
 
-Provider selection is a runtime configuration via environment variable (`PAYMENT_PROVIDER=mock|tranzila|payme|...`).
+The initial implementation is `MockPaymentProvider`, which confirms payments without moving money (`testMode`).
+
+Provider selection is a runtime configuration via environment variable (`PAYMENT_PROVIDER=mock|tranzila|payme|...`). Whether checkout is open at all is a separate flag: see ADR-0008.
 
 ## Consequences
 

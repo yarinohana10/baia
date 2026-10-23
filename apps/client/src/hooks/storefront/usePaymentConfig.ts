@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import type { PaymentConfig } from '@/lib/payment';
+import { normalizePaymentConfig, type PaymentConfig } from '@/lib/payment';
 
-/** Used when /payment/config is unreachable: no test UI, no installments. */
+/** Used when /payment/config is unreachable: no test UI, no installments (the server still enforces the real flag). */
 export const FALLBACK_PAYMENT_CONFIG: PaymentConfig = {
+  enabled: true,
   provider: 'unknown',
   testMode: false,
   methods: ['card', 'bit', 'apple_pay'],
@@ -20,7 +21,7 @@ export function usePaymentConfig(): PaymentConfig | null {
     api
       .get<PaymentConfig>('/payment/config')
       .then((res) => {
-        if (!cancelled) setConfig(res.data);
+        if (!cancelled) setConfig(normalizePaymentConfig(res.data));
       })
       .catch(() => {
         if (!cancelled) setConfig(FALLBACK_PAYMENT_CONFIG);

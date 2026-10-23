@@ -38,11 +38,12 @@ export class SelfCancelDto {
 }
 
 export class CancellationRequestDto extends SelfCancelDto {
-  @IsOptional()
-  @Transform(emptyToUndefined)
+  /** Required so the store can call the customer about a cancellation or return. */
+  @Transform(trim)
   @IsString()
+  @IsNotEmpty({ message: 'contactPhone is required' })
   @Matches(PHONE, { message: 'contactPhone must be a valid phone number' })
-  contactPhone?: string;
+  contactPhone!: string;
 }
 
 /** Public /cancel-order form: proves the order with number + email. */
@@ -58,7 +59,7 @@ export class PublicCancellationDto extends CancellationRequestDto {
   @MaxLength(254)
   email!: string;
 
-  /** Cancel instantly when the order is inside the free window (default: file a request). */
+  /** Ignored: an order that has not shipped is always cancelled instantly. Kept so older clients still validate. */
   @IsOptional()
   @IsBoolean()
   instant?: boolean;

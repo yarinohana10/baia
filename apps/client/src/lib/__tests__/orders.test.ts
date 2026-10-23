@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatEta, freeShippingProgress, isClosed, orderPageHref, stepDate, timelineIndex } from '../orders';
+import { formatEta, freeShippingProgress, isClosed, orderPageHref, pendingRefund, statusLabelKey, stepDate, timelineIndex } from '../orders';
 import { etaFor, shippingFor } from '@/store/cart';
 
 describe('order timeline', () => {
@@ -20,6 +20,36 @@ describe('order timeline', () => {
     expect(stepDate(order, 'paid')).toBe('b');
     expect(stepDate(order, 'shipped')).toBeNull();
     expect(stepDate(order, 'processing')).toBeNull();
+    expect(stepDate(order, 'delivered')).toBeNull();
+  });
+
+  it('dates in-progress and delivered from the history and stamps', () => {
+    const order = {
+      createdAt: 'a',
+      paidAt: 'b',
+      shippedAt: 'd',
+      deliveredAt: 'e',
+      statusEvents: [
+        { toStatus: 'PENDING_PAYMENT' as const, createdAt: 'a' },
+        { toStatus: 'PROCESSING' as const, createdAt: 'c' },
+      ],
+    };
+    expect(stepDate(order, 'processing')).toBe('c');
+    expect(stepDate(order, 'delivered')).toBe('e');
+  });
+});
+
+describe('refund state', () => {
+  const refund = (status: 'PENDING' | 'COMPLETED' | 'FAILED') => ({ id: 'r', status, amount: '10', requestedAt: 'x', completedAt: null });
+
+  it('a cancelled order with an unsettled refund shows as Refund Pending', () => {
+    expect(statusLabelKey({ status: 'CANCELLED', refunds: [refund('PENDING')] })).toBe('REFUND_PENDING');
+    expect(statusLabelKey({ status: 'CANCELLED', refunds: [refund('FAILED')] })).toBe('REFUND_PENDING');
+    expect(statusLabelKey({ status: 'CANCELLED', refunds: [refund('COMPLETED')] })).toBe('CANCELLED');
+    expect(statusLabelKey({ status: 'CANCELLED' })).toBe('CANCELLED');
+    expect(statusLabelKey({ status: 'REFUNDED', refunds: [refund('COMPLETED')] })).toBe('REFUNDED');
+    expect(pendingRefund({ refunds: [refund('COMPLETED'), refund('PENDING')] })?.status).toBe('PENDING');
+    expect(pendingRefund({})).toBeNull();
   });
 });
 

@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
 import { strictValidationPipe } from '../common/validation';
-import { getOptionalUser } from '../common/session';
+import { getOptionalUser, type AuthenticatedRequest } from '../common/session';
 import { OrdersService } from '../orders/orders.service';
 import { extractOrderToken } from '../orders/order-access';
 import { CancellationsService } from './cancellations.service';
@@ -33,7 +33,7 @@ export class CancellationsController {
     await this.orders.assertAccess(id, { user, token: extractOrderToken(req, id) }, { allowAdmin: false });
   }
 
-  /** Instant free cancellation inside the self-service window (or of an unpaid order). */
+  /** Instant free cancellation until the order ships (a paid order is refunded in full). */
   @Post('orders/:id/cancel')
   @HttpCode(200)
   @RateLimit({ limit: 10, windowMs: MINUTE })
@@ -76,8 +76,8 @@ export class CancellationsController {
   @Put('admin/cancellations/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  resolve(@Param('id') id: string, @Body() body: ResolveCancellationDto) {
-    return this.cancellations.resolve(id, body);
+  resolve(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: ResolveCancellationDto) {
+    return this.cancellations.resolve(id, body, req.user?.email ?? null);
   }
 
   /** Cancel an order from the admin orders screen, optionally refunding through the provider. */
@@ -85,7 +85,7 @@ export class CancellationsController {
   @HttpCode(200)
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
-  adminCancel(@Param('id') id: string, @Body() body: AdminCancelOrderDto) {
-    return this.cancellations.adminCancelOrder(id, body);
+  adminCancel(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: AdminCancelOrderDto) {
+    return this.cancellations.adminCancelOrder(id, body, req.user?.email ?? null);
   }
 }

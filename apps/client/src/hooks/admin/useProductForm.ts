@@ -7,6 +7,7 @@ import { revalidateCatalog } from '@/lib/catalog/revalidate';
 import type { ImageItem } from '@/components/admin/ProductImagesManager';
 import { responseOf, serverFieldErrors, translateFieldErrors, type FieldErrors } from '@/components/admin/product-form-errors';
 import { createProduct, ReportedError, updateProduct } from '@/components/admin/product-form/persist-product';
+import { withLoadedStock } from '@/components/admin/product-form/stock-variants';
 import { validateProduct } from '@/components/admin/product-form/validate-product';
 import type { ProductCategory, ServerProduct } from '@/components/admin/product-form/types';
 import { initialProductForm, productFormReducer } from './product-form';
@@ -69,7 +70,7 @@ export function useProductForm(product?: ServerProduct) {
       form,
       removedImageIds,
       savedImageOrder,
-      onVariantsSaved: (variants) => dispatch({ type: 'variants', variants }),
+      onVariantsSaved: (variants) => dispatch({ type: 'variants', variants: variants.map(withLoadedStock) }),
       onImagesSaved: (images) => dispatch({ type: 'images', images }),
       onImageError: (err, index) => handleRequestError(err, `images.${index}`),
     });

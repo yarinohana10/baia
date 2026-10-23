@@ -6,7 +6,7 @@ import { mergeMessages } from './merge-messages';
  * Messages = the base file (messages/<locale>.json) deep-merged with the
  * per-feature files in messages/<locale>/, so features can own their strings.
  */
-const FEATURE_FILES = ['legal', 'orders', 'catalog'] as const;
+const FEATURE_FILES = ['legal', 'orders', 'catalog', 'analytics'] as const;
 
 export default getRequestConfig(async ({ requestLocale }) => {
   let locale = await requestLocale;

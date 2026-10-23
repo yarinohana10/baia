@@ -110,9 +110,10 @@ export class UpdateSiteConfigDto {
   @IsOptional() @Transform(trimString) @IsEmail() @MaxLength(254)
   accessibilityCoordinatorEmail?: string;
 
+  /** Stock at or under this count triggers the low-stock alert (0 = only when sold out). */
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(24 * 14)
-  selfCancelWindowHours?: number;
+  @Max(1000)
+  lowStockThreshold?: number;
 }

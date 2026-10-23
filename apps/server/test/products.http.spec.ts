@@ -20,6 +20,11 @@ import { Prisma } from '../src/generated/prisma';
 import { createMockStorageService } from './helpers';
 import { createProductsPrismaMock, ProductsPrismaMock } from './products.mocks';
 
+// Real magic bytes: the upload guard sniffs file content, not the declared type.
+const JPEG_HEADER = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+const PNG_HEADER = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const WEBP_HEADER = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBP')]);
+
 const validProduct = {
   nameHe: 'בגד ים',
   nameEn: 'Swimsuit',
@@ -107,7 +112,7 @@ describe('Products HTTP API', () => {
         JSON.stringify({ ...validProduct, images: [{ altTextEn: 'Front' }, { color: 'Black' }, {}] }),
       );
       for (const name of ['a.jpg', 'b.jpg', 'c.jpg']) {
-        form.append('images', new Blob([Buffer.from(name)], { type: 'image/jpeg' }), name);
+        form.append('images', new Blob([JPEG_HEADER, Buffer.from(name)], { type: 'image/jpeg' }), name);
       }
       const res = await fetch(`${baseUrl}/admin/products`, { method: 'POST', body: form });
       expect(res.status).toBe(201);
@@ -180,7 +185,7 @@ describe('Products HTTP API', () => {
       prisma.$transaction.mockRejectedValueOnce(uniqueError(['sku']));
       const form = new FormData();
       form.append('payload', JSON.stringify(validProduct));
-      form.append('images', new Blob(['x'], { type: 'image/png' }), 'x.png');
+      form.append('images', new Blob([PNG_HEADER], { type: 'image/png' }), 'x.png');
       const res = await fetch(`${baseUrl}/admin/products`, { method: 'POST', body: form });
       expect(res.status).toBe(409);
       expect(await errorsOf(res)).toEqual(['sku:unique']);
@@ -234,7 +239,7 @@ describe('Products HTTP API', () => {
       prisma.productImage.aggregate.mockResolvedValue({ _max: { sortOrder: 0 } });
       prisma.productImage.create.mockImplementation(async ({ data }: any) => ({ id: 'i1', ...data, upload: null }));
       const form = new FormData();
-      form.append('file', new Blob(['x'], { type: 'image/webp' }), 'x.webp');
+      form.append('file', new Blob([WEBP_HEADER], { type: 'image/webp' }), 'x.webp');
       form.append('color', 'Red');
       form.append('altTextHe', 'אדום');
       const res = await fetch(`${baseUrl}/admin/products/p1/images`, { method: 'POST', body: form });

@@ -26,6 +26,8 @@ x-server-env: &server-env
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
   EMAIL_FROM: ${EMAIL_FROM:-}
   ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+  OWNER_EMAIL: ${OWNER_EMAIL:-}
+  SENTRY_DSN: ${SENTRY_DSN:-}
   STORAGE_PROVIDER: s3
   S3_ENDPOINT: ${S3_ENDPOINT:-}
   S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
@@ -36,6 +38,7 @@ x-server-env: &server-env
   S3_BUCKET: ${S3_BUCKET:-baia-assets}
   CDN_URL: ${CDN_URL:-}
   PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-}
+  PAYMENTS_ENABLED: ${PAYMENTS_ENABLED:-false}
 
 services:
   postgres:

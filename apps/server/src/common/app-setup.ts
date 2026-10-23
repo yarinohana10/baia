@@ -5,6 +5,7 @@ import { createValidationPipe } from './validation';
 import { PrismaExceptionFilter } from './prisma-exception.filter';
 import { securityHeaders } from './security-headers';
 import type { AppConfig } from '../config/env';
+import { ErrorReportingInterceptor } from '../observability/error-reporting.interceptor';
 
 /**
  * Global request validation + error mapping. Shared by `main.ts` and the
@@ -14,6 +15,8 @@ export function configureGlobalPipeline(app: INestApplication) {
   app.useGlobalPipes(createValidationPipe());
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaExceptionFilter(httpAdapter));
+  // Reports 5xx to Sentry (no-op without SENTRY_DSN); re-throws, so responses are unchanged.
+  app.useGlobalInterceptors(new ErrorReportingInterceptor());
 }
 
 /**

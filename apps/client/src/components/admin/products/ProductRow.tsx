@@ -8,19 +8,29 @@ import { ProductStockCell } from './ProductStockCell';
 import { ProductRowActions } from './ProductRowActions';
 import type { AdminProduct } from './types';
 
+/** Hidden beats Back Soon: a hidden product is not on the storefront at all. */
+function visibilityOf(product: AdminProduct) {
+  if (!product.isActive) return { label: 'hiddenStatus', className: 'bg-[#f3f3f4] text-[#3f484c]' } as const;
+  if (product.backSoon) return { label: 'backSoonStatus', className: 'bg-amber-50 text-amber-700' } as const;
+  return { label: 'active', className: 'bg-[#e7e2d9] text-[#005d72]' } as const;
+}
+
 type Props = {
   product: AdminProduct;
+  lowStockThreshold: number;
   onToggleFeatured: (product: AdminProduct) => void;
   onToggleActive: (product: AdminProduct) => void;
+  onToggleBackSoon: (product: AdminProduct) => void;
   onDelete: (id: string) => void;
 };
 
-export function ProductRow({ product, onToggleFeatured, onToggleActive, onDelete }: Props) {
+export function ProductRow({ product, lowStockThreshold, onToggleFeatured, onToggleActive, onToggleBackSoon, onDelete }: Props) {
   const t = useTranslations('admin.products');
   const locale = useLocale();
   const productName = locale === 'he' ? product.nameHe : product.nameEn;
   const secondaryName = locale === 'he' ? product.nameEn : product.nameHe;
-  const stock = getStockSummary(product.variants);
+  const visibility = visibilityOf(product);
+  const stock = getStockSummary(product.variants, lowStockThreshold);
 
   return (
     <tr className="border-b border-[#f3f3f4] transition-colors last:border-0 hover:bg-[#f9f9f9]">
@@ -53,12 +63,8 @@ export function ProductRow({ product, onToggleFeatured, onToggleActive, onDelete
         <ProductStockCell stock={stock} />
       </td>
       <td className="px-5 py-4">
-        <span
-          className={`inline-flex rounded-full px-3 py-1 font-body text-xs font-medium ${
-            product.isActive ? 'bg-[#e7e2d9] text-[#005d72]' : 'bg-[#f3f3f4] text-[#3f484c]'
-          }`}
-        >
-          {product.isActive ? t('active') : t('inactive')}
+        <span className={`inline-flex rounded-full px-3 py-1 font-body text-xs font-medium ${visibility.className}`}>
+          {t(visibility.label)}
         </span>
       </td>
       <td className="px-5 py-4">
@@ -67,6 +73,7 @@ export function ProductRow({ product, onToggleFeatured, onToggleActive, onDelete
           productName={productName}
           onToggleFeatured={onToggleFeatured}
           onToggleActive={onToggleActive}
+          onToggleBackSoon={onToggleBackSoon}
           onDelete={onDelete}
         />
       </td>

@@ -10,9 +10,11 @@ import { authRouter } from './auth/auth.router';
 import { join } from 'path';
 import { configureGlobalPipeline, configureHttpServer } from './common/app-setup';
 import { getConfig } from './config/env';
+import { initErrorReporting } from './observability/error-reporter';
 
 async function bootstrap() {
   const config = getConfig();
+  initErrorReporting();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });

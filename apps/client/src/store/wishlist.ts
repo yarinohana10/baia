@@ -8,6 +8,7 @@ export type WishlistProduct = {
   nameEn: string;
   slug: string;
   basePrice: string;
+  backSoon?: boolean;
   images: { url: string }[];
   variants: {
     id?: string;
@@ -30,6 +31,8 @@ type WishlistStore = {
   remove: (productId: string) => Promise<void>;
   /** Load the guest list from localStorage. */
   loadGuest: () => void;
+  /** Guest lists hold snapshots: drop products that were hidden since and refresh stock. */
+  refreshGuest: () => Promise<void>;
   /** Merge the local guest list into the account, then switch to server mode. */
   syncUser: () => Promise<void>;
 };
@@ -80,6 +83,7 @@ function toSnapshot(p: WishlistProduct): WishlistProduct {
     nameEn: p.nameEn,
     slug: p.slug,
     basePrice: p.basePrice,
+    backSoon: p.backSoon,
     images: p.images.slice(0, 1).map((i) => ({ url: i.url })),
     variants: p.variants.map((v) => ({
       salePrice: v.salePrice,
@@ -142,6 +146,29 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
   },
 
   loadGuest: () => set({ mode: 'guest', products: readLocal(), ready: true }),
+
+  refreshGuest: async () => {
+    const local = readLocal();
+    const entries = Object.values(local);
+    if (entries.length === 0) return;
+    const fresh = await Promise.all(
+      entries.map(async (p) => {
+        try {
+          const res = await api.get(`/products/${encodeURIComponent(p.slug)}`);
+          return { id: p.id, product: res.data as WishlistProduct };
+        } catch (err) {
+          // Only a 404 means hidden/deleted; keep the snapshot on network errors.
+          const status = (err as { response?: { status?: number } })?.response?.status;
+          return { id: p.id, product: status === 404 ? null : p };
+        }
+      }),
+    );
+    if (get().mode !== 'guest') return;
+    const next: LocalWishlist = {};
+    for (const { id, product } of fresh) if (product) next[id] = toSnapshot(product);
+    writeLocal(next);
+    set({ products: next });
+  },
 
   syncUser: async () => {
     const local = readLocal();

@@ -12,17 +12,16 @@ import { Pagination } from '@/components/admin/common/Pagination';
 import { CancellationCard } from '@/components/admin/cancellations/CancellationCard';
 import type { AdminCancellation, RequestStatus } from '@/components/admin/cancellations/types';
 
-type ListResponse = { requests: AdminCancellation[]; total: number; totalPages: number; windowHours: number };
-type CancellationsMeta = { windowHours: number };
+type ListResponse = { requests: AdminCancellation[]; total: number; totalPages: number };
 type Filter = RequestStatus | '';
 
 const FILTERS: Filter[] = ['REQUESTED', 'APPROVED', 'REJECTED', 'AUTO_CANCELLED', ''];
 
-const selectRequests = (data: ListResponse): ListPage<AdminCancellation, CancellationsMeta> => ({
+const selectRequests = (data: ListResponse): ListPage<AdminCancellation> => ({
   items: data.requests,
   total: data.total,
   totalPages: data.totalPages,
-  meta: { windowHours: data.windowHours },
+  meta: undefined,
 });
 
 export default function AdminCancellationsPage() {
@@ -35,13 +34,12 @@ export default function AdminCancellationsPage() {
     select: selectRequests,
   });
   const [notice, setNotice] = useState<Notice | null>(null);
-  const windowHours = list.meta?.windowHours ?? 48;
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="font-serif text-2xl font-bold tracking-normal text-foreground">{t('title')}</h1>
-        <p className="mt-1 font-body text-sm text-muted-foreground">{t('subtitle', { hours: windowHours })}</p>
+        <p className="mt-1 font-body text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
       {notice && (
@@ -72,7 +70,6 @@ export default function AdminCancellationsPage() {
             <CancellationCard
               key={request.id}
               request={request}
-              windowHours={windowHours}
               onResolved={(text, kind) => {
                 setNotice({ kind, text });
                 list.reload();

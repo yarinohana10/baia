@@ -1,12 +1,11 @@
-import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders.service';
 import { OrderMailer } from '../orders/order-mailer';
-import { CancellationStatus, OrderStatus, Prisma } from '../generated/prisma';
-import { PAYMENT_PROVIDER, type PaymentProvider } from '../payment/payment.interface';
+import { CancellationStatus, OrderStatus, Prisma, RefundStatus } from '../generated/prisma';
 import { shopBadRequest, shopConflict } from '../common/error-codes';
-import { selfCancelDeadline, suggestedCancellationFee } from '../orders/cancellation-eligibility';
-import { RESTOCK_STATUSES } from '../orders/order-status';
+import { suggestedCancellationFee } from '../orders/cancellation-eligibility';
+import { PAID_STATUSES, RESTOCK_STATUSES } from '../orders/order-status';
 import type {
   AdminCancelOrderDto,
   CancellationRequestDto,
@@ -15,41 +14,39 @@ import type {
   SelfCancelDto,
 } from './dto/cancellation.dto';
 
-const PAID_STATUSES: OrderStatus[] = [
-  OrderStatus.CONFIRMED,
-  OrderStatus.PROCESSING,
-  OrderStatus.SHIPPED,
-  OrderStatus.DELIVERED,
-];
-
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-type CancelOutcome = { paid: boolean; refundAmount: number | null; refundFailed: boolean };
+type CancelOutcome = {
+  paid: boolean;
+  /** What goes back to the customer (total - fee); null when nothing was paid or nothing is owed. */
+  refundAmount: number | null;
+  /** The provider did not settle it: the Refund stays PENDING for an Admin. */
+  refundPending: boolean;
+};
 
 /**
  * Order cancellations:
- *  - self-service: paid (CONFIRMED/PROCESSING), not shipped, inside
- *    SiteConfig.selfCancelWindowHours of paidAt → cancelled + refunded in
- *    full at once (unpaid orders are simply cancelled);
- *  - requests: anything else the customer wants cancelled (after the window,
- *    already shipped = return) is reviewed by the store, which approves with
- *    an optional fee (legal cap: 5% or ₪100, the lower) or rejects.
- * Every cancellation goes through OrdersService.updateStatus, so stock and
- * coupon uses are returned exactly once.
+ *  - self-service: until the order ships (pending payment, confirmed,
+ *    processing) the customer cancels instantly; a paid order is refunded in
+ *    full;
+ *  - requests: once shipped or delivered the parcel must come back, so the
+ *    customer files a request with contact details, which the store reviews
+ *    and approves with an optional fee (legal cap: 5% or ₪100, the lower) or
+ *    rejects.
+ * Every cancellation goes through OrdersService.changeStatus, so stock and
+ * coupon uses are returned exactly once and a paid order gets its durable
+ * Refund record (settled by the payment provider, see RefundsService).
  */
 @Injectable()
 export class CancellationsService {
-  private readonly logger = new Logger(CancellationsService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly orders: OrdersService,
     private readonly mailer: OrderMailer,
-    @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
   ) {}
 
-  /** Cancels the order (restock) and refunds total − fee when it was paid. */
-  private async cancelAndRefund(orderId: string, fee: number): Promise<CancelOutcome> {
+  /** Cancels the order (restock) and, when it was paid, records and attempts the refund of total - fee. */
+  private async cancelAndRefund(orderId: string, fee: number, actorEmail: string | null, refund = true): Promise<CancelOutcome> {
     const before = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!before) throw new NotFoundException('Order not found');
     if (RESTOCK_STATUSES.includes(before.status)) {
@@ -59,24 +56,16 @@ export class CancellationsService {
     const total = Number(before.total);
     if (fee > total) throw shopBadRequest('CANCELLATION_NOT_ALLOWED', 'Fee cannot exceed the order total');
 
-    // Cancel first: the conditional status claim makes a concurrent ship /
-    // second cancel fail instead of refunding twice.
-    await this.orders.updateStatus(orderId, OrderStatus.CANCELLED, undefined, { notify: false });
-
-    const amount = round2(total - fee);
-    if (!paid || amount <= 0) return { paid, refundAmount: null, refundFailed: false };
-    if (!before.paymentRef) {
-      // Paid outside the provider (e.g. confirmed by hand): refund manually.
-      return { paid, refundAmount: null, refundFailed: true };
-    }
-    try {
-      const result = await this.provider.refund(before.paymentRef, amount);
-      if (result.success) return { paid, refundAmount: amount, refundFailed: false };
-      this.logger.error(`refund declined for order ${orderId}: ${result.error ?? 'unknown'}`);
-    } catch (err) {
-      this.logger.error(`refund failed for order ${orderId}: ${(err as Error)?.message}`);
-    }
-    return { paid, refundAmount: null, refundFailed: true };
+    const amount = paid && refund ? round2(total - fee) : 0;
+    // The conditional status claim inside makes a concurrent ship / second
+    // cancel fail instead of refunding twice.
+    const result = await this.orders.changeStatus(orderId, OrderStatus.CANCELLED, undefined, {
+      notify: false,
+      actorEmail,
+      refundAmount: amount,
+    });
+    if (!result.refund) return { paid, refundAmount: null, refundPending: false };
+    return { paid, refundAmount: amount, refundPending: result.refund.status !== RefundStatus.COMPLETED };
   }
 
   /** Instant, free cancellation by the order's owner (ownership already checked). */
@@ -85,7 +74,7 @@ export class CancellationsService {
     if (!order.cancellation.canSelfCancel) {
       throw shopConflict('SELF_CANCEL_UNAVAILABLE', 'This order can no longer be cancelled online');
     }
-    const outcome = await this.cancelAndRefund(orderId, 0);
+    const outcome = await this.cancelAndRefund(orderId, 0, order.customerEmail);
     await this.prisma.cancellationRequest.create({
       data: {
         orderId,
@@ -94,27 +83,22 @@ export class CancellationsService {
         details: input.details,
         feeAmount: 0,
         refundAmount: outcome.refundAmount,
-        adminNote: outcome.refundFailed ? 'Automatic refund failed - refund manually.' : null,
+        adminNote: outcome.refundPending ? 'Refund pending: settle it in the payment provider.' : null,
         resolvedAt: new Date(),
       },
     });
 
     void this.mailer.orderCancelled(orderId, outcome.paid, {
+      cancelledBy: 'customer',
       refundAmount: outcome.refundAmount,
-      refundPending: outcome.refundFailed,
+      refundPending: outcome.refundPending,
+      reason: input.reason,
+      details: input.details,
     });
-    if (outcome.paid) {
-      void this.mailer.adminSelfCancelled(orderId, {
-        reason: input.reason,
-        details: input.details,
-        refundAmount: outcome.refundAmount,
-        refundFailed: outcome.refundFailed,
-      });
-    }
     return this.orders.findForCustomer(orderId);
   }
 
-  /** A cancellation the store reviews (after the window, shipped orders, or by choice). */
+  /** A cancellation the store reviews: the order has shipped, so the parcel must be returned. */
   async createRequest(orderId: string, input: CancellationRequestDto) {
     const order = await this.orders.findForCustomer(orderId);
     if (order.cancellation.openRequest) {
@@ -132,16 +116,14 @@ export class CancellationsService {
         contactPhone: input.contactPhone,
       },
     });
-    const windowHours = order.cancellation.windowHours;
-    const insideWindow = Date.now() < selfCancelDeadline(order, windowHours).getTime();
-    void this.mailer.cancellationRequested(request.id, insideWindow, order.cancellation.requiresReturn);
+    void this.mailer.cancellationRequested(request.id, order.cancellation.requiresReturn);
     return this.orders.findForCustomer(orderId);
   }
 
   /**
    * Public /cancel-order form. Proves the order with number + email (same
-   * constant 404 as the lookup), then cancels instantly when asked and
-   * allowed, otherwise files a request. Returns a signed access token so the
+   * constant 404 as the lookup), then cancels instantly while the order has
+   * not shipped, otherwise files a request. Returns a signed access token so the
    * page can link to the order.
    */
   async publicCancel(input: PublicCancellationDto) {
@@ -151,7 +133,7 @@ export class CancellationsService {
 
     let outcome: 'CANCELLED' | 'REQUESTED';
     let updated;
-    if (canSelfCancel && (input.instant || !canRequest)) {
+    if (canSelfCancel) {
       updated = await this.selfCancel(orderId, input);
       outcome = 'CANCELLED';
     } else if (canRequest) {
@@ -169,7 +151,7 @@ export class CancellationsService {
 
   async list(params: { status?: CancellationStatus; page: number; limit: number }) {
     const where: Prisma.CancellationRequestWhereInput = params.status ? { status: params.status } : {};
-    const [rows, total, windowHours] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.cancellationRequest.findMany({
         where,
         include: {
@@ -197,20 +179,16 @@ export class CancellationsService {
         take: params.limit,
       }),
       this.prisma.cancellationRequest.count({ where }),
-      this.orders.selfCancelWindowHours(),
     ]);
 
     const requests = rows.map(({ order, ...request }) => {
-      const deadline = selfCancelDeadline(order, windowHours);
-      const insideWindow = request.createdAt.getTime() < deadline.getTime();
       const { paymentRef, ...publicOrder } = order;
       return {
         ...request,
         order: { ...publicOrder, paid: PAID_STATUSES.includes(order.status) || !!order.paidAt, hasPaymentRef: !!paymentRef },
-        windowDeadline: deadline.toISOString(),
-        insideWindow,
         requiresReturn: !!order.shippedAt || order.status === OrderStatus.SHIPPED || order.status === OrderStatus.DELIVERED,
-        suggestedFee: insideWindow ? 0 : suggestedCancellationFee(Number(order.total)),
+        // Requests only exist for shipped orders, so the capped fee always applies.
+        suggestedFee: suggestedCancellationFee(Number(order.total)),
       };
     });
     return {
@@ -219,11 +197,10 @@ export class CancellationsService {
       page: params.page,
       limit: params.limit,
       totalPages: Math.ceil(total / params.limit),
-      windowHours,
     };
   }
 
-  async resolve(id: string, input: ResolveCancellationDto) {
+  async resolve(id: string, input: ResolveCancellationDto, actorEmail: string | null = null) {
     const request = await this.prisma.cancellationRequest.findUnique({ where: { id } });
     if (!request) throw new NotFoundException('Cancellation request not found');
     if (request.status !== CancellationStatus.REQUESTED) {
@@ -250,7 +227,7 @@ export class CancellationsService {
 
     let outcome: CancelOutcome;
     try {
-      outcome = await this.cancelAndRefund(request.orderId, fee);
+      outcome = await this.cancelAndRefund(request.orderId, fee, actorEmail);
     } catch (err) {
       // Put the request back so it can be retried (e.g. the order changed meanwhile).
       await this.prisma.cancellationRequest.update({
@@ -263,36 +240,27 @@ export class CancellationsService {
       where: { id },
       data: {
         refundAmount: outcome.refundAmount,
-        adminNote: outcome.refundFailed
-          ? [input.adminNote, 'Automatic refund failed - refund manually.'].filter(Boolean).join(' | ')
+        adminNote: outcome.refundPending
+          ? [input.adminNote, 'Refund pending: settle it in the payment provider.'].filter(Boolean).join(' | ')
           : (input.adminNote ?? null),
       },
     });
     void this.mailer.orderCancelled(request.orderId, outcome.paid, {
+      cancelledBy: 'request',
       refundAmount: outcome.refundAmount,
       feeAmount: fee > 0 ? fee : null,
-      refundPending: outcome.refundFailed,
+      refundPending: outcome.refundPending,
       note: input.adminNote,
+      reason: request.reason,
+      details: request.details,
     });
-    return { ...updated, refundFailed: outcome.refundFailed };
+    return { ...updated, refundPending: outcome.refundPending };
   }
 
   /** Admin cancels from the orders screen; resolves any open request as approved. */
-  async adminCancelOrder(orderId: string, input: AdminCancelOrderDto) {
+  async adminCancelOrder(orderId: string, input: AdminCancelOrderDto, actorEmail: string | null = null) {
     const fee = round2(input.feeAmount ?? 0);
-    const before = await this.prisma.order.findUnique({ where: { id: orderId }, select: { status: true, paymentRef: true } });
-    if (!before) throw new NotFoundException('Order not found');
-
-    let outcome: CancelOutcome;
-    if (input.refund) {
-      outcome = await this.cancelAndRefund(orderId, fee);
-    } else {
-      if (RESTOCK_STATUSES.includes(before.status)) {
-        throw shopConflict('CANCELLATION_NOT_ALLOWED', 'Order is already cancelled');
-      }
-      await this.orders.updateStatus(orderId, OrderStatus.CANCELLED, undefined, { notify: false });
-      outcome = { paid: PAID_STATUSES.includes(before.status), refundAmount: null, refundFailed: false };
-    }
+    const outcome = await this.cancelAndRefund(orderId, fee, actorEmail, input.refund);
 
     await this.prisma.cancellationRequest.updateMany({
       where: { orderId, status: CancellationStatus.REQUESTED },
@@ -306,12 +274,12 @@ export class CancellationsService {
     });
 
     void this.mailer.orderCancelled(orderId, outcome.paid, {
+      cancelledBy: 'admin',
       refundAmount: outcome.refundAmount,
       feeAmount: fee > 0 ? fee : null,
-      // Without an automatic refund the store settles the money itself.
-      refundPending: outcome.refundFailed,
+      refundPending: outcome.refundPending,
       note: input.adminNote,
     });
-    return { ...(await this.orders.findForAdmin(orderId)), refundAmount: outcome.refundAmount, refundFailed: outcome.refundFailed };
+    return { ...(await this.orders.findForAdmin(orderId)), refundAmount: outcome.refundAmount, refundPending: outcome.refundPending };
   }
 }

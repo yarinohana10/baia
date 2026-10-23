@@ -1,43 +1,48 @@
-import { useLocale, useTranslations } from 'next-intl';
-import { formatWholeShekels } from '@/lib/admin/format';
-import { CATEGORY_REVENUE_COLORS } from './constants';
-import type { CategoryRevenue } from './types';
+'use client';
 
-/** Revenue per category, bars scaled to the top category. */
-export function CategoryRevenueChart({ data }: { data: CategoryRevenue[] }) {
+import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatCount } from '@/lib/admin/analytics-format';
+import { formatWholeShekels } from '@/lib/admin/format';
+import { SERIES_COLOR } from './constants';
+import { HBarList } from './HBarList';
+import { SegmentedToggle } from './SegmentedToggle';
+import type { RevenueByCategory } from './types';
+
+type Level = 'topLevel' | 'byType';
+
+/** Line revenue of the range by audience (top-level category) or by product type. */
+export function CategoryRevenueChart({ data }: { data: RevenueByCategory }) {
   const t = useTranslations('admin.dashboard');
   const locale = useLocale();
-  const maxRevenue = Math.max(...data.map((d) => d.revenue), 1);
+  const [level, setLevel] = useState<Level>('topLevel');
+  const rows = data[level];
 
   return (
-    <div className="space-y-3">
-      {data.length === 0 ? (
+    <div className="space-y-4">
+      <SegmentedToggle
+        label={t('category.groupBy')}
+        value={level}
+        onChange={setLevel}
+        options={[
+          { value: 'topLevel', label: t('category.audience') },
+          { value: 'byType', label: t('category.type') },
+        ]}
+      />
+      {rows.length === 0 ? (
         <p className="py-8 text-center font-body text-sm text-muted-foreground">{t('noRevenueData')}</p>
       ) : (
-        data.map((item, idx) => (
-          <div key={item.categoryId}>
-            <div className="mb-1 flex items-center justify-between">
-              <span className="font-body text-sm text-foreground">
-                {locale === 'he' ? item.nameHe : item.nameEn}
-              </span>
-              <span className="font-body text-sm font-semibold text-foreground">
-                {formatWholeShekels(item.revenue)}
-              </span>
-            </div>
-            <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${(item.revenue / maxRevenue) * 100}%`,
-                  backgroundColor: CATEGORY_REVENUE_COLORS[idx % CATEGORY_REVENUE_COLORS.length],
-                }}
-              />
-            </div>
-            <p className="mt-0.5 font-body text-xs text-muted-foreground">
-              {item.orders} {t('orderItems')}
-            </p>
-          </div>
-        ))
+        <HBarList
+          color={SERIES_COLOR}
+          rows={rows.map((r) => ({
+            key: r.categoryId,
+            label: locale === 'he' ? r.nameHe : r.nameEn,
+            sublabel: level === 'byType' ? (locale === 'he' ? r.parentNameHe : r.parentNameEn) ?? undefined : undefined,
+            value: r.revenue,
+            valueLabel: formatWholeShekels(r.revenue),
+            note: `${formatCount(r.units, locale)} ${t('units')} · ${formatCount(r.orders, locale)} ${t('top.orders')}`,
+          }))}
+        />
       )}
     </div>
   );

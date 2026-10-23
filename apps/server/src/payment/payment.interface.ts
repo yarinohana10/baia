@@ -1,6 +1,18 @@
+/**
+ * How the money was actually taken, as reported by the provider. This (not
+ * anything the browser sent) is what gets stored on the order.
+ */
+export interface PaymentResultDetails {
+  method?: PaymentMethod;
+  installments?: number;
+  cardBrand?: string;
+  cardLast4?: string;
+}
+
 export interface PaymentResult {
   success: boolean;
   transactionId: string;
+  details?: PaymentResultDetails;
   error?: string;
   /**
    * Stable, machine-readable decline reason (e.g. "card_declined",
@@ -39,6 +51,12 @@ export interface PaymentChargeParams {
   installments?: number;
   /** Test-mode providers only; never forwarded when simulation is disabled. */
   simulation?: PaymentSimulation;
+  /**
+   * Brand / last four the payment page displays. Only forwarded to test-mode
+   * providers, which have no card processor to report them; real providers
+   * return the truth in `PaymentResult.details`.
+   */
+  displayHint?: { cardBrand?: string; cardLast4?: string };
 }
 
 export interface PaymentProvider {

@@ -12,7 +12,10 @@ export type AdminProduct = {
   nameEn: string;
   slug: string;
   basePrice: string;
+  /** false = Hidden from the storefront (the eye control). */
   isActive: boolean;
+  /** Back Soon: visible but not purchasable. */
+  backSoon?: boolean;
   isFeatured: boolean;
   category: { nameEn: string; nameHe: string };
   images: { url: string }[];

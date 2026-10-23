@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { verifyPassword } from 'better-auth/crypto';
 
@@ -7,10 +7,11 @@ jest.mock('../src/auth/auth', () => ({ auth: { api: { getSession: (...args: unkn
 
 import { AuthGuard } from '../src/auth/auth.guard';
 import { AdminUsersController } from '../src/admin-users/admin-users.controller';
-import { AdminUsersService } from '../src/admin-users/admin-users.service';
 import { ensureAdmin } from '../src/admin-users/ensure-admin';
 import { seedAdminFromEnv } from '../src/admin-users/seed-admin';
 import { runCreateAdmin } from '../src/cli/create-admin';
+import { claimGuestOrders } from '../src/orders/order-claim.service';
+import { applyVerifiedEmailGrants, isOwnerEmail } from '../src/auth/verified-email-grants';
 
 /** Minimal in-memory stand-in for the Prisma `user`/`account` delegates used by admin code. */
 function createUserStore(initial: Array<{ id: string; email: string; role: 'ADMIN' | 'CUSTOMER'; credential?: boolean }> = []) {
@@ -78,7 +79,7 @@ function httpContext(handler: (...args: any[]) => unknown, cls: unknown, headers
 describe('Admin users API', () => {
   describe('AuthGuard on AdminUsersController', () => {
     const guard = new AuthGuard(new Reflector());
-    const handler = AdminUsersController.prototype.create;
+    const handler = AdminUsersController.prototype.add;
 
     beforeEach(() => getSession.mockReset());
 
@@ -100,69 +101,6 @@ describe('Admin users API', () => {
       await expect(guard.canActivate(ctx)).resolves.toBe(true);
       expect(request.user.id).toBe('a1');
       expect(getSession).toHaveBeenCalledWith(expect.objectContaining({ query: { disableCookieCache: true } }));
-    });
-  });
-
-  describe('AdminUsersController + AdminUsersService', () => {
-    it('lists admins only', async () => {
-      const { prisma } = createUserStore([
-        { id: 'a1', email: 'admin@x.co', role: 'ADMIN' },
-        { id: 'c1', email: 'cust@x.co', role: 'CUSTOMER' },
-      ]);
-      const controller = new AdminUsersController(new AdminUsersService(prisma));
-      const list = await controller.list();
-      expect(list.map((u: any) => u.email)).toEqual(['admin@x.co']);
-    });
-
-    it('promotes an existing customer by email without touching their password', async () => {
-      const { prisma, users, accounts } = createUserStore([
-        { id: 'a1', email: 'admin@x.co', role: 'ADMIN' },
-        { id: 'c1', email: 'cust@x.co', role: 'CUSTOMER', credential: true },
-      ]);
-      const controller = new AdminUsersController(new AdminUsersService(prisma));
-      const res = await controller.create({ email: ' Cust@X.co ', password: 'ignored-password' });
-      expect(res.action).toBe('promoted');
-      expect(users.find((u) => u.id === 'c1')!.role).toBe('ADMIN');
-      expect(accounts.find((a) => a.userId === 'c1').password).toBe('existing-hash');
-    });
-
-    it('creates a new admin with a hashed password', async () => {
-      const { prisma, users, accounts } = createUserStore([{ id: 'a1', email: 'admin@x.co', role: 'ADMIN' }]);
-      const controller = new AdminUsersController(new AdminUsersService(prisma));
-      const res = await controller.create({ email: 'new@x.co', password: 'super-secret-1', name: 'New' });
-      expect(res.action).toBe('created');
-      const created = users.find((u) => u.email === 'new@x.co')!;
-      expect(created).toMatchObject({ role: 'ADMIN', emailVerified: true });
-      const hash = accounts.find((a) => a.userId === created.id).password;
-      expect(hash).not.toContain('super-secret-1');
-      expect(await verifyPassword({ hash, password: 'super-secret-1' })).toBe(true);
-    });
-
-    it('validates the body', async () => {
-      const { prisma } = createUserStore();
-      const controller = new AdminUsersController(new AdminUsersService(prisma));
-      expect(() => controller.create({ email: 'not-an-email' })).toThrow(BadRequestException);
-      expect(() => controller.create({ email: 'a@b.co', password: 'short' })).toThrow(BadRequestException);
-      await expect(controller.create({ email: 'missing@x.co' })).rejects.toBeInstanceOf(BadRequestException);
-    });
-
-    it('refuses to demote the last admin', async () => {
-      const { prisma, users } = createUserStore([{ id: 'a1', email: 'admin@x.co', role: 'ADMIN' }]);
-      const controller = new AdminUsersController(new AdminUsersService(prisma));
-      await expect(controller.revoke('a1')).rejects.toBeInstanceOf(ConflictException);
-      expect(users[0].role).toBe('ADMIN');
-      expect(prisma.user.delete).not.toHaveBeenCalled();
-    });
-
-    it('demotes an admin when another admin remains', async () => {
-      const { prisma, users } = createUserStore([
-        { id: 'a1', email: 'admin@x.co', role: 'ADMIN' },
-        { id: 'a2', email: 'second@x.co', role: 'ADMIN' },
-      ]);
-      const controller = new AdminUsersController(new AdminUsersService(prisma));
-      const res = await controller.revoke('a2');
-      expect(res.role).toBe('CUSTOMER');
-      expect(users).toHaveLength(2);
     });
   });
 
@@ -240,6 +178,25 @@ describe('Admin users API', () => {
       expect(await runCreateAdmin(['--bogus'], {} as any, prisma, jest.fn())).toBe(1);
       expect(await runCreateAdmin(['--email=new@x.co'], {} as any, prisma, jest.fn())).toBe(1);
       expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('verified-email grants', () => {
+    it('does nothing at all for an unverified account', async () => {
+      const prisma: any = { user: { updateMany: jest.fn() }, adminInvitation: {}, $transaction: jest.fn(), $executeRaw: jest.fn() };
+      const user = { id: 'u1', email: 'owner@x.co', emailVerified: false };
+      await applyVerifiedEmailGrants(prisma, user, { OWNER_EMAIL: 'owner@x.co' } as NodeJS.ProcessEnv);
+      expect(await claimGuestOrders(prisma, user)).toBe(0);
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+    });
+
+    it('matches the Owner email case-insensitively and only when OWNER_EMAIL is set', () => {
+      const env = { OWNER_EMAIL: ' Owner@X.co ' } as NodeJS.ProcessEnv;
+      expect(isOwnerEmail('OWNER@x.CO', env)).toBe(true);
+      expect(isOwnerEmail('other@x.co', env)).toBe(false);
+      expect(isOwnerEmail('owner@x.co', {} as NodeJS.ProcessEnv)).toBe(false);
     });
   });
 });
