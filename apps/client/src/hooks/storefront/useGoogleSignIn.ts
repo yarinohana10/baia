@@ -17,11 +17,16 @@ export function useGoogleSignIn(onError: () => void): [pending: boolean, start: 
       run(async () => {
         try {
           // Absolute URLs so Google sends the user back to the shop, not the API origin.
-          await signIn.social({
+          const result = await signIn.social({
             provider: 'google',
             callbackURL: `${window.location.origin}/${locale}`,
             errorCallbackURL: `${window.location.origin}/${locale}/login`,
           });
+          // better-auth reports failures (e.g. PROVIDER_NOT_FOUND when Google isn't configured) as { error }, not a throw.
+          if (result?.error) {
+            onError();
+            return 'done';
+          }
           return 'navigating';
         } catch {
           onError();

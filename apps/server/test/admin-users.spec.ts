@@ -192,6 +192,36 @@ describe('Admin users API', () => {
       expect(prisma.$executeRaw).not.toHaveBeenCalled();
     });
 
+    it('never promotes an ordinary verified customer: no Owner match and no invitation means no role change', async () => {
+      const tx = { adminInvitation: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) }, user: { update: jest.fn() } };
+      const prisma: any = {
+        user: { updateMany: jest.fn() },
+        adminInvitation: {},
+        $transaction: jest.fn((fn: any) => fn(tx)),
+        $executeRaw: jest.fn().mockResolvedValue(0),
+      };
+      const user = { id: 'u2', email: 'customer@x.co', emailVerified: true };
+      await applyVerifiedEmailGrants(prisma, user, { OWNER_EMAIL: 'owner@x.co' } as NodeJS.ProcessEnv);
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
+      expect(tx.user.update).not.toHaveBeenCalled();
+    });
+
+    it('promotes the Owner only once verified, and an invited email only through its invitation', async () => {
+      const tx = { adminInvitation: { deleteMany: jest.fn().mockResolvedValue({ count: 1 }) }, user: { update: jest.fn() } };
+      const prisma: any = {
+        user: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+        adminInvitation: {},
+        $transaction: jest.fn((fn: any) => fn(tx)),
+        $executeRaw: jest.fn().mockResolvedValue(0),
+      };
+      const env = { OWNER_EMAIL: 'owner@x.co' } as NodeJS.ProcessEnv;
+      await applyVerifiedEmailGrants(prisma, { id: 'o', email: 'Owner@x.co', emailVerified: true }, env);
+      expect(prisma.user.updateMany).toHaveBeenCalledWith({ where: { id: 'o', role: { not: 'ADMIN' } }, data: { role: 'ADMIN' } });
+      await applyVerifiedEmailGrants(prisma, { id: 'i', email: 'staff@x.co', emailVerified: true }, env);
+      expect(tx.adminInvitation.deleteMany).toHaveBeenCalledWith({ where: { email: 'staff@x.co' } });
+      expect(tx.user.update).toHaveBeenCalledWith({ where: { id: 'i' }, data: { role: 'ADMIN' } });
+    });
+
     it('matches the Owner email case-insensitively and only when OWNER_EMAIL is set', () => {
       const env = { OWNER_EMAIL: ' Owner@X.co ' } as NodeJS.ProcessEnv;
       expect(isOwnerEmail('OWNER@x.CO', env)).toBe(true);
