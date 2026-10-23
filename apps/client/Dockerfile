@@ -13,7 +13,7 @@ FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/client/package.json apps/client/
 COPY packages/shared/package.json packages/shared/
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+RUN \
   pnpm install --frozen-lockfile --filter @baia/client...
 COPY packages/shared ./packages/shared
 COPY apps/client ./apps/client
