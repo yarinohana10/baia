@@ -17,7 +17,7 @@ FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/server/package.json apps/server/
 COPY packages/shared/package.json packages/shared/
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+RUN \
   pnpm install --frozen-lockfile --filter @baia/server...
 COPY packages/shared ./packages/shared
 COPY apps/server ./apps/server
@@ -38,7 +38,7 @@ FROM base AS prod-deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/server/package.json apps/server/
 COPY packages/shared/package.json packages/shared/
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+RUN \
   pnpm install --frozen-lockfile --prod --filter @baia/server...
 
 # ── Runtime ─────────────────────────────────────────────────────────────────────
