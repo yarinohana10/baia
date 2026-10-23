@@ -85,6 +85,7 @@ export function CancelOrderForm() {
           inputMode="tel"
           dir="ltr"
           autoComplete="tel"
+          required
           pattern={PHONE_PATTERN}
           value={fields.phone}
           onChange={edit('phone')}

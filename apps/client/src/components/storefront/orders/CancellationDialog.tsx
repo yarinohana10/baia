@@ -117,6 +117,7 @@ export function CancellationDialog({
                 type="tel"
                 inputMode="tel"
                 dir="ltr"
+                required
                 pattern={PHONE_PATTERN}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}

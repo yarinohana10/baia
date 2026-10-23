@@ -101,7 +101,7 @@
       "OTHER": "Other"
     },
     "details": "More details (optional)",
-    "phone": "Phone for a call back (optional)",
+    "phone": "Phone for a call back",
     "keepOrder": "Back",
     "confirmCancel": "Cancel order",
     "sendRequest": "Send request",
@@ -138,7 +138,7 @@
     "intro": "You can cancel an order free of charge at any time until it ships, and you'll be refunded in full. Once it has shipped we'll handle a cancellation request under the Israeli Consumer Protection Law.",
     "orderNumber": "Order number",
     "email": "Email used for the order",
-    "phone": "Contact phone (optional)",
+    "phone": "Contact phone",
     "formHint": "We'll check your order before anything happens. If it hasn't shipped you can cancel it right away; if it has, we'll send a cancellation request with your contact details.",
     "continue": "Continue",
     "startOver": "Start over",

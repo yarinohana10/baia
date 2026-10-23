@@ -89,7 +89,7 @@ describe('Cancellations: direct until shipped, requests after, refunds (e2e)', (
       expect(alert.text).toContain('הלקוח/ה ביטל/ה');
 
       // Second attempt: nothing left to cancel, no second refund, no second restock.
-      await t.http().post(`/v1/orders/${order.id}/cancel`).set('X-Order-Token', token).send({ reason: 'SIZE' }).expect(409);
+      await t.http().post(`/v1/orders/${order.id}/cancel`).set('X-Order-Token', token).send({ reason: 'SIZE', contactPhone: '052-123-4567' }).expect(409);
       expect(t.payments.refunds).toHaveLength(1);
       expect(await stock()).toBe(5);
     });
@@ -113,7 +113,7 @@ describe('Cancellations: direct until shipped, requests after, refunds (e2e)', (
       await t.http().post(`/v1/orders/${order.id}/cancel`).set('X-Order-Token', token).send({ reason: 'BOGUS' }).expect(400);
 
       await ship(order.id);
-      const late = await t.http().post(`/v1/orders/${order.id}/cancel`).set('X-Order-Token', token).send({ reason: 'SIZE' }).expect(409);
+      const late = await t.http().post(`/v1/orders/${order.id}/cancel`).set('X-Order-Token', token).send({ reason: 'SIZE', contactPhone: '052-123-4567' }).expect(409);
       expect(late.body.code).toBe('SELF_CANCEL_UNAVAILABLE');
       const view = await t.http().get(`/v1/orders/${order.id}`).set('X-Order-Token', token).expect(200);
       expect(view.body.cancellation).toMatchObject({ canSelfCancel: false, canRequest: true, requiresReturn: true });
@@ -196,14 +196,31 @@ describe('Cancellations: direct until shipped, requests after, refunds (e2e)', (
         .http()
         .post(`/v1/orders/${order.id}/cancellation-request`)
         .set('X-Order-Token', token)
-        .send({ reason: 'OTHER' })
+        .send({ reason: 'OTHER', contactPhone: '052-123-4567' })
         .expect(409);
       expect(dup.body.code).toBe('CANCELLATION_ALREADY_REQUESTED');
     });
 
+    it('requires a contact phone so the store can call the customer', async () => {
+      const { order, token } = await guestOrder();
+      await ship(order.id);
+      const missing = await t
+        .http()
+        .post(`/v1/orders/${order.id}/cancellation-request`)
+        .set('X-Order-Token', token)
+        .send({ reason: 'SIZE' })
+        .expect(400);
+      expect(JSON.stringify(missing.body)).toContain('contactPhone');
+      await t
+        .http()
+        .post('/v1/cancellations')
+        .send({ orderNumber: order.orderNumber, email: 'buyer@example.test', reason: 'SIZE', contactPhone: '  ' })
+        .expect(400);
+    });
+
     it('refuses a request while the order can still be cancelled directly', async () => {
       const { order, token } = await guestOrder();
-      const res = await t.http().post(`/v1/orders/${order.id}/cancellation-request`).set('X-Order-Token', token).send({ reason: 'SIZE' }).expect(409);
+      const res = await t.http().post(`/v1/orders/${order.id}/cancellation-request`).set('X-Order-Token', token).send({ reason: 'SIZE', contactPhone: '052-123-4567' }).expect(409);
       expect(res.body.code).toBe('CANCELLATION_NOT_ALLOWED');
     });
   });
@@ -211,7 +228,7 @@ describe('Cancellations: direct until shipped, requests after, refunds (e2e)', (
   describe('public /cancellations form', () => {
     it('404s on a mismatch, cancels instantly before shipping, files a request after', async () => {
       const a = await guestOrder();
-      const base = { orderNumber: a.order.orderNumber, email: 'buyer@example.test', reason: 'CHANGED_MIND' };
+      const base = { orderNumber: a.order.orderNumber, email: 'buyer@example.test', reason: 'CHANGED_MIND', contactPhone: '052-123-4567' };
       await t.http().post('/v1/cancellations').send({ ...base, email: 'nope@example.test' }).expect(404);
 
       await ship(a.order.id);
@@ -224,7 +241,7 @@ describe('Cancellations: direct until shipped, requests after, refunds (e2e)', (
       const instant = await t
         .http()
         .post('/v1/cancellations')
-        .send({ orderNumber: b.order.orderNumber.toLowerCase(), email: 'BUYER@example.test', reason: 'SIZE' })
+        .send({ orderNumber: b.order.orderNumber.toLowerCase(), email: 'BUYER@example.test', reason: 'SIZE', contactPhone: '052-123-4567' })
         .expect(201);
       expect(instant.body.outcome).toBe('CANCELLED');
       expect(instant.body.order.status).toBe('REFUNDED');
@@ -236,7 +253,7 @@ describe('Cancellations: direct until shipped, requests after, refunds (e2e)', (
     async function openRequest() {
       const { order, token } = await guestOrder();
       await ship(order.id);
-      await t.http().post(`/v1/orders/${order.id}/cancellation-request`).set('X-Order-Token', token).send({ reason: 'SIZE' }).expect(201);
+      await t.http().post(`/v1/orders/${order.id}/cancellation-request`).set('X-Order-Token', token).send({ reason: 'SIZE', contactPhone: '052-123-4567' }).expect(201);
       await settledEmails(mail, 100);
       mail.clear();
       return order;

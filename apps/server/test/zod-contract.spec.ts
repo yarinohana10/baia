@@ -217,12 +217,16 @@ contract('cancellationRequestSchema ⇔ CancellationRequestDto', {
   Dto: CancellationRequestDto,
   valid: {
     'with phone': { reason: 'CHANGED_MIND', contactPhone: '052 123 4567' },
-    'blank phone and details': { reason: 'SIZE', contactPhone: '  ', details: '' },
+    'blank details': { reason: 'SIZE', contactPhone: '052-123-4567', details: '' },
   },
-  invalid: { 'bad phone': ['contactPhone', { reason: 'SIZE', contactPhone: 'abc' }] },
+  invalid: {
+    'bad phone': ['contactPhone', { reason: 'SIZE', contactPhone: 'abc' }],
+    'missing phone': ['contactPhone', { reason: 'SIZE' }],
+    'blank phone': ['contactPhone', { reason: 'SIZE', contactPhone: '  ' }],
+  },
 });
 
-const publicCancel = { orderNumber: 'BA-1', email: 'dana@example.com', reason: 'SIZE' };
+const publicCancel = { orderNumber: 'BA-1', email: 'dana@example.com', reason: 'SIZE', contactPhone: '052-123-4567' };
 contract('publicCancellationSchema ⇔ PublicCancellationDto', {
   schema: publicCancellationSchema,
   Dto: PublicCancellationDto,
@@ -233,6 +237,7 @@ contract('publicCancellationSchema ⇔ PublicCancellationDto', {
     'unknown reason': ['reason', { ...publicCancel, reason: 'size' }],
     'instant not a boolean': ['instant', { ...publicCancel, instant: 'true' }],
     'bad phone': ['contactPhone', { ...publicCancel, contactPhone: '05' }],
+    'missing phone': ['contactPhone', { orderNumber: 'BA-1', email: 'dana@example.com', reason: 'SIZE' }],
   },
 });
 

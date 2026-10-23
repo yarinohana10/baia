@@ -3,6 +3,7 @@ import {
   emailSchema,
   localeSchema,
   optionalPhoneSchema,
+  phoneSchema,
   optionalText,
   requiredText,
   V,
@@ -68,7 +69,8 @@ export const selfCancelSchema = z.object({
 
 /** POST /orders/:id/cancellation-request. */
 export const cancellationRequestSchema = selfCancelSchema.extend({
-  contactPhone: optionalPhoneSchema,
+  /** Required: the store must be able to call the customer about a cancellation or return. */
+  contactPhone: phoneSchema,
 });
 export type CancellationRequestPayload = z.output<typeof cancellationRequestSchema>;
 

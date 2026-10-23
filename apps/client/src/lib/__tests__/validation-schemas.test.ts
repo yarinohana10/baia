@@ -172,21 +172,26 @@ describe('order lookup and cancellation', () => {
   });
 
   it('a reason is required', () => {
-    expect(keys(cancellationRequestSchema, {})).toEqual({ reason: 'validation.reasonRequired' });
-    expect(keys(cancellationRequestSchema, { reason: '' })).toEqual({ reason: 'validation.reasonRequired' });
+    expect(keys(cancellationRequestSchema, { contactPhone: '052-123-4567' })).toEqual({ reason: 'validation.reasonRequired' });
+    expect(keys(cancellationRequestSchema, { reason: '', contactPhone: '052-123-4567' })).toEqual({ reason: 'validation.reasonRequired' });
+  });
+
+  it('a contact phone is required so the store can call the customer', () => {
+    expect(keys(cancellationRequestSchema, { reason: 'SIZE' })).toEqual({ contactPhone: 'validation.required' });
+    expect(keys(cancellationRequestSchema, { reason: 'SIZE', contactPhone: '   ' })).toEqual({ contactPhone: 'validation.required' });
   });
 
   it('publicCancellationSchema needs the order number and email', () => {
-    expect(keys(publicCancellationSchema, { reason: 'SIZE', orderNumber: '', email: '' })).toEqual({
+    expect(keys(publicCancellationSchema, { reason: 'SIZE', orderNumber: '', email: '', contactPhone: '052-123-4567' })).toEqual({
       orderNumber: 'validation.required',
       email: 'validation.required',
     });
-    expect(publicCancellationSchema.parse({ reason: 'SIZE', orderNumber: 'BA-1', email: 'd@e.co', details: '', contactPhone: '' })).toEqual({
+    expect(publicCancellationSchema.parse({ reason: 'SIZE', orderNumber: 'BA-1', email: 'd@e.co', details: '', contactPhone: '052-123-4567' })).toEqual({
       reason: 'SIZE',
       orderNumber: 'BA-1',
       email: 'd@e.co',
       details: undefined,
-      contactPhone: undefined,
+      contactPhone: '052-123-4567',
     });
   });
 });
