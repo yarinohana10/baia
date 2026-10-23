@@ -103,9 +103,9 @@
         },
         {
           "id": "self-cancel",
-          "title": "6. Free cancellation within {cancelHours} hours",
+          "title": "6. Free cancellation until it ships",
           "paragraphs": [
-            "On top of your legal rights, you can cancel an order yourself on the \"Cancel an order\" page within the first {cancelHours} hours after payment - as long as the order hasn't shipped yet.",
+            "On top of your legal rights, you can cancel an order yourself on the \"Cancel an order\" page at any time - as long as the order hasn't shipped yet - and you'll be refunded in full.",
             "You'll get a full refund of everything you paid, including delivery, with no cancellation fee. Refunds go back to the original payment method."
           ]
         },
@@ -450,7 +450,7 @@
         },
         {
           "title": "Need to cancel?",
-          "body": "Within the first {cancelHours} hours after payment, and as long as the order hasn't shipped, you can cancel it yourself on the \"Cancel an order\" page - no fee. After that, the legal cancellation policy applies (see \"Returns & exchanges\")."
+          "body": "At any time, as long as the order hasn't shipped, you can cancel it yourself on the \"Cancel an order\" page - no fee. After it ships, the legal cancellation policy applies (see \"Returns & exchanges\")."
         },
         {
           "title": "International shipping",
@@ -459,12 +459,12 @@
       ]
     },
     "returns": {
-      "metaDescription": "Cancellations, returns and exchanges at BAIA: free cancellation within 48 hours, legal 14-day cancellation and swimwear hygiene rules.",
+      "metaDescription": "Cancellations, returns and exchanges at BAIA: free cancellation until your order ships, legal 14-day cancellation and swimwear hygiene rules.",
       "intro": "Something not quite right? You can cancel, return or exchange. Here are all the options - from the quickest one to your rights under the law.",
       "sections": [
         {
-          "title": "Free cancellation within {cancelHours} hours",
-          "body": "Changed your mind? Within the first {cancelHours} hours after payment, and as long as the order hasn't shipped, you can cancel it yourself on the \"Cancel an order\" page and get a full refund - including delivery."
+          "title": "Free cancellation until it ships",
+          "body": "Changed your mind? At any time, as long as the order hasn't shipped, you can cancel it yourself on the \"Cancel an order\" page and get a full refund - including delivery."
         },
         {
           "title": "14-day cancellation (Consumer Protection Law)",

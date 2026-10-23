@@ -21,6 +21,7 @@ import { NewsletterModule } from '../../src/newsletter/newsletter.module';
 import { CancellationsModule } from '../../src/cancellations/cancellations.module';
 import { PickupPointsModule } from '../../src/pickup-points/pickup-points.module';
 import { AdminNotificationsModule } from '../../src/admin-notifications/admin-notifications.module';
+import { AdminUsersModule } from '../../src/admin-users/admin-users.module';
 
 /** Only the modules under test (keeps storage/uploads/S3 out of the picture). */
 @Module({
@@ -40,6 +41,7 @@ import { AdminNotificationsModule } from '../../src/admin-notifications/admin-no
     CancellationsModule,
     PickupPointsModule,
     AdminNotificationsModule,
+    AdminUsersModule,
   ],
 })
 class E2eModule {}
@@ -52,6 +54,8 @@ export class SpyPaymentProvider implements PaymentProvider {
   refundAmounts: (number | undefined)[] = [];
   delayMs = 0;
   nextResult: PaymentResult | null = null;
+  /** Set to make the provider unable to settle refunds (they stay Refund Pending). */
+  failRefunds = false;
 
   async charge(params: Parameters<PaymentProvider['charge']>[0]): Promise<PaymentResult> {
     this.calls.push(params);
@@ -64,6 +68,7 @@ export class SpyPaymentProvider implements PaymentProvider {
   async refund(transactionId: string, amount?: number): Promise<PaymentResult> {
     this.refunds.push(transactionId);
     this.refundAmounts.push(amount);
+    if (this.failRefunds) return { success: false, transactionId: '', error: 'refund_unavailable' };
     return { success: true, transactionId: `refund_${transactionId}` };
   }
 
@@ -73,6 +78,7 @@ export class SpyPaymentProvider implements PaymentProvider {
     this.refundAmounts = [];
     this.delayMs = 0;
     this.nextResult = null;
+    this.failRefunds = false;
   }
 }
 
@@ -115,7 +121,7 @@ export async function createTestApp(): Promise<TestApp> {
 export async function resetDb(prisma: PrismaService) {
   RateLimitGuard.reset();
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE email_logs, cancellation_requests, contact_messages, newsletter_subscribers, pickup_points, site_config, addresses, payment_attempts, order_items, orders, cart_items, carts, wishlists, product_images, product_variants, products, categories, coupons, sessions, accounts, verifications, users RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE admin_invitations, email_logs, cancellation_requests, contact_messages, newsletter_subscribers, pickup_points, site_config, addresses, payment_attempts, order_items, orders, cart_items, carts, wishlists, product_images, product_variants, products, categories, coupons, sessions, accounts, verifications, users RESTART IDENTITY CASCADE',
   );
 }
 

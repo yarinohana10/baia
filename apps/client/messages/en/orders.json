@@ -17,7 +17,7 @@
     "freeShippingRemaining": "{amount} away from free shipping",
     "freeShippingReached": "You've unlocked free shipping!",
     "freeShippingProgressLabel": "Progress to free shipping",
-    "cancelPolicy": "Free cancellation within {hours} hours, as long as the order hasn't shipped.",
+    "cancelPolicy": "Free cancellation at any time, as long as the order hasn't shipped.",
     "picker": {
       "searchLabel": "Search pickup points",
       "searchPlaceholder": "Search by city or address",
@@ -38,7 +38,14 @@
       "orderLookupFailed": "We couldn't find an order with that order number and email. Check the details and try again.",
       "selfCancelUnavailable": "This order can no longer be cancelled instantly. You can send a cancellation request instead.",
       "cancellationNotAllowed": "This order can't be cancelled (it may already be cancelled). Contact us with any questions.",
-      "cancellationAlreadyRequested": "We already have a cancellation request for this order and will be in touch soon."
+      "cancellationAlreadyRequested": "We already have a cancellation request for this order and will be in touch soon.",
+      "paymentsDisabled": "Payments are coming soon, so orders can't be completed yet. Your cart is saved."
+    },
+    "paymentsComingSoon": {
+      "title": "Payments coming soon",
+      "body": "The store is open for browsing, but orders can't be completed just yet. We're finishing the payment setup - your cart is saved and you'll be able to order very soon.",
+      "backToCart": "Back to cart",
+      "continueShopping": "Continue browsing"
     }
   },
   "orderPage": {
@@ -59,25 +66,25 @@
       "label": "Order progress",
       "received": "Received",
       "paid": "Paid",
-      "processing": "Processing",
+      "processing": "In progress",
       "shipped": "Shipped",
       "delivered": "Delivered",
       "done": "done",
       "cancelled": "This order was cancelled",
       "refunded": "This order was cancelled and refunded"
-    }
+    },
+    "contactTitle": "Contact details",
+    "refundPendingTitle": "Refund in progress",
+    "refundPendingBody": "Your order was cancelled and {amount} will be refunded to your payment method. We'll email you as soon as the refund is done.",
+    "refundDoneBody": "Your order was cancelled and {amount} was refunded to your payment method. It appears on your statement within a few business days."
   },
   "cancellation": {
     "title": "Cancel order",
     "unpaidCanCancel": "This order hasn't been paid yet, so you can cancel it at any time.",
-    "freeUntil": "Free cancellation until {deadline}.",
-    "freeNow": "You can cancel this order free of charge.",
-    "requestAfterWindow": "The free cancellation window ({hours} hours) has passed. Send us a cancellation request and we'll get back to you within one business day.",
-    "requestShipped": "This order has already shipped. You can send a cancellation request - the items must be returned in their original condition.",
+    "requestShipped": "This order has already shipped, so it can't be cancelled directly. Send a cancellation request with your contact details - the items must be returned in their original condition.",
     "openRequest": "We received your cancellation request on {date} and will be in touch soon.",
     "cancelButton": "Cancel order",
     "requestButton": "Request cancellation",
-    "preferTalk": "Rather talk to us first? Send a cancellation request",
     "dialogCancelTitle": "Cancel this order",
     "dialogRequestTitle": "Request a cancellation",
     "dialogCancelBody": "Order {number} will be cancelled right away and the full amount refunded to your payment method.",
@@ -100,9 +107,11 @@
     "sendRequest": "Send request",
     "sending": "Sending…",
     "close": "Close",
-    "cancelledDone": "Your order was cancelled. The refund will appear on your payment method within a few business days, and we've emailed you a confirmation.",
+    "cancelledDone": "Your order was cancelled and the full amount is being refunded. We've emailed you a confirmation; the refund appears on your payment method within a few business days.",
     "cancelledUnpaid": "Your order was cancelled. We've emailed you a confirmation.",
-    "requestDone": "We received your cancellation request and will get back to you within one business day. We've emailed you a confirmation."
+    "requestDone": "We received your cancellation request and will get back to you within one business day. We've emailed you a confirmation.",
+    "freeUntilShipped": "You can cancel this order free of charge at any time until it ships.",
+    "requestUnavailable": "This order can't be cancelled. Contact us if you have questions."
   },
   "orderStatusPage": {
     "metaTitle": "Track your order",
@@ -118,38 +127,33 @@
     "whereTitle": "Where is my order number?",
     "whereBody": "In the order confirmation email we sent after payment. Members can see every order in their account.",
     "cancelTitle": "Need to cancel?",
-    "cancelBody": "Cancel free of charge within {hours} hours of payment, as long as the order hasn't shipped.",
+    "cancelBody": "You can cancel free of charge at any time, as long as the order hasn't shipped.",
     "cancelLink": "Cancel an order"
   },
   "cancelOrderPage": {
     "metaTitle": "Cancel an order",
-    "metaDescription": "Cancel a BAIA order: instant free cancellation inside the cancellation window, or a cancellation request under Israeli consumer law.",
+    "metaDescription": "Cancel a BAIA order: instant free cancellation until it ships, or a cancellation request under Israeli consumer law.",
     "eyebrow": "Cancellations",
     "title": "Cancel an order",
-    "intro": "You can cancel free of charge within {hours} hours of payment, as long as the order hasn't shipped. After that we'll handle your cancellation request under the Israeli Consumer Protection Law.",
+    "intro": "You can cancel an order free of charge at any time until it ships, and you'll be refunded in full. Once it has shipped we'll handle a cancellation request under the Israeli Consumer Protection Law.",
     "orderNumber": "Order number",
     "email": "Email used for the order",
     "phone": "Contact phone (optional)",
-    "formHint": "We'll check your order before anything happens. If it's still inside the cancellation window you can cancel instantly.",
+    "formHint": "We'll check your order before anything happens. If it hasn't shipped you can cancel it right away; if it has, we'll send a cancellation request with your contact details.",
     "continue": "Continue",
     "startOver": "Start over",
-    "chooseLegend": "How would you like to cancel?",
-    "instantTitle": "Cancel now, free of charge",
-    "instantBody": "The order is cancelled right away and the full amount refunded.",
-    "requestTitle": "Send a request - we'll call you",
-    "requestBody": "Rather talk to us first? We'll get back to you within one business day.",
     "doneCancelledTitle": "Your order was cancelled",
     "doneCancelledBody": "The full amount will be refunded to your payment method within a few business days. We've emailed you a confirmation.",
     "doneCancelledUnpaidBody": "Your order was cancelled and you were not charged. We've emailed you a confirmation.",
     "doneRequestedTitle": "Request received",
     "doneRequestedBody": "We'll get back to you within one business day. We've emailed you a confirmation.",
     "viewOrder": "View order",
-    "policyFreeTitle": "Free cancellation within {hours} hours",
-    "policyFreeBody": "Within {hours} hours of payment, and as long as the order hasn't shipped, cancellation is instant with a full refund.",
+    "policyFreeTitle": "Free cancellation until it ships",
+    "policyFreeBody": "As long as the order hasn't shipped (awaiting payment, confirmed or in progress), cancellation is instant with a full refund.",
     "policyShippedTitle": "Already shipped?",
     "policyShippedBody": "You can cancel up to 14 days after receiving your items. Return them in their original condition and packaging.",
     "policyLawTitle": "Cancellation fee",
-    "policyLawBody": "After the free window, a cancellation fee of 5% of the price or ₪100 (whichever is lower) may apply under the Consumer Protection Law.",
+    "policyLawBody": "After an order has shipped, a cancellation fee of 5% of the price or ₪100 (whichever is lower) may apply under the Consumer Protection Law.",
     "returnsLink": "Returns & exchanges policy"
   },
   "admin": {
@@ -181,7 +185,7 @@
     },
     "cancellations": {
       "title": "Cancellations",
-      "subtitle": "Customer cancellation requests and self-service cancellations. Within {hours} hours of payment customers cancel by themselves.",
+      "subtitle": "Customer cancellation requests and self-service cancellations.",
       "all": "All",
       "status": {
         "REQUESTED": "Waiting",
@@ -198,15 +202,11 @@
         "days": "{count} days"
       },
       "orderedAgo": "paid {time} ago",
-      "insideWindow": "Within {hours} hours",
-      "outsideWindow": "After {hours} hours",
       "requiresReturn": "Shipped - return needed",
       "unpaid": "Unpaid",
       "requestedAt": "Received {date}",
       "reason": "Reason",
       "fee": "Cancellation fee (₪)",
-      "feeHintInside": "Inside the free window - no fee.",
-      "feeHintOutside": "Suggested: {amount} (5% or ₪100, whichever is lower).",
       "refundPreview": "Customer refund: {amount}",
       "manualRefund": "This payment did not go through the payment provider - refund manually.",
       "note": "Note to the customer (included in the email)",
@@ -218,7 +218,6 @@
       "confirmApproveUnpaid": "Cancel order {number}? The customer will be emailed.",
       "confirmReject": "Reject the cancellation request for order {number}? The customer will be emailed with your note.",
       "approved": "Order {number} was cancelled and refunded.",
-      "approvedRefundFailed": "Order {number} was cancelled, but the automatic refund failed - refund it manually.",
       "rejected": "The request for order {number} was rejected.",
       "alreadyHandled": "This request was already handled or the order changed. Refresh the page.",
       "actionFailed": "That didn't work. Please try again.",
@@ -226,7 +225,11 @@
       "refunded": "Refunded: {amount}",
       "noRefund": "No refund",
       "feeKept": "Fee: {amount}",
-      "noteLabel": "Note: {note}"
+      "noteLabel": "Note: {note}",
+      "feeHint": "Suggested: {amount} (5% or ₪100, whichever is lower).",
+      "approvedRefundPending": "Order {number} was cancelled. Refund it in the payment provider's dashboard, then confirm it in Orders.",
+      "refundPending": "Refund pending: {amount}",
+      "refundPendingHint": "Refund it in the payment provider's dashboard, then confirm in Orders:"
     },
     "delivery": {
       "title": "Delivery",
@@ -244,9 +247,6 @@
       "pickupEta": "Delivery time - pickup",
       "etaHint": "Business days, e.g. 3-5",
       "days": "days",
-      "cancelWindow": "Self-cancel window",
-      "cancelWindowHint": "Hours after payment in which customers can cancel by themselves, free of charge.",
-      "hours": "hours",
       "invalid": "Please fix the highlighted fields.",
       "save": "Save",
       "saving": "Saving…",
@@ -293,7 +293,6 @@
       "marketing": "Marketing consent",
       "marketingYes": "Yes",
       "marketingNo": "No",
-      "selfCancelUntil": "The customer can cancel by themselves until {date}",
       "cancellationRequests": "Cancellations",
       "requestStatus": {
         "REQUESTED": "Open request",
@@ -308,8 +307,7 @@
       "trackingForShipping": "emailed to the customer",
       "shipWithoutTracking": "Mark as shipped without a tracking number?",
       "refundOnCancel": "Refund {amount} through the payment provider",
-      "confirmCancelRefund": "Cancel the order and refund {amount}? Items go back to stock and the customer is emailed.",
-      "refundFailed": "Order {number} was cancelled, but the automatic refund failed - refund it manually."
+      "confirmCancelRefund": "Cancel the order and refund {amount}? Items go back to stock and the customer is emailed."
     },
     "orderEmails": {
       "title": "Emails sent",
@@ -334,8 +332,89 @@
         "cancellation-request-rejected": "Cancellation request rejected",
         "admin-new-order": "Store alert: new order",
         "admin-cancellation-request": "Store alert: cancellation request",
-        "admin-order-self-cancelled": "Store alert: self-service cancellation"
+        "admin-order-self-cancelled": "Store alert: self-service cancellation",
+        "order-processing": "Order in progress",
+        "refund-completed": "Refund completed"
       }
+    },
+    "orderCards": {
+      "loading": "Loading orders…",
+      "details": "Details",
+      "detailsHint": "Payment attempts, emails sent and every cancellation request for this order.",
+      "paymentNotRecorded": "Not recorded",
+      "paymentRef": "Payment ref",
+      "filters": {
+        "from": "From date",
+        "to": "To date",
+        "clearDates": "Clear dates",
+        "export": "Export CSV",
+        "exporting": "Exporting…",
+        "exportFailed": "Export failed. Please try again.",
+        "reversed": "The start date is after the end date, so the dates are ignored."
+      },
+      "timeline": {
+        "title": "Status history",
+        "to": "to",
+        "created": "Created",
+        "system": "system"
+      },
+      "refund": {
+        "pendingChip": "Refund Pending · {amount}",
+        "completedChip": "Refunded · {amount}",
+        "pendingNote": "The customer is still owed this refund. Refund it in the payment provider's dashboard, then confirm it here.",
+        "complete": "Complete refund",
+        "dialogTitle": "Complete refund for order {number}",
+        "dialogBody": "Amount to refund: {amount}",
+        "dialogSteps": "First refund this amount in the payment provider's dashboard. Only then confirm here: the order becomes Refunded and the customer is emailed.",
+        "providerRef": "Provider refund reference (optional)",
+        "note": "Note (optional)",
+        "confirmDone": "I refunded it - confirm",
+        "markFailed": "Refund failed",
+        "working": "Working…",
+        "completed": "The refund for order {number} was confirmed.",
+        "markedFailed": "The refund for order {number} was marked as failed. The order stays cancelled.",
+        "alreadySettled": "This refund was already settled. Refresh the page.",
+        "actionFailed": "That didn't work. Please try again."
+      },
+      "cancel": {
+        "open": "Cancel with refund",
+        "title": "Cancel order {number}",
+        "description": "Items return to stock and the customer is emailed.",
+        "refund": "Refund {amount} to the customer",
+        "fee": "Cancellation fee (₪, optional)",
+        "feeInvalid": "Enter a fee between 0 and the order total.",
+        "refundPreview": "Customer refund: {amount}",
+        "note": "Note to the customer (optional, included in the email)",
+        "providerHint": "If the payment provider can't refund instantly, the order stays Cancelled with a Refund Pending until you confirm it.",
+        "keep": "Keep order",
+        "confirm": "Cancel order",
+        "confirmRefund": "Cancel and refund",
+        "working": "Working…"
+      },
+      "outcome": {
+        "cancelled": "Order {number} was cancelled.",
+        "cancelledRefunded": "Order {number} was cancelled and refunded.",
+        "cancelledRefundPending": "Order {number} was cancelled. Refund it in the payment provider's dashboard, then confirm it in Orders (Refund Pending)."
+      },
+      "resend": {
+        "menu": "Resend email",
+        "sending": "Sending…",
+        "confirm": "Send \"{name}\" to {email} again?",
+        "sent": "\"{name}\" was sent to {email}.",
+        "failed": "Sending \"{name}\" failed. Try again in a few minutes.",
+        "notReached": "The order hasn't reached the state \"{name}\" is about, so it can't be sent.",
+        "error": "Sending \"{name}\" failed. Please try again."
+      },
+      "queue": {
+        "toggle": "Refund Pending ({count})",
+        "title": "Refunds waiting for you",
+        "hint": "Refund each one in the payment provider's dashboard, then confirm it here.",
+        "empty": "No refunds are waiting.",
+        "complete": "Complete refund"
+      }
+    },
+    "orders": {
+      "processing": "In Progress"
     }
   },
   "payment": {

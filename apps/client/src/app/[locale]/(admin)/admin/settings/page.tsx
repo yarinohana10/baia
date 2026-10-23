@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { BusinessDetailsCard } from '@/components/admin/BusinessDetailsCard';
+import { InventorySettingsCard } from '@/components/admin/InventorySettingsCard';
 import { Save, Upload, Image as ImageIcon, Truck, Info } from 'lucide-react';
 
 type ApiFieldError = { field: string; code: string };
@@ -175,6 +176,8 @@ export default function SettingsPage() {
             </Link>
           </CardContent>
         </Card>
+
+        <InventorySettingsCard />
 
         {/* Hero Banner */}
         <Card>

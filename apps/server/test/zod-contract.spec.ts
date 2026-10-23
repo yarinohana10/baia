@@ -29,6 +29,7 @@ import {
   contactSchema,
   createOrderSchema,
   deliverySettingsSchema,
+  inventorySettingsSchema,
   issuesByField,
   newsletterSubscribeSchema,
   orderLookupSchema,
@@ -424,15 +425,14 @@ const delivery = {
   freeShippingThreshold: 249,
   courierEtaDays: '3-5',
   pickupEtaDays: '2',
-  selfCancelWindowHours: 48,
 };
 contract('deliverySettingsSchema ⇔ UpdateSiteConfigDto', {
   schema: deliverySettingsSchema,
   Dto: UpdateSiteConfigDto,
   valid: {
     defaults: delivery,
-    'free shipping, no window': { ...delivery, shippingCost: 0, pickupPointCost: 0, selfCancelWindowHours: 0 },
-    'upper limits': { ...delivery, shippingCost: 100000, freeShippingThreshold: 1000000, selfCancelWindowHours: 336 },
+    'free shipping': { ...delivery, shippingCost: 0, pickupPointCost: 0 },
+    'upper limits': { ...delivery, shippingCost: 100000, freeShippingThreshold: 1000000 },
   },
   invalid: {
     'negative price': ['shippingCost', { ...delivery, shippingCost: -1 }],
@@ -441,14 +441,23 @@ contract('deliverySettingsSchema ⇔ UpdateSiteConfigDto', {
     'threshold too high': ['freeShippingThreshold', { ...delivery, freeShippingThreshold: 1000001 }],
     'ETA in words': ['courierEtaDays', { ...delivery, courierEtaDays: '3 to 5' }],
     'ETA with three digits': ['pickupEtaDays', { ...delivery, pickupEtaDays: '100' }],
-    'window over two weeks': ['selfCancelWindowHours', { ...delivery, selfCancelWindowHours: 337 }],
-    'fractional window': ['selfCancelWindowHours', { ...delivery, selfCancelWindowHours: 1.5 }],
+  },
+});
+
+contract('inventorySettingsSchema ⇔ UpdateSiteConfigDto', {
+  schema: inventorySettingsSchema,
+  Dto: UpdateSiteConfigDto,
+  valid: { default: { lowStockThreshold: 5 }, 'alerts only at zero': { lowStockThreshold: 0 }, upper: { lowStockThreshold: 1000 } },
+  invalid: {
+    negative: ['lowStockThreshold', { lowStockThreshold: -1 }],
+    fractional: ['lowStockThreshold', { lowStockThreshold: 1.5 }],
+    'too high': ['lowStockThreshold', { lowStockThreshold: 1001 }],
   },
 });
 
 describe('deliverySettingsSchema: form input', () => {
   it('converts the form strings to the numbers the API expects', async () => {
-    const form = { ...delivery, shippingCost: '29.90', pickupPointCost: ' 19.9', freeShippingThreshold: '249', selfCancelWindowHours: '48' };
+    const form = { ...delivery, shippingCost: '29.90', pickupPointCost: ' 19.9', freeShippingThreshold: '249' };
     const parsed = deliverySettingsSchema.parse(form);
     expect(parsed).toEqual(delivery);
     expect(await viaDto(UpdateSiteConfigDto, parsed)).toMatchObject({ ok: true });

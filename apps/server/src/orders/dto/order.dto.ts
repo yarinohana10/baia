@@ -10,7 +10,7 @@ import {
   MaxLength,
   ValidateIf,
 } from 'class-validator';
-import { DeliveryMethod, OrderStatus } from '../../generated/prisma';
+import { DeliveryMethod, OrderStatus, RefundStatus } from '../../generated/prisma';
 import { Transform } from 'class-transformer';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
@@ -136,6 +136,16 @@ export class AdminOrdersQueryDto {
   @MaxLength(100)
   search?: string;
 
+  /** First Israel calendar day (YYYY-MM-DD), inclusive. */
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  from?: string;
+
+  /** Last Israel calendar day (YYYY-MM-DD), inclusive. */
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  to?: string;
+
   @IsOptional()
   @IsString()
   page?: string;
@@ -159,17 +169,76 @@ export class OrderLookupDto {
   email!: string;
 }
 
-/** Admin CSV export: orders created between `from` and `to` (ISO dates). */
+/** Admin CSV export: same filters as the list (Israel calendar days, inclusive). */
 export class AdminOrdersExportQueryDto {
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/)
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   from?: string;
 
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/)
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   to?: string;
 
   @IsOptional()
   @IsEnum(OrderStatus)
   status?: OrderStatus;
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+}
+
+export const RESENDABLE_EMAILS = [
+  'order-confirmation',
+  'admin-new-order',
+  'order-processing',
+  'order-shipped',
+  'order-delivered',
+  'order-cancelled',
+  'refund-completed',
+] as const;
+export type ResendableEmail = (typeof RESENDABLE_EMAILS)[number];
+
+export class ResendOrderEmailDto {
+  @IsIn(RESENDABLE_EMAILS)
+  template!: ResendableEmail;
+}
+
+export class CompleteRefundDto {
+  /** The provider's refund id / reference, for the books. */
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(200)
+  providerRef?: string;
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
+}
+
+export class FailRefundDto {
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
+}
+
+export class AdminRefundsQueryDto {
+  @IsOptional()
+  @IsEnum(RefundStatus)
+  status?: RefundStatus;
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  limit?: string;
 }

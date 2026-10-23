@@ -13,7 +13,6 @@ export type ShippingSummary = {
   courierEtaDays: string;
   pickupEtaDays: string;
   freeShippingThreshold: string;
-  selfCancelWindowHours: number;
 };
 
 function Section({ title, children, defaultOpen = false }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
@@ -97,7 +96,7 @@ export function ProductInfoSections({
         </ul>
         <ul className="mb-4 list-disc space-y-1.5 ps-5 marker:text-gray-300">
           <li>{t('shipping.freeOver', { threshold: shipping.freeShippingThreshold })}</li>
-          <li>{t('shipping.cancel', { hours: shipping.selfCancelWindowHours })}</li>
+          <li>{t('shipping.cancel')}</li>
           <li>{t('shipping.returns')}</li>
           <li>{t('shipping.hygiene')}</li>
         </ul>

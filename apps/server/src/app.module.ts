@@ -22,6 +22,7 @@ import { ContactModule } from './contact/contact.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { CancellationsModule } from './cancellations/cancellations.module';
 import { PickupPointsModule } from './pickup-points/pickup-points.module';
+import { InventoryModule } from './inventory/inventory.module';
 import { AdminNotificationsModule } from './admin-notifications/admin-notifications.module';
 
 @Module({
@@ -50,6 +51,7 @@ import { AdminNotificationsModule } from './admin-notifications/admin-notificati
     CancellationsModule,
     PickupPointsModule,
     AdminNotificationsModule,
+    InventoryModule,
   ],
 })
 export class AppModule {}

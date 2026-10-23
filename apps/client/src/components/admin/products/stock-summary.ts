@@ -1,4 +1,4 @@
-import { LOW_STOCK_THRESHOLD } from '@/components/admin/product-form/stock-variants';
+import { LOW_STOCK_THRESHOLD } from '@/lib/catalog/pricing';
 import type { ProductVariant } from './types';
 
 export type StockStatus = 'no_sizes' | 'in_stock' | 'low_stock' | 'out_of_stock';
@@ -16,7 +16,7 @@ export type StockSummary = {
 };
 
 /** Stock badge data for the products list, from the product's variants. */
-export function getStockSummary(variants: ProductVariant[]): StockSummary {
+export function getStockSummary(variants: ProductVariant[], lowStockThreshold = LOW_STOCK_THRESHOLD): StockSummary {
   let sizes = 0;
   let tracked = 0;
   let trackedCount = 0;
@@ -27,7 +27,7 @@ export function getStockSummary(variants: ProductVariant[]): StockSummary {
     if (v.trackInventory === false) continue;
     trackedCount += 1;
     tracked += v.stockQuantity;
-    if (v.stockQuantity > 0 && v.stockQuantity <= LOW_STOCK_THRESHOLD) anyLow = true;
+    if (v.stockQuantity > 0 && v.stockQuantity <= lowStockThreshold) anyLow = true;
   }
   const base = { sizes, tracked, trackedCount, unlimitedCount: sizes - trackedCount };
 

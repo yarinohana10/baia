@@ -20,10 +20,8 @@ export type CancelOrderFormState = {
   fields: CancelOrderFields;
   /** Validation issues, keyed by schema field. */
   issues: FieldIssues;
-  /** Step 2: the order was found and may be cancelled instantly. */
+  /** Step 2: the order was found and has not shipped, so it can be cancelled right away. */
   found: FoundOrder | null;
-  /** Step 2 choice: cancel now (default) or ask the store to call first. */
-  instant: boolean;
   error: ErrorMessage | null;
   result: CancellationResult | null;
 };
@@ -39,7 +37,6 @@ export type CancelOrderFormAction =
   | { type: 'submitting' }
   | { type: 'found'; found: FoundOrder }
   | { type: 'failed'; error: ErrorMessage }
-  | { type: 'chooseInstant'; instant: boolean }
   | { type: 'startOver' }
   | { type: 'completed'; result: CancellationResult };
 
@@ -47,7 +44,6 @@ export const initialCancelOrderForm: CancelOrderFormState = {
   fields: { orderNumber: '', email: '', phone: '', reason: '', details: '' },
   issues: {},
   found: null,
-  instant: true,
   error: null,
   result: null,
 };
@@ -77,8 +73,6 @@ export function cancelOrderFormReducer(state: CancelOrderFormState, action: Canc
       return { ...state, found: action.found };
     case 'failed':
       return { ...state, error: action.error };
-    case 'chooseInstant':
-      return { ...state, instant: action.instant };
     case 'startOver':
       return { ...state, found: null, error: null };
     case 'completed':
@@ -86,18 +80,17 @@ export function cancelOrderFormReducer(state: CancelOrderFormState, action: Canc
   }
 }
 
-/** Whether step 2 will cancel right away (rather than file a request). */
-export function cancelsInstantly(state: Pick<CancelOrderFormState, 'found' | 'instant'>): boolean {
-  const info = state.found?.order.cancellation;
-  return info?.canSelfCancel === true && (state.instant || !info.canRequest);
+/** Whether step 2 cancels right away (an order that has not shipped) rather than filing a request. */
+export function cancelsInstantly(state: Pick<CancelOrderFormState, 'found'>): boolean {
+  return state.found?.order.cancellation?.canSelfCancel === true;
 }
 
 /** What step 1 does with the order it found. */
-export type LookupNext = 'choose' | 'alreadyRequested' | 'notAllowed' | 'request';
+export type LookupNext = 'confirm' | 'alreadyRequested' | 'notAllowed' | 'request';
 
 export function nextAfterLookup(info: CancellationInfo | undefined): LookupNext {
-  // Inside the free window: let the shopper choose (or confirm) before anything happens.
-  if (info?.canSelfCancel) return 'choose';
+  // Not shipped yet: the shopper confirms the instant cancellation before anything happens.
+  if (info?.canSelfCancel) return 'confirm';
   if (info?.openRequest) return 'alreadyRequested';
   if (!info?.canRequest) return 'notAllowed';
   return 'request';

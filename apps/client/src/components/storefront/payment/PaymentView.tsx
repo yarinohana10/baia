@@ -4,6 +4,7 @@ import { useRouter } from '@/i18n/navigation';
 import { orderPageHref } from '@/lib/orders';
 import { useGuestOrder } from '@/hooks/storefront/useGuestOrder';
 import { usePaymentConfig } from '@/hooks/storefront/usePaymentConfig';
+import { PaymentsComingSoon } from '../checkout/PaymentsComingSoon';
 import { PaymentNotFound } from './PaymentNotFound';
 import { PaymentSkeleton } from './PaymentSkeleton';
 import { PaymentStep } from './PaymentStep';
@@ -30,5 +31,6 @@ export function PaymentView({ orderId }: { orderId: string }) {
 
   if (notFound) return <PaymentNotFound />;
   if (!order || !config) return <PaymentSkeleton />;
+  if (!config.enabled && order.status === 'PENDING_PAYMENT') return <PaymentsComingSoon />;
   return <PaymentStep order={order} config={config} guestToken={guestToken} onNotPayable={refresh} />;
 }

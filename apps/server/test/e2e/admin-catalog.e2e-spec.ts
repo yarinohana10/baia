@@ -126,7 +126,7 @@ describe('Admin catalog: site config, coupons, categories, products (e2e)', () =
       const admin = await signUp(t, { admin: true });
       const res = await admin.agent
         .post('/v1/admin/site-config/hero-image')
-        .attach('file', Buffer.from('img'), { filename: 'hero.jpg', contentType: 'image/jpeg' })
+        .attach('file', Buffer.from([0xff, 0xd8, 0xff, 0xe0]), { filename: 'hero.jpg', contentType: 'image/jpeg' })
         .expect(201);
       expect(res.body.heroImageUrl).toMatch(/^http:\/\/storage\.test\/site\//);
       await admin.agent.post('/v1/admin/site-config/hero-image').expect(400);

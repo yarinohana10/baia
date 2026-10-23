@@ -4,7 +4,8 @@ import { ensureAdmin, type EnsureAdminResult } from './ensure-admin';
 type Log = (message: string) => void;
 
 /**
- * Used by `prisma/seed.ts`. Creates/promotes the admin only when both
+ * Local-development convenience used by `prisma/seed.ts` (production does not
+ * seed: the Owner is pinned by OWNER_EMAIL, see OwnerBootstrapService). Creates/promotes the admin only when both
  * ADMIN_EMAIL and ADMIN_PASSWORD are set. Never deletes users and never changes
  * an existing password. Never logs the password.
  */

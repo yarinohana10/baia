@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Eye, EyeOff, Pencil, Star, Trash2 } from 'lucide-react';
+import { Clock, Eye, EyeOff, Pencil, Star, Trash2 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import type { AdminProduct } from './types';
 
@@ -11,12 +11,14 @@ export function ProductRowActions({
   productName,
   onToggleFeatured,
   onToggleActive,
+  onToggleBackSoon,
   onDelete,
 }: {
   product: AdminProduct;
   productName: string;
   onToggleFeatured: (product: AdminProduct) => void;
   onToggleActive: (product: AdminProduct) => void;
+  onToggleBackSoon: (product: AdminProduct) => void;
   onDelete: (id: string) => void;
 }) {
   const t = useTranslations('admin.products');
@@ -37,8 +39,21 @@ export function ProductRowActions({
         onClick={() => onToggleActive(product)}
         className="rounded-lg p-2 text-[#3f484c] transition-colors hover:bg-[#f3f3f4] hover:text-[#005d72]"
         aria-label={product.isActive ? t('deactivate') : t('activate')}
+        title={product.isActive ? t('deactivateHint') : t('activateHint')}
       >
         {product.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+      </button>
+      <button
+        type="button"
+        onClick={() => onToggleBackSoon(product)}
+        aria-pressed={!!product.backSoon}
+        className={`rounded-lg p-2 transition-colors ${
+          product.backSoon ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'text-[#3f484c] hover:bg-[#f3f3f4] hover:text-[#005d72]'
+        }`}
+        aria-label={product.backSoon ? t('clearBackSoon') : t('markBackSoon')}
+        title={t('backSoonHint')}
+      >
+        <Clock size={16} />
       </button>
       <Link
         href={`/admin/products/${product.id}`}

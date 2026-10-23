@@ -1,0 +1,111 @@
+{
+  "admin": {
+    "dashboard": {
+      "sectionFailed": "לא הצלחנו לטעון את החלק הזה.",
+      "retry": "נסו שוב",
+      "subtitle": "איך החנות מתפקדת, בתאריכים שבחרתם",
+      "breakdown": {
+        "title": "מכירות לפי צבע ומידה",
+        "groupBy": "קיבוץ לפי",
+        "color": "צבע",
+        "size": "מידה"
+      },
+      "sales": {
+        "measure": "מדד",
+        "metric": {
+          "revenue": "הכנסות",
+          "orders": "הזמנות",
+          "units": "יחידות"
+        },
+        "date": "תאריך",
+        "by": {
+          "day": "לפי יום",
+          "week": "לפי שבוע (ראשון עד שבת)",
+          "month": "לפי חודש"
+        },
+        "weekOf": "שבוע של {date}",
+        "detailOrders": "{count} הזמנות",
+        "detailRevenue": "{amount} הכנסות",
+        "exportChart": "ייצוא הגרף",
+        "exportOrders": "ייצוא הזמנות",
+        "exporting": "מייצא…",
+        "exportFailed": "הייצוא נכשל. נסו שוב."
+      },
+      "delivered": {
+        "title": "הזמנות שנמסרו",
+        "revenue": "הכנסות ממסירות",
+        "total": "{count} הזמנות נמסרו, בשווי {amount}",
+        "detail": "{amount} נמסרו",
+        "weekOf": "שבוע של {date}",
+        "date": "תאריך",
+        "empty": "לא נמסרו הזמנות בתקופה זו.",
+        "failed": "לא הצלחנו לטעון את החלק הזה."
+      },
+      "top": {
+        "rankBy": "דירוג לפי",
+        "byUnits": "יחידות",
+        "byRevenue": "הכנסות",
+        "orders": "הזמנות"
+      },
+      "category": {
+        "groupBy": "קיבוץ לפי",
+        "audience": "קהל יעד",
+        "type": "סוג מוצר"
+      },
+      "kpi": {
+        "revenue": "הכנסות",
+        "revenueSub": "הזמנות ששולמו, לפני החזרים",
+        "orders": "הזמנות",
+        "ordersSub": "הזמנות ששולמו ולא בוטלו",
+        "averageOrder": "ממוצע להזמנה",
+        "units": "יחידות שנמכרו",
+        "delivered": "נמסרו",
+        "deliveredSub": "בשווי {amount}",
+        "shipped": "נשלחו",
+        "cancelled": "בוטלו / הוחזרו",
+        "cancelledSub": "{cancelled} בוטלו, {refunded} הוחזרו · {amount}",
+        "discounts": "הנחות שניתנו",
+        "discountsSub": "{count} הזמנות עם קופון",
+        "shippingRevenue": "הכנסות ממשלוח",
+        "newCustomers": "לקוחות חדשים",
+        "newCustomersSub": "{count} חוזרים",
+        "was": "היה {value}"
+      },
+      "range": {
+        "label": "טווח תאריכים",
+        "today": "היום",
+        "yesterday": "אתמול",
+        "thisWeek": "השבוע",
+        "last7Days": "7 ימים אחרונים",
+        "thisMonth": "החודש",
+        "last30Days": "30 ימים אחרונים",
+        "thisYear": "השנה",
+        "allTime": "כל הזמן",
+        "custom": "מותאם אישית",
+        "from": "מתאריך",
+        "to": "עד תאריך",
+        "apply": "החלה",
+        "invalid": {
+          "incomplete": "בחרו שני תאריכים.",
+          "order": "תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.",
+          "tooLong": "בחרו טווח של עד 3 שנים."
+        },
+        "showing": "{from} עד {to}",
+        "bucket": {
+          "day": "יומי",
+          "week": "שבועי",
+          "month": "חודשי"
+        },
+        "comparedWith": "בהשוואה ל-{from} עד {to}",
+        "noComparison": "אין עם מה להשוות",
+        "updating": "מתעדכן…"
+      },
+      "needs": {
+        "pendingRefunds": "החזרים לביצוע",
+        "lowStock": "מלאי נמוך",
+        "outOfStock": "אזל מהמלאי",
+        "threshold": "{count} ומטה"
+      }
+    }
+  }
+}

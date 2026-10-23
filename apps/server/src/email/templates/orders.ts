@@ -1,6 +1,6 @@
 import type { EmailTemplate } from './index';
-import { greeting, render } from './helpers';
-import { telHref, type Block, type InfoBox, type Link } from './layout';
+import { greeting, paymentLines, render, type PaymentInfo } from './helpers';
+import { telHref, type Block, type InfoBox, type ItemRow, type Link } from './layout';
 
 /**
  * Order lifecycle emails (shipped, delivered, cancelled, cancellation
@@ -40,7 +40,7 @@ export interface OrderTemplateData {
     paid: boolean;
     refundAmount?: string | null;
     feeAmount?: string | null;
-    /** True when the provider refund failed and the store will handle it by hand. */
+    /** True when the provider has not returned the money yet and the store will settle it. */
     refundPending?: boolean;
     note?: string | null;
     shopUrl: string;
@@ -61,14 +61,38 @@ export interface OrderTemplateData {
     note?: string | null;
     contactUrl: string;
   };
+  'order-processing': {
+    name?: string | null;
+    orderNumber: string;
+    orderUrl?: string | null;
+    contactUrl?: string | null;
+  };
+  'refund-completed': {
+    name?: string | null;
+    orderNumber: string;
+    refundAmount: string;
+    orderTotal?: string | null;
+    /** Cancellation fee the store kept, when any. */
+    feeAmount?: string | null;
+    shopUrl: string;
+    orderUrl?: string | null;
+    contactUrl?: string | null;
+  };
   'admin-new-order': {
     orderNumber: string;
+    orderDate: string;
     customer: string;
     email: string;
     phone?: string | null;
+    items: (ItemRow & { color: string; size: string })[];
+    subtotal: string;
+    shipping: string;
+    discount: string | null;
     total: string;
     itemCount: number;
-    delivery: string;
+    deliveryMethod: 'COURIER' | 'PICKUP_POINT';
+    addressLines: string[];
+    payment: PaymentInfo | null;
     marketingConsent: boolean;
     adminUrl: string;
   };
@@ -80,19 +104,25 @@ export interface OrderTemplateData {
     total: string;
     reason: string;
     details?: string | null;
-    insideWindow: boolean;
     requiresReturn: boolean;
     adminUrl: string;
   };
-  'admin-order-self-cancelled': {
+  /** Every cancellation except the silent unpaid-order sweeper. */
+  'admin-order-cancelled': {
     orderNumber: string;
     customer: string;
     email: string;
+    phone?: string | null;
     total: string;
+    cancelledBy: 'customer' | 'admin' | 'request';
+    paid: boolean;
     refundAmount?: string | null;
-    refundFailed: boolean;
-    reason: string;
+    feeAmount?: string | null;
+    /** The provider did not settle the refund: an Admin must refund it in the provider's dashboard. */
+    refundPending: boolean;
+    reason?: string | null;
     details?: string | null;
+    note?: string | null;
     adminUrl: string;
   };
 }
@@ -247,8 +277,8 @@ const orderCancelled: EmailTemplate<OrderTemplateData['order-cancelled']> = (dat
         lines: [
           data.refundPending
             ? he
-              ? 'הזיכוי יבוצע על ידי צוות החנות בימים הקרובים, ונעדכן אותך כשיושלם.'
-              : 'Our team will process your refund in the coming days and let you know once it is done.'
+              ? 'הזיכוי בטיפול. נעדכן אותך במייל ברגע שהכסף יוחזר לאמצעי התשלום שלך.'
+              : 'Your refund is being processed. We will email you as soon as the money is returned to your payment method.'
             : he
               ? 'אם חויבת על ההזמנה, הזיכוי יבוצע לאמצעי התשלום שבו שילמת.'
               : 'If you were charged, the amount will be refunded to your original payment method.',
@@ -354,8 +384,10 @@ const customerRows = (d: { customer: string; email: string; phone?: string | nul
   ...(d.phone ? [{ label: 'טלפון', value: d.phone, url: telHref(d.phone) }] : []),
 ];
 
-const adminNewOrder: EmailTemplate<OrderTemplateData['admin-new-order']> = (data, _locale, ctx) =>
-  render(
+const adminNewOrder: EmailTemplate<OrderTemplateData['admin-new-order']> = (data, _locale, ctx) => {
+  const pickup = data.deliveryMethod === 'PICKUP_POINT';
+  const payment = paymentLines(data.payment, 'he');
+  return render(
     {
       locale: 'he',
       preheader: `הזמנה חדשה ${data.orderNumber} - ${data.total}`,
@@ -366,15 +398,27 @@ const adminNewOrder: EmailTemplate<OrderTemplateData['admin-new-order']> = (data
           type: 'facts',
           items: [
             { label: 'מספר הזמנה', value: data.orderNumber },
+            { label: 'תאריך', value: data.orderDate },
             { label: 'סה״כ', value: data.total },
-            { label: 'פריטים', value: String(data.itemCount) },
+          ],
+        },
+        { type: 'items', title: `פריטים (${data.itemCount})`, items: data.items },
+        {
+          type: 'totals',
+          rows: [
+            { label: 'סכום ביניים', value: data.subtotal },
+            { label: 'משלוח', value: data.shipping },
+            ...(data.discount ? [{ label: 'הנחה', value: `-${data.discount}` }] : []),
+            { label: 'סה״כ', value: data.total, strong: true },
           ],
         },
         {
           type: 'details',
+          title: 'פרטי הלקוח/ה',
           rows: [
             ...customerRows(data),
-            { label: 'משלוח', value: data.delivery },
+            { label: pickup ? 'איסוף מנקודת חלוקה' : 'כתובת למשלוח', value: data.addressLines.join(', ') },
+            { label: 'אמצעי תשלום', value: payment?.join(' | ') ?? 'לא ידוע' },
             { label: 'דיוור', value: data.marketingConsent ? 'הלקוח/ה אישר/ה קבלת דיוור.' : 'ללא אישור דיוור.' },
           ],
         },
@@ -384,6 +428,7 @@ const adminNewOrder: EmailTemplate<OrderTemplateData['admin-new-order']> = (data
     `הזמנה חדשה ${data.orderNumber} (${data.total})`,
     ctx,
   );
+};
 
 const adminCancellationRequest: EmailTemplate<OrderTemplateData['admin-cancellation-request']> = (data, _locale, ctx) =>
   render(
@@ -406,10 +451,6 @@ const adminCancellationRequest: EmailTemplate<OrderTemplateData['admin-cancellat
             ...customerRows(data),
             { label: 'סיבה', value: data.reason },
             ...(data.details ? [{ label: 'פרטים', value: data.details }] : []),
-            {
-              label: 'חלון ביטול',
-              value: data.insideWindow ? 'הבקשה הוגשה בתוך חלון הביטול ללא עלות.' : 'הבקשה הוגשה אחרי חלון הביטול ללא עלות.',
-            },
           ],
         },
         ...(data.requiresReturn
@@ -422,12 +463,28 @@ const adminCancellationRequest: EmailTemplate<OrderTemplateData['admin-cancellat
     ctx,
   );
 
-const adminSelfCancelled: EmailTemplate<OrderTemplateData['admin-order-self-cancelled']> = (data, _locale, ctx) =>
-  render(
+const CANCELLED_BY_HE = {
+  customer: 'הלקוח/ה ביטל/ה את ההזמנה',
+  admin: 'ההזמנה בוטלה על ידי צוות החנות',
+  request: 'בקשת ביטול אושרה',
+} as const;
+
+const adminOrderCancelled: EmailTemplate<OrderTemplateData['admin-order-cancelled']> = (data, _locale, ctx) => {
+  const money: string[] = [];
+  if (!data.paid) money.push('ההזמנה לא שולמה - אין זיכוי.');
+  else if (data.refundPending) {
+    money.push(
+      `נדרש זיכוי של ${data.refundAmount ?? data.total}: יש לזכות את הלקוח/ה בלוח הבקרה של ספק התשלומים ואז לאשר בממשק הניהול (זיכויים ממתינים).`,
+    );
+  } else if (data.refundAmount) money.push(`בוצע זיכוי של ${data.refundAmount}.`);
+  else money.push('לא נדרש זיכוי.');
+  if (data.feeAmount) money.push(`דמי ביטול שנשארו בחנות: ${data.feeAmount}.`);
+  money.push('הפריטים הוחזרו למלאי.');
+  return render(
     {
       locale: 'he',
-      preheader: `ההזמנה ${data.orderNumber} בוטלה על ידי הלקוח/ה`,
-      heading: 'הזמנה בוטלה בשירות עצמי',
+      preheader: `${CANCELLED_BY_HE[data.cancelledBy]}: ${data.orderNumber}`,
+      heading: 'הזמנה בוטלה',
       paragraphs: [],
       blocks: [
         {
@@ -440,29 +497,77 @@ const adminSelfCancelled: EmailTemplate<OrderTemplateData['admin-order-self-canc
         {
           type: 'details',
           rows: [
+            { label: 'סיבת הביטול', value: CANCELLED_BY_HE[data.cancelledBy] },
             ...customerRows(data),
-            { label: 'סיבה', value: data.reason },
+            ...(data.reason ? [{ label: 'סיבה', value: data.reason }] : []),
             ...(data.details ? [{ label: 'פרטים', value: data.details }] : []),
+            ...(data.note ? [{ label: 'הערה', value: data.note }] : []),
           ],
         },
-        {
-          type: 'callout',
-          tone: data.refundFailed ? 'warning' : 'success',
-          lines: [
-            data.refundFailed
-              ? 'שימו לב: הזיכוי האוטומטי נכשל - יש לבצע זיכוי ידני.'
-              : data.refundAmount
-                ? `בוצע זיכוי של ${data.refundAmount}.`
-                : 'לא נדרש זיכוי.',
-            'הפריטים הוחזרו למלאי. אין לשלוח את ההזמנה.',
-          ],
-        },
+        { type: 'callout', tone: data.paid && data.refundPending ? 'warning' : 'success', lines: money },
       ],
       cta: { label: 'פתיחה בממשק הניהול', url: data.adminUrl },
     },
-    `${data.refundFailed ? '[נדרש זיכוי ידני] ' : ''}ביטול הזמנה ${data.orderNumber}`,
+    `${data.paid && data.refundPending ? '[נדרש זיכוי] ' : ''}ביטול הזמנה ${data.orderNumber}`,
     ctx,
   );
+};
+
+// ─── Customer: in progress and refund completed ────────────────
+
+const orderProcessing: EmailTemplate<OrderTemplateData['order-processing']> = (data, locale, ctx) => {
+  const he = locale === 'he';
+  return render(
+    {
+      locale,
+      preheader: he ? `ההזמנה ${data.orderNumber} בטיפול` : `Order ${data.orderNumber} is being prepared`,
+      heading: he ? 'ההזמנה שלך בטיפול' : 'Your order is in progress',
+      paragraphs: [
+        greeting(locale, data.name),
+        he
+          ? `התחלנו להכין את ההזמנה ${data.orderNumber}. נעדכן אותך שוב כשהיא תצא לדרך.`
+          : `We have started preparing order ${data.orderNumber}. We will email you again when it ships.`,
+      ],
+      blocks: [{ type: 'facts', items: [orderFact(data.orderNumber, he)] }],
+      cta: data.orderUrl ? { label: he ? 'צפייה בהזמנה' : 'View your order', url: data.orderUrl } : undefined,
+      links: contactLink(data.contactUrl, he),
+    },
+    he ? `ההזמנה ${data.orderNumber} בטיפול - BAIA` : `Order ${data.orderNumber} is in progress - BAIA`,
+    ctx,
+  );
+};
+
+const refundCompleted: EmailTemplate<OrderTemplateData['refund-completed']> = (data, locale, ctx) => {
+  const he = locale === 'he';
+  return render(
+    {
+      locale,
+      preheader: he ? `הזיכוי להזמנה ${data.orderNumber} בוצע` : `Your refund for order ${data.orderNumber} is done`,
+      heading: he ? 'הזיכוי בוצע' : 'Your refund is done',
+      paragraphs: [
+        greeting(locale, data.name),
+        he
+          ? `הזיכוי בסך ${data.refundAmount} עבור ההזמנה ${data.orderNumber} בוצע. הסכום יופיע בפירוט החיובים שלך תוך מספר ימי עסקים, בהתאם לחברת האשראי.`
+          : `Your refund of ${data.refundAmount} for order ${data.orderNumber} has been issued. It may take a few business days to appear on your statement, depending on your card issuer.`,
+      ],
+      blocks: [
+        { type: 'facts', items: [orderFact(data.orderNumber, he)] },
+        {
+          type: 'totals',
+          rows: [
+            ...(data.orderTotal ? [{ label: he ? 'סכום ההזמנה' : 'Order total', value: data.orderTotal }] : []),
+            ...(data.feeAmount ? [{ label: he ? 'דמי ביטול' : 'Cancellation fee', value: `-${data.feeAmount}` }] : []),
+            { label: he ? 'סכום שזוכה' : 'Refunded', value: data.refundAmount, strong: true },
+          ],
+        },
+      ],
+      cta: { label: he ? 'חזרה לחנות' : 'Back to the shop', url: data.shopUrl },
+      links: contactLink(data.contactUrl, he),
+    },
+    he ? `הזיכוי להזמנה ${data.orderNumber} בוצע - BAIA` : `Refund for order ${data.orderNumber} - BAIA`,
+    ctx,
+  );
+};
 
 export const orderTemplates: { [K in keyof OrderTemplateData]: EmailTemplate<OrderTemplateData[K]> } = {
   'order-shipped': orderShipped,
@@ -472,5 +577,7 @@ export const orderTemplates: { [K in keyof OrderTemplateData]: EmailTemplate<Ord
   'cancellation-request-rejected': requestRejected,
   'admin-new-order': adminNewOrder,
   'admin-cancellation-request': adminCancellationRequest,
-  'admin-order-self-cancelled': adminSelfCancelled,
+  'order-processing': orderProcessing,
+  'refund-completed': refundCompleted,
+  'admin-order-cancelled': adminOrderCancelled,
 };

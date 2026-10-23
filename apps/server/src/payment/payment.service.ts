@@ -19,6 +19,9 @@ import {
   type PaymentResult,
 } from './payment.interface';
 import { MAX_INSTALLMENTS, type PayDto } from './dto/charge.dto';
+import { paymentsEnabled } from './payments-enabled';
+import { RefundsService } from '../orders/refunds.service';
+import { recordStatusEvent } from '../orders/status-events';
 import type { PaymentWebhookEvent } from './webhook/webhook-verifier';
 
 export const PAYMENT_CURRENCY = 'ILS';
@@ -36,6 +39,8 @@ export type ChargeResponse = {
 
 /** What the storefront's payment page needs to know (GET /payment/config). */
 export type PaymentConfig = {
+  /** PAYMENTS_ENABLED (read at request time). Off: no orders, no payments; the storefront shows "Payments coming soon". */
+  enabled: boolean;
   provider: string;
   /** No money moves: show the test banner and test cards; `simulation` is accepted. */
   testMode: boolean;
@@ -49,13 +54,16 @@ export function installmentsMinTotal(env: Record<string, string | undefined> = p
   return Number.isFinite(v) && v >= 0 && env.PAYMENT_INSTALLMENTS_MIN_TOTAL?.trim() ? v : 300;
 }
 
-/** Stored on the order once it is paid; derived from the validated PayDto. */
+/** Stored on the order once it is paid; the provider's report of how the money was taken. */
 type PaymentDetails = {
   paymentMethod: PaymentMethod | null;
   paymentInstallments: number | null;
   cardBrand: string | null;
   cardLast4: string | null;
 };
+
+/** What the shopper asked for (validated PayDto); the provider's result is what gets stored. */
+type PaymentRequest = { method: PaymentMethod | null; installments: number | null };
 
 @Injectable()
 export class PaymentService {
@@ -66,6 +74,7 @@ export class PaymentService {
     private readonly orders: OrdersService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
     @Inject(ORDER_NOTIFIER) private readonly notifier: OrderNotifier,
+    private readonly refunds: RefundsService,
   ) {}
 
   /**
@@ -97,7 +106,7 @@ export class PaymentService {
       return this.alreadyProcessed(order);
     }
 
-    const details = this.paymentDetails(input, Number(order.total));
+    const requested = this.validateRequest(input, Number(order.total));
 
     const now = new Date();
     const claim = await this.prisma.order.updateMany({
@@ -132,9 +141,13 @@ export class PaymentService {
         orderId,
         customerEmail: order.customerEmail,
         idempotencyKey: attempt.id,
-        method: details.paymentMethod ?? undefined,
-        installments: details.paymentInstallments ?? undefined,
+        method: requested.method ?? undefined,
+        installments: requested.installments ?? undefined,
         ...(input.simulation ? { simulation: input.simulation } : {}),
+        // Test providers have no processor to report the card, so they echo what the page displays.
+        ...(this.provider.testMode && (input.cardBrand || input.cardLast4)
+          ? { displayHint: { cardBrand: input.cardBrand, cardLast4: input.cardLast4 } }
+          : {}),
       });
     } catch (err) {
       this.logger.error(`provider error for attempt ${attempt.id}: ${(err as Error)?.message}`);
@@ -164,20 +177,23 @@ export class PaymentService {
       );
     }
 
-    const confirmed = await this.confirmPaid(orderId, attempt.id, result.transactionId, details);
+    const confirmed = await this.confirmPaid(
+      orderId,
+      attempt.id,
+      result.transactionId,
+      order.customerEmail,
+      this.storedDetails(requested, result),
+    );
     if (!confirmed) {
       // The order left PENDING_PAYMENT while we were charging (e.g. an admin
-      // cancelled it). Money moved but the order is not payable: refund.
+      // cancelled it). Money moved but the order is not payable: refund, and
+      // keep a durable Refund record if the provider cannot do it right now.
       this.logger.error(`order ${orderId} not pending after successful charge; refunding attempt ${attempt.id}`);
       await this.prisma.paymentAttempt.update({
         where: { id: attempt.id },
         data: { error: 'ORDER_NOT_PENDING_AFTER_CHARGE_REFUND_REQUESTED' },
       });
-      try {
-        await this.provider.refund(result.transactionId, Number(order.total));
-      } catch (err) {
-        this.logger.error(`refund failed for attempt ${attempt.id}: ${(err as Error)?.message}`);
-      }
+      await this.refunds.refundLateCharge(orderId, order.total, result.transactionId);
       throw shopConflict('ORDER_NOT_PAYABLE', 'Order is no longer awaiting payment');
     }
 
@@ -216,7 +232,7 @@ export class PaymentService {
         providerRef: event.providerRef,
       },
     });
-    const applied = await this.confirmPaid(order.id, attempt.id, event.providerRef);
+    const applied = await this.confirmPaid(order.id, attempt.id, event.providerRef, null);
     if (applied) await this.notifyConfirmed(order.id);
     return { applied };
   }
@@ -224,6 +240,7 @@ export class PaymentService {
   /** Provider name and mode for the storefront's payment page. */
   config(): PaymentConfig {
     return {
+      enabled: paymentsEnabled(),
       provider: this.provider.name,
       testMode: this.simulationEnabled(),
       methods: ['card', 'bit', 'apple_pay'],
@@ -274,11 +291,10 @@ export class PaymentService {
   }
 
   /**
-   * Validates what the payment page sent and turns it into the fields stored
-   * on the order. Card brand / last 4 are kept only for card payments, and
-   * installments only for card payments at or above the configured minimum.
+   * Validates what the payment page asked for. Installments only apply to
+   * card payments at or above the configured minimum.
    */
-  private paymentDetails(input: PayDto, total: number): PaymentDetails {
+  private validateRequest(input: PayDto, total: number): PaymentRequest {
     if (input.simulation && !this.simulationEnabled()) {
       throw new BadRequestException('Payment simulation is not available');
     }
@@ -288,21 +304,33 @@ export class PaymentService {
       throw new BadRequestException('Installments are not available for this payment');
     }
     // Older clients (and API users) send no details: nothing is recorded.
-    if (!method) return { paymentMethod: null, paymentInstallments: null, cardBrand: null, cardLast4: null };
-    const card = method === 'card';
+    if (!method) return { method: null, installments: null };
+    return { method, installments: method === 'card' ? installments : null };
+  }
+
+  /**
+   * What gets stored on the order: the provider's own report. Card brand and
+   * last four are never taken from the browser; only the method/installments
+   * the shopper chose fill in what a provider does not echo back.
+   */
+  private storedDetails(requested: PaymentRequest, result: PaymentResult): PaymentDetails {
+    const reported = result.details ?? {};
+    const method = reported.method ?? requested.method;
+    const card = method === 'card' || (method === 'apple_pay' && !!reported.cardLast4);
     return {
       paymentMethod: method,
-      paymentInstallments: card ? installments : null,
-      cardBrand: card ? (input.cardBrand ?? null) : null,
-      cardLast4: card ? (input.cardLast4 ?? null) : null,
+      paymentInstallments: method === 'card' ? (reported.installments ?? requested.installments) : null,
+      cardBrand: card ? (reported.cardBrand ?? null) : null,
+      cardLast4: card ? (reported.cardLast4 ?? null) : null,
     };
   }
 
-  /** Conditional PENDING_PAYMENT -> CONFIRMED transition, in one transaction. */
+  /** Conditional PENDING_PAYMENT -> CONFIRMED transition, in one transaction. `actorEmail` null = system (webhook). */
   private async confirmPaid(
     orderId: string,
     attemptId: string,
     providerRef: string,
+    actorEmail: string | null,
     details?: PaymentDetails,
   ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
@@ -314,6 +342,7 @@ export class PaymentService {
         where: { id: attemptId },
         data: { status: 'SUCCEEDED', providerRef },
       });
+      if (updated.count === 1) await recordStatusEvent(tx, orderId, 'PENDING_PAYMENT', 'CONFIRMED', actorEmail);
       return updated.count === 1;
     });
   }

@@ -13,7 +13,6 @@ export function OrderSummary({ order }: { order: AdminOrder }) {
   const t = useTranslations('admin.orders');
   const tx = useTranslations('admin.ordersExtra');
   const locale = useLocale();
-  const selfCancelDeadline = order.cancellation?.canSelfCancel ? order.cancellation.selfCancelDeadline : null;
 
   return (
     <div className="text-sm space-y-1">
@@ -50,11 +49,6 @@ export function OrderSummary({ order }: { order: AdminOrder }) {
         <span className="text-muted-foreground">{tx('marketing')}:</span>{' '}
         {order.marketingConsent ? tx('marketingYes') : tx('marketingNo')}
       </p>
-      {selfCancelDeadline && (
-        <p className="text-xs text-amber-700">
-          {tx('selfCancelUntil', { date: formatAdminDate(selfCancelDeadline, locale, 'shortTime') })}
-        </p>
-      )}
       {order.paymentRef && <DetailLine label={t('payment')}>{order.paymentRef}</DetailLine>}
     </div>
   );

@@ -32,6 +32,7 @@ const schema = z.object({
   API_URL: optional,
   AUTH_URL: optional,
   IMAGE_REMOTE_PATTERNS: optional,
+  NEXT_PUBLIC_SENTRY_DSN: optional,
 });
 
 export type ClientEnvResult = { success: true; warnings: string[] } | { success: false; errors: string[]; warnings: string[] };
@@ -120,6 +121,11 @@ export function validateClientEnv(env: Env, options: { production?: boolean } = 
   }
   if (production && !raw.IMAGE_REMOTE_PATTERNS) {
     warnings.push('IMAGE_REMOTE_PATTERNS is empty: next/image will refuse product photos hosted on your S3/CDN domain.');
+  }
+
+  // Optional error reporting: an invalid DSN only disables it, it never fails the build.
+  if (raw.NEXT_PUBLIC_SENTRY_DSN && !/^https?:\/\/[^@/\s]+@[^/\s]+(\/[^/\s]+)*\/\d+$/.test(raw.NEXT_PUBLIC_SENTRY_DSN)) {
+    warnings.push('NEXT_PUBLIC_SENTRY_DSN is not a valid DSN (expected https://<key>@<host>/<project-id>); error reporting will be disabled.');
   }
 
   if (raw.NEXT_PUBLIC_TRACKING_URL_TEMPLATE && !raw.NEXT_PUBLIC_TRACKING_URL_TEMPLATE.includes('{tracking}')) {

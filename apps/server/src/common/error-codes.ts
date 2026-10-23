@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 
 /**
  * Stable, machine-readable codes for errors a shopper can see. The client
@@ -20,7 +20,10 @@ export type ShopErrorCode =
   | 'ORDER_LOOKUP_FAILED'
   | 'SELF_CANCEL_UNAVAILABLE'
   | 'CANCELLATION_NOT_ALLOWED'
-  | 'CANCELLATION_ALREADY_REQUESTED';
+  | 'CANCELLATION_ALREADY_REQUESTED'
+  | 'PAYMENTS_DISABLED'
+  | 'REFUND_NOT_PENDING'
+  | 'ORDER_BUSY';
 
 type Extra = Record<string, string | number | null | undefined>;
 
@@ -40,3 +43,6 @@ export const shopNotFound = (code: ShopErrorCode, message: string, extra?: Extra
 
 export const shopConflict = (code: ShopErrorCode, message: string, extra?: Extra) =>
   new ConflictException(body(409, 'Conflict', code, message, extra));
+
+export const shopForbidden = (code: ShopErrorCode, message: string, extra?: Extra) =>
+  new ForbiddenException(body(403, 'Forbidden', code, message, extra));

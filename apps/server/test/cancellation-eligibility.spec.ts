@@ -1,43 +1,44 @@
 import { cancellationEligibility, suggestedCancellationFee } from '../src/orders/cancellation-eligibility';
 import { deliveryConfig, deliveryQuote, shippingCostFor } from '../src/orders/delivery';
 
-const HOUR = 60 * 60 * 1000;
 const now = new Date('2026-06-01T12:00:00Z');
-const paid = (hoursAgo: number, extra: Record<string, unknown> = {}) => ({
-  status: 'CONFIRMED' as const,
-  paidAt: new Date(now.getTime() - hoursAgo * HOUR),
-  createdAt: new Date(now.getTime() - (hoursAgo + 1) * HOUR),
-  shippedAt: null,
-  ...extra,
-});
+const order = (status: Parameters<typeof cancellationEligibility>[0]['status']) => ({ status });
 
 describe('cancellationEligibility', () => {
-  it('allows a free self-cancel inside the window, with its deadline', () => {
-    const info = cancellationEligibility(paid(10), 48, null, now);
-    expect(info).toMatchObject({ canSelfCancel: true, canRequest: true, requiresReturn: false, openRequest: null });
-    expect(info.selfCancelDeadline).toBe(new Date(now.getTime() + 38 * HOUR).toISOString());
+  it('lets the customer cancel instantly at any point before shipping, however old the order is', () => {
+    for (const status of ['PENDING_PAYMENT', 'CONFIRMED', 'PROCESSING'] as const) {
+      expect(cancellationEligibility(order(status), null)).toEqual({
+        canSelfCancel: true,
+        canRequest: false,
+        requiresReturn: false,
+        openRequest: null,
+      });
+    }
   });
 
-  it('closes the window after N hours, and once shipped', () => {
-    expect(cancellationEligibility(paid(49), 48, null, now)).toMatchObject({ canSelfCancel: false, canRequest: true, selfCancelDeadline: null });
-    expect(cancellationEligibility(paid(1, { status: 'SHIPPED', shippedAt: now }), 48, null, now)).toMatchObject({
-      canSelfCancel: false,
-      canRequest: true,
-      requiresReturn: true,
-    });
+  it('switches to a Cancellation Request once the order has shipped or been delivered', () => {
+    for (const status of ['SHIPPED', 'DELIVERED'] as const) {
+      expect(cancellationEligibility(order(status), null)).toMatchObject({
+        canSelfCancel: false,
+        canRequest: true,
+        requiresReturn: true,
+      });
+    }
   });
 
-  it('unpaid orders can always be cancelled; closed orders never', () => {
-    expect(cancellationEligibility(paid(100, { status: 'PENDING_PAYMENT', paidAt: null }), 48, null, now)).toMatchObject({
-      canSelfCancel: true,
-      canRequest: false,
-    });
-    expect(cancellationEligibility(paid(1, { status: 'CANCELLED' }), 48, null, now)).toMatchObject({ canSelfCancel: false, canRequest: false });
+  it('offers nothing on closed orders', () => {
+    for (const status of ['CANCELLED', 'REFUNDED'] as const) {
+      expect(cancellationEligibility(order(status), null)).toMatchObject({ canSelfCancel: false, canRequest: false });
+    }
   });
 
   it('an open request blocks both actions', () => {
     const open = { id: 'r1', status: 'REQUESTED' as const, reason: 'SIZE', createdAt: now };
-    expect(cancellationEligibility(paid(1), 48, open, now)).toMatchObject({ canSelfCancel: false, canRequest: false, openRequest: { id: 'r1' } });
+    expect(cancellationEligibility(order('SHIPPED'), open)).toMatchObject({
+      canSelfCancel: false,
+      canRequest: false,
+      openRequest: { id: 'r1', createdAt: now.toISOString() },
+    });
   });
 
   it('suggests 5% or ₪100, the lower', () => {

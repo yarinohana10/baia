@@ -11,10 +11,9 @@ export type AdminCancellation = {
   refundAmount: string | null;
   createdAt: string;
   resolvedAt: string | null;
-  insideWindow: boolean;
   requiresReturn: boolean;
+  /** Always the capped fee: 5% of the total or ₪100, whichever is lower. */
   suggestedFee: number;
-  windowDeadline: string;
   order: {
     id: string;
     orderNumber: string;

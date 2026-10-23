@@ -4,7 +4,6 @@ import { PackageSearch, Undo2 } from 'lucide-react';
 import { routing } from '@/i18n/routing';
 import { Link } from '@/i18n/navigation';
 import { pageMetadata } from '@/lib/seo';
-import { getSiteConfig } from '@/lib/catalog/server';
 import { OrderHelpLayout } from '@/components/storefront/orders/OrderHelpLayout';
 import { OrderLookupForm } from '@/components/storefront/orders/OrderLookupForm';
 
@@ -21,8 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function OrderStatusPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [t, config] = await Promise.all([getTranslations('orderStatusPage'), getSiteConfig()]);
-  const hours = config?.selfCancelWindowHours ?? 48;
+  const t = await getTranslations('orderStatusPage');
 
   return (
     <OrderHelpLayout
@@ -43,7 +41,7 @@ export default async function OrderStatusPage({ params }: { params: Promise<{ lo
             <Undo2 size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
             <div>
               <p className="font-semibold text-gray-900">{t('cancelTitle')}</p>
-              <p className="mt-1 text-gray-500">{t('cancelBody', { hours })}</p>
+              <p className="mt-1 text-gray-500">{t('cancelBody')}</p>
               <Link href="/cancel-order" className="mt-2 inline-block text-ocean-700 underline underline-offset-2 hover:text-ocean-800">
                 {t('cancelLink')}
               </Link>

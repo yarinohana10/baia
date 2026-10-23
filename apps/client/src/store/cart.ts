@@ -27,6 +27,8 @@ export type CartItem = {
       slug: string;
       basePrice: string;
       isActive?: boolean;
+      /** Back Soon: visible but not purchasable. */
+      backSoon?: boolean;
       images: { url: string }[];
     };
   };
@@ -40,7 +42,7 @@ export type LineIssue =
 
 export function lineIssue(item: CartItem): LineIssue | null {
   const v = item.variant;
-  if (v.isActive === false || v.product.isActive === false) return { kind: 'unavailable' };
+  if (v.isActive === false || v.product.isActive === false || v.product.backSoon === true) return { kind: 'unavailable' };
   if (isUnlimited(v)) return null;
   if (v.stockQuantity <= 0) return { kind: 'outOfStock' };
   if (v.stockQuantity < item.quantity) return { kind: 'insufficient', available: v.stockQuantity };
@@ -83,7 +85,6 @@ export type ShippingConfig = {
   pickupCost?: number;
   courierEtaDays?: string;
   pickupEtaDays?: string;
-  selfCancelWindowHours?: number;
 };
 
 /** Same fallbacks the API uses when no site config row exists. */
@@ -93,7 +94,6 @@ export const DEFAULT_SHIPPING: Required<ShippingConfig> = {
   pickupCost: 19.9,
   courierEtaDays: '3-5',
   pickupEtaDays: '2-4',
-  selfCancelWindowHours: 48,
 };
 
 export function shippingFor(subtotal: number, config: ShippingConfig, method: DeliveryMethod = 'COURIER'): number {
@@ -192,7 +192,6 @@ export const useCartStore = create<CartStore>((set, get) => {
             return Number.isFinite(n) ? n : fallback;
           };
           const str = (v: unknown, fallback: string) => (typeof v === 'string' && v.trim() ? v.trim() : fallback);
-          const hours = Number(res.data?.selfCancelWindowHours);
           set({
             shipping: {
               cost: num(res.data?.shippingCost, DEFAULT_SHIPPING.cost),
@@ -200,7 +199,6 @@ export const useCartStore = create<CartStore>((set, get) => {
               pickupCost: num(res.data?.pickupPointCost, DEFAULT_SHIPPING.pickupCost),
               courierEtaDays: str(res.data?.courierEtaDays, DEFAULT_SHIPPING.courierEtaDays),
               pickupEtaDays: str(res.data?.pickupEtaDays, DEFAULT_SHIPPING.pickupEtaDays),
-              selfCancelWindowHours: Number.isFinite(hours) && hours >= 0 ? hours : DEFAULT_SHIPPING.selfCancelWindowHours,
             },
           });
         })

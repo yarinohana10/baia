@@ -96,6 +96,7 @@ export function toCardProduct(p: Product): CardProduct {
     slug: p.slug,
     basePrice: p.basePrice,
     createdAt: p.createdAt,
+    backSoon: p.backSoon,
     images: p.images.slice(0, 2).map((i) => ({ url: i.url, color: i.color ?? null })),
     variants: p.variants.map((v) => ({
       id: v.id,

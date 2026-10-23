@@ -32,6 +32,7 @@ export function variantPayload(v: Variant) {
     size: v.size.trim(),
     sku: v.sku.trim(),
     stockQuantity: v.stockQuantity,
+    ...(v.id && v.loadedStock !== undefined ? { expectedStockQuantity: v.loadedStock } : {}),
     trackInventory: v.trackInventory !== false,
     priceOverride: toNum(v.priceOverride),
     salePrice: toNum(v.salePrice),
@@ -55,6 +56,7 @@ export function productPayload(f: ProductFormValues) {
     sizeSetId: f.sizeSetId || null,
     isFeatured: f.isFeatured,
     isActive: f.isActive,
+    backSoon: f.backSoon,
     variants: f.variants.map(variantPayload),
   };
 }

@@ -12,6 +12,7 @@ import {
   israeliMobileValid,
   isracardValid,
   luhnValid,
+  normalizePaymentConfig,
   paymentSummary,
   simulationForCard,
 } from '../payment';
@@ -176,5 +177,20 @@ describe('paymentSummary', () => {
     expect(paymentSummary({ paymentMethod: 'apple_pay' })?.key).toBe('applePay');
     expect(paymentSummary({ paymentMethod: null })).toBeNull();
     expect(paymentSummary({})).toBeNull();
+  });
+});
+
+describe('normalizePaymentConfig', () => {
+  const base = { enabled: true, methods: ['card' as const], installments: { max: 1, minTotal: 0 } };
+
+  it('keeps the test UI for the mock provider only', () => {
+    expect(normalizePaymentConfig({ ...base, provider: 'mock', testMode: true }).testMode).toBe(true);
+    // A real provider never shows test cards, whatever the server reported.
+    expect(normalizePaymentConfig({ ...base, provider: 'tranzila', testMode: true }).testMode).toBe(false);
+    expect(normalizePaymentConfig({ ...base, provider: 'mock', testMode: false }).testMode).toBe(false);
+  });
+
+  it('passes the payments flag through', () => {
+    expect(normalizePaymentConfig({ ...base, enabled: false, provider: 'mock', testMode: false }).enabled).toBe(false);
   });
 });

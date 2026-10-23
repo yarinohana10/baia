@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '../generated/prisma';
 import type { CartOwner } from './cart-identity';
 import { MAX_LINE_QUANTITY } from './dto/cart.dto';
-import { availableStock, hasStock } from '../common/stock';
+import { availableStock, isPurchasable } from '../common/stock';
 import { shopBadRequest } from '../common/error-codes';
 
 const cartInclude = {
@@ -64,29 +64,30 @@ export class CartService {
     return toPublicCart(await this.findCart(owner));
   }
 
-  private async loadPurchasableVariant(variantId: string) {
+  /** Hidden, Back Soon and inactive variants are unavailable; short stock is OUT_OF_STOCK. */
+  private async loadPurchasableVariant(variantId: string, quantity: number) {
     const variant = await this.prisma.productVariant.findUnique({
       where: { id: variantId },
-      include: { product: { select: { isActive: true } } },
+      include: { product: { select: { isActive: true, backSoon: true } } },
     });
     if (!variant) throw new NotFoundException('Variant not found');
-    if (!variant.isActive || !variant.product.isActive) {
+    if (!variant.isActive || !variant.product.isActive || variant.product.backSoon) {
       throw shopBadRequest('VARIANT_UNAVAILABLE', 'Variant is not available', { variantId });
+    }
+    if (!isPurchasable(variant, variant.product, quantity)) {
+      throw shopBadRequest('OUT_OF_STOCK', 'Insufficient stock', { available: Number.isFinite(availableStock(variant)) ? availableStock(variant) : null });
     }
     return variant;
   }
 
   async addItem(owner: CartOwner, variantId: string, quantity: number) {
-    const variant = await this.loadPurchasableVariant(variantId);
-    if (!hasStock(variant, quantity)) {
-      throw shopBadRequest('OUT_OF_STOCK', 'Insufficient stock', { available: Number.isFinite(availableStock(variant)) ? availableStock(variant) : null });
-    }
+    const variant = await this.loadPurchasableVariant(variantId, quantity);
 
     const cart = await this.getOrCreateCart(owner);
     const existing = cart.items.find((item) => item.variantId === variantId);
     if (existing) {
       const newQty = existing.quantity + quantity;
-      if (!hasStock(variant, newQty) || newQty > MAX_LINE_QUANTITY) {
+      if (!isPurchasable(variant, variant.product, newQty) || newQty > MAX_LINE_QUANTITY) {
         throw shopBadRequest('OUT_OF_STOCK', 'Insufficient stock', { available: Number.isFinite(availableStock(variant)) ? availableStock(variant) : null });
       }
       await this.prisma.cartItem.update({
@@ -116,10 +117,7 @@ export class CartService {
     if (quantity <= 0) {
       await this.prisma.cartItem.delete({ where: { id: item.id } });
     } else {
-      const variant = await this.loadPurchasableVariant(item.variantId);
-      if (!hasStock(variant, quantity)) {
-        throw shopBadRequest('OUT_OF_STOCK', 'Insufficient stock', { available: Number.isFinite(availableStock(variant)) ? availableStock(variant) : null });
-      }
+      await this.loadPurchasableVariant(item.variantId, quantity);
       await this.prisma.cartItem.update({
         where: { id: item.id },
         data: { quantity },
@@ -153,7 +151,7 @@ export class CartService {
 
       const guestCart = await tx.cart.findFirst({
         where: { sessionId: guestKeyHash, userId: null },
-        include: { items: { include: { variant: { include: { product: { select: { isActive: true } } } } } } },
+        include: { items: { include: { variant: { include: { product: { select: { isActive: true, backSoon: true } } } } } } },
       });
       if (!guestCart) return report;
 
@@ -165,11 +163,11 @@ export class CartService {
 
         for (const guestItem of guestCart.items) {
           const { variant } = guestItem;
-          if (!variant.isActive || !variant.product.isActive) {
+          if (!variant.isActive || !variant.product.isActive || variant.product.backSoon) {
             report.dropped.push({ variantId: variant.id, reason: 'unavailable' });
             continue;
           }
-          if (!hasStock(variant, 1)) {
+          if (!isPurchasable(variant, variant.product, 1)) {
             report.dropped.push({ variantId: variant.id, reason: 'out_of_stock' });
             continue;
           }

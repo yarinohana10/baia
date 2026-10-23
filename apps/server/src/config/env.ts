@@ -100,6 +100,8 @@ export interface AppConfig {
     /** Proxy IPs/CIDRs better-auth may strip from X-Forwarded-For. */
     trustedProxies: string[];
     google: { clientId: string; clientSecret: string } | null;
+    /** The Owner's email (lowercased): always an Admin once verified; the only one who may add/remove Admins. */
+    ownerEmail: string | undefined;
   };
   email: {
     provider: 'smtp' | 'console';
@@ -119,7 +121,12 @@ export interface AppConfig {
       publicUrlIncludesBucket: boolean;
     };
   };
-  payment: { provider: string | undefined; webhookSecret: string | undefined };
+  payment: {
+    provider: string | undefined;
+    webhookSecret: string | undefined;
+    /** PAYMENTS_ENABLED: false = the store is browsable but order creation and payment endpoints refuse (403). */
+    enabled: boolean;
+  };
 }
 
 export type EnvParseResult =
@@ -148,6 +155,7 @@ const rawEnvSchema = z.object({
   AUTH_TRUSTED_PROXIES: optionalString,
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,
+  OWNER_EMAIL: optionalString,
   EMAIL_PROVIDER: optionalString,
   EMAIL_FROM: optionalString,
   SMTP_HOST: optionalString,
@@ -170,11 +178,15 @@ const rawEnvSchema = z.object({
   S3_PUBLIC_URL_INCLUDES_BUCKET: optionalString,
   PAYMENT_PROVIDER: optionalString,
   PAYMENT_WEBHOOK_SECRET: optionalString,
+  PAYMENTS_ENABLED: optionalString,
   PAYMENT_INSTALLMENTS_MIN_TOTAL: optionalString,
   PENDING_ORDER_TTL_MINUTES: optionalString,
   ORDER_ACCESS_TOKEN_TTL_DAYS: optionalString,
   TRACKING_URL_TEMPLATE: optionalString,
   SERVER_URL: optionalString,
+  SENTRY_DSN: optionalString,
+  SENTRY_ENVIRONMENT: optionalString,
+  SENTRY_RELEASE: optionalString,
 });
 
 type RawEnv = z.infer<typeof rawEnvSchema>;
@@ -256,6 +268,11 @@ export function parseEnv(env: Env): EnvParseResult {
   const authBaseUrl = checkUrl('BETTER_AUTH_URL', raw.BETTER_AUTH_URL, { originOnly: true, https: true }) ?? DEV_SERVER_URL;
   checkUrl('SERVER_URL', raw.SERVER_URL, { originOnly: true, https: true });
 
+  // Error reporting is optional and never blocks a deploy: a bad DSN only disables it.
+  if (raw.SENTRY_DSN && !/^https?:\/\/[^@/\s]+@[^/\s]+(\/[^/\s]+)*\/\d+$/.test(raw.SENTRY_DSN)) {
+    warnings.push('SENTRY_DSN is not a valid DSN (expected https://<key>@<host>/<project-id>); error reporting will be disabled.');
+  }
+
   if (raw.AUTH_COOKIE_DOMAIN && /\.up\.railway\.app$|^\.?up\.railway\.app$/.test(raw.AUTH_COOKIE_DOMAIN)) {
     errors.push(
       'AUTH_COOKIE_DOMAIN cannot be a *.up.railway.app domain (it is on the Public Suffix List; browsers reject the cookie). ' +
@@ -273,6 +290,11 @@ export function parseEnv(env: Env): EnvParseResult {
     errors.push('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together (or both left empty to disable Google sign-in).');
   } else if (raw.GOOGLE_CLIENT_ID && raw.GOOGLE_CLIENT_SECRET) {
     google = { clientId: raw.GOOGLE_CLIENT_ID, clientSecret: raw.GOOGLE_CLIENT_SECRET };
+  }
+
+  requireInProd('OWNER_EMAIL', 'the business owner\'s email; pinned as the Owner (the only Admin who can add/remove Admins).');
+  if (raw.OWNER_EMAIL && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(raw.OWNER_EMAIL)) {
+    errors.push(`OWNER_EMAIL must be an email address (got "${raw.OWNER_EMAIL}").`);
   }
 
   // ── Email ──────────────────────────────────────────
@@ -313,6 +335,9 @@ export function parseEnv(env: Env): EnvParseResult {
   }
   if (raw.ADMIN_NOTIFY_EMAIL && !emailRe.test(raw.ADMIN_NOTIFY_EMAIL)) {
     errors.push(`ADMIN_NOTIFY_EMAIL must be an email address (got "${raw.ADMIN_NOTIFY_EMAIL}").`);
+  }
+  if (isProduction && emailProvider === 'smtp' && !raw.ADMIN_NOTIFY_EMAIL) {
+    errors.push('ADMIN_NOTIFY_EMAIL is required in production when EMAIL_PROVIDER=smtp: the business inbox that receives new-order and cancellation alerts.');
   }
   if (raw.EMAIL_RETRY_DELAYS_MS && !/^\s*\d+(\s*,\s*\d+)*\s*$/.test(raw.EMAIL_RETRY_DELAYS_MS)) {
     errors.push('EMAIL_RETRY_DELAYS_MS must be a comma-separated list of milliseconds, e.g. "0,2000,8000".');
@@ -366,6 +391,14 @@ export function parseEnv(env: Env): EnvParseResult {
     warnings.push('PAYMENT_PROVIDER=mock in production: orders are confirmed WITHOUT charging customers. Never take real orders like this.');
   }
 
+  const paymentsEnabledRaw = parseBool(raw.PAYMENTS_ENABLED);
+  if (raw.PAYMENTS_ENABLED && paymentsEnabledRaw === undefined) errors.push('PAYMENTS_ENABLED must be true or false.');
+  // Safe default: a production deploy takes no orders until the owner flips the flag.
+  const paymentsEnabled = paymentsEnabledRaw ?? !isProduction;
+  if (isProduction && paymentsEnabled && paymentProvider === 'mock') {
+    warnings.push('PAYMENTS_ENABLED=true with PAYMENT_PROVIDER=mock in production: customers can place orders that are never charged.');
+  }
+
   // ── Numbers / templates ────────────────────────────
   const nonNegative = (name: keyof RawEnv) => {
     const v = raw[name];
@@ -403,6 +436,7 @@ export function parseEnv(env: Env): EnvParseResult {
         rateLimit,
         trustedProxies,
         google,
+        ownerEmail: raw.OWNER_EMAIL?.toLowerCase(),
       },
       email: {
         provider: emailProvider,
@@ -422,7 +456,7 @@ export function parseEnv(env: Env): EnvParseResult {
           publicUrlIncludesBucket: includesBucket ?? true,
         },
       },
-      payment: { provider: paymentProvider, webhookSecret: raw.PAYMENT_WEBHOOK_SECRET },
+      payment: { provider: paymentProvider, webhookSecret: raw.PAYMENT_WEBHOOK_SECRET, enabled: paymentsEnabled },
     },
   };
 }

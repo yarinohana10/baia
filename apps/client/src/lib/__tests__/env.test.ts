@@ -140,3 +140,12 @@ describe('isSameOriginRequest', () => {
     expect(isSameOriginRequest('https://baia.co.il', new Headers({ host: 'internal:3000' }))).toBe(true);
   });
 });
+
+describe('validateClientEnv: Sentry', () => {
+  it('treats NEXT_PUBLIC_SENTRY_DSN as optional and only warns on an invalid one', () => {
+    expect(validateClientEnv({ ...proxyProd, NEXT_PUBLIC_SENTRY_DSN: 'https://abc@o1.ingest.sentry.io/42' }, { production: true })).toEqual({ success: true, warnings: [] });
+    const bad = validateClientEnv({ ...proxyProd, NEXT_PUBLIC_SENTRY_DSN: 'nope' }, { production: true });
+    expect(bad.success).toBe(true);
+    expect(bad.warnings.join()).toMatch(/NEXT_PUBLIC_SENTRY_DSN/);
+  });
+});

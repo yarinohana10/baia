@@ -1,54 +1,78 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { AnalyticsService } from './analytics.service';
+import { AnalyticsRangeQueryDto, TopProductsQueryDto } from './analytics.dto';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 
+/**
+ * Admin analytics. Every range endpoint takes `preset` or `from`/`to`
+ * (see AnalyticsRangeQueryDto) and reads the range in Israel time.
+ */
 @Controller('admin/analytics')
 @UseGuards(AuthGuard)
 @Roles('ADMIN')
 export class AnalyticsController {
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(private readonly analytics: AnalyticsService) {}
 
   @Get('overview')
   getOverview() {
-    return this.analyticsService.getOverview();
+    return this.analytics.getOverview();
+  }
+
+  /** Headline metrics for the range plus the previous equal-length period and % change. */
+  @Get('summary')
+  async getSummary(@Query() q: AnalyticsRangeQueryDto) {
+    return this.analytics.getSummary(await this.analytics.resolve(q));
   }
 
   @Get('sales')
-  getSales(@Query('days') days?: string) {
-    const parsedDays = days ? parseInt(days, 10) : 30;
-    return this.analyticsService.getSales(Number.isNaN(parsedDays) ? 30 : parsedDays);
+  async getSales(@Query() q: AnalyticsRangeQueryDto) {
+    return this.analytics.getSales(await this.analytics.resolve(q));
   }
 
   @Get('orders-by-status')
-  getOrdersByStatus() {
-    return this.analyticsService.getOrdersByStatus();
+  async getOrdersByStatus(@Query() q: AnalyticsRangeQueryDto) {
+    return this.analytics.getOrdersByStatus(await this.analytics.resolve(q));
   }
 
   @Get('top-products')
-  getTopProducts(@Query('limit') limit?: string) {
-    const parsedLimit = limit ? parseInt(limit, 10) : 10;
-    return this.analyticsService.getTopProducts(Number.isNaN(parsedLimit) ? 10 : parsedLimit);
+  async getTopProducts(@Query() q: TopProductsQueryDto) {
+    return this.analytics.getTopProducts(await this.analytics.resolve(q), q.limit);
   }
 
   @Get('revenue-by-category')
-  getRevenueByCategory() {
-    return this.analyticsService.getRevenueByCategory();
+  async getRevenueByCategory(@Query() q: AnalyticsRangeQueryDto) {
+    return this.analytics.getRevenueByCategory(await this.analytics.resolve(q));
+  }
+
+  @Get('sales-breakdown')
+  async getSalesBreakdown(@Query() q: AnalyticsRangeQueryDto) {
+    return this.analytics.getSalesBreakdown(await this.analytics.resolve(q));
   }
 
   @Get('customer-growth')
-  getCustomerGrowth(@Query('days') days?: string) {
-    const parsedDays = days ? parseInt(days, 10) : 30;
-    return this.analyticsService.getCustomerGrowth(Number.isNaN(parsedDays) ? 30 : parsedDays);
+  async getCustomerGrowth(@Query() q: AnalyticsRangeQueryDto) {
+    return this.analytics.getCustomerGrowth(await this.analytics.resolve(q));
   }
 
   @Get('inventory')
   getInventoryOverview() {
-    return this.analyticsService.getInventoryOverview();
+    return this.analytics.getInventoryOverview();
   }
 
-  @Get('average-order-value')
-  getAverageOrderValue(@Query('days') days?: string) {
-    const parsedDays = days ? parseInt(days, 10) : 30;
-    return this.analyticsService.getAverageOrderValue(Number.isNaN(parsedDays) ? 30 : parsedDays);
+  /** Work waiting on the admin; independent of any range. */
+  @Get('needs-attention')
+  getNeedsAttention() {
+    return this.analytics.getNeedsAttention();
+  }
+
+  /** Orders created in the range, as CSV. */
+  @Get('export')
+  async exportOrders(@Query() q: AnalyticsRangeQueryDto, @Res() res: Response) {
+    const range = await this.analytics.resolve(q);
+    const csv = await this.analytics.exportOrdersCsv(range);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="baia-orders-${range.fromDay}_${range.toDay}.csv"`);
+    res.send(csv);
   }
 }

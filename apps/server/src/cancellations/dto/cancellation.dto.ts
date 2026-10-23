@@ -58,7 +58,7 @@ export class PublicCancellationDto extends CancellationRequestDto {
   @MaxLength(254)
   email!: string;
 
-  /** Cancel instantly when the order is inside the free window (default: file a request). */
+  /** Ignored: an order that has not shipped is always cancelled instantly. Kept so older clients still validate. */
   @IsOptional()
   @IsBoolean()
   instant?: boolean;

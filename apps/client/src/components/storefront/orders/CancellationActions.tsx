@@ -7,9 +7,9 @@ import type { CancellationInfo, CustomerOrder } from '@/lib/orders';
 import type { CancellationMode } from '@/hooks/storefront/useCancellationSubmit';
 import { cn } from '@/lib/utils';
 import { CancellationDialog } from './CancellationDialog';
-import { SelfCancelWindow } from './SelfCancelWindow';
+import { SelfCancelNotice } from './SelfCancelNotice';
 
-/** The window explanation, the cancel / request buttons and the dialog they open. */
+/** The policy line, the cancel / request button and the dialog it opens. */
 export function CancellationActions({
   order,
   info,
@@ -32,15 +32,11 @@ export function CancellationActions({
       {!compact && <h2 className="text-sm font-medium text-gray-900">{t('title')}</h2>}
 
       {canSelfCancel ? (
-        <SelfCancelWindow
-          unpaid={order.status === 'PENDING_PAYMENT'}
-          deadline={info.selfCancelDeadline}
-          className="text-gray-600"
-        />
+        <SelfCancelNotice unpaid={order.status === 'PENDING_PAYMENT'} className="text-gray-600" />
       ) : (
         <p className="flex items-start gap-2 text-sm text-gray-600">
           <Info size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-gray-400" />
-          <span>{info.requiresReturn ? t('requestShipped') : t('requestAfterWindow', { hours: info.windowHours })}</span>
+          <span>{info.requiresReturn ? t('requestShipped') : t('requestUnavailable')}</span>
         </p>
       )}
 
@@ -58,13 +54,9 @@ export function CancellationActions({
           <button
             type="button"
             onClick={() => setMode('request')}
-            className={cn(
-              canSelfCancel
-                ? 'text-xs text-gray-500 underline underline-offset-2 hover:text-ocean-700'
-                : 'rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50',
-            )}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
           >
-            {canSelfCancel ? t('preferTalk') : t('requestButton')}
+            {t('requestButton')}
           </button>
         )}
       </div>

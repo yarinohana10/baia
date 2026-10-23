@@ -3,7 +3,7 @@
 import { useMemo, useRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AlertTriangle } from 'lucide-react';
-import { SHOPPER_LOW_STOCK_THRESHOLD, lowStockCount } from '@/lib/catalog/pricing';
+import { LOW_STOCK_THRESHOLD, lowStockCount } from '@/lib/catalog/pricing';
 import { effectiveSizeSetKey, sizeChartFor } from '@/lib/catalog/size-charts';
 import { localizedName } from '@/lib/catalog/names';
 import { activeVariants, displayPrice, distinctValues, galleryImagesFor } from '@/lib/catalog/variant-selection';
@@ -29,13 +29,15 @@ type Props = {
   product: Product;
   shipping: ShippingSummary;
   whatsappNumber: string | null;
+  /** SiteConfig.lowStockThreshold: the "only N left" hint shows at or under it. */
+  lowStockThreshold?: number;
 };
 
 type ButtonState = { variant: Variant | undefined; purchasable: boolean; adding: boolean };
 
 function addToBagLabelKey({ variant, purchasable, adding }: ButtonState) {
   if (!variant) return 'selectSize';
-  if (!purchasable) return 'soldOut';
+  if (!purchasable) return 'backSoon';
   return adding ? 'adding' : 'addToCart';
 }
 
@@ -45,7 +47,7 @@ function addToBagLabelKey({ variant, purchasable, adding }: ButtonState) {
  * Server-rendered from the cached catalogue, then stock is refreshed live so
  * sold-out sizes are accurate.
  */
-export function ProductDetails({ product: initial, shipping, whatsappNumber }: Props) {
+export function ProductDetails({ product: initial, shipping, whatsappNumber, lowStockThreshold = LOW_STOCK_THRESHOLD }: Props) {
   const locale = useLocale();
   const t = useTranslations('pdp');
   const tErrors = useTranslations('checkout.errors');
@@ -54,7 +56,9 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber }: P
   const variants = useMemo(() => activeVariants(product), [product]);
   const selection = useVariantSelection(variants);
   const { variant, maxQuantity, addError } = selection;
-  const purchasable = !!variant && maxQuantity > 0;
+  // Back Soon (set by an Admin) disables the whole product even when stock exists.
+  const backSoon = product.backSoon === true;
+  const purchasable = !backSoon && !!variant && maxQuantity > 0;
   const { adding, added, addToBag } = useAddToBag({
     variant,
     quantity: selection.quantity,
@@ -105,7 +109,8 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber }: P
                 options={selection.sizeOptions}
                 selected={selection.size}
                 onSelect={selection.selectSize}
-                lowStock={variant ? lowStockCount(variant, SHOPPER_LOW_STOCK_THRESHOLD) : null}
+                lowStock={variant && !backSoon ? lowStockCount(variant, lowStockThreshold) : null}
+                backSoon={backSoon}
                 guide={<SizeGuide chart={chart} sizes={allSizes} whatsappLink={whatsappLink} />}
               />
             )}
@@ -136,10 +141,7 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber }: P
 
             {variant?.sku && <p className="mb-5 text-xs text-gray-400">{t('sku', { sku: variant.sku })}</p>}
 
-            <TrustRow
-              freeShippingThreshold={shipping.freeShippingThreshold}
-              cancelHours={shipping.selfCancelWindowHours}
-            />
+            <TrustRow freeShippingThreshold={shipping.freeShippingThreshold} />
 
             <ProductInfoSections
               product={product}

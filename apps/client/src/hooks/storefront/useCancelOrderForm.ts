@@ -9,7 +9,6 @@ import { shopErrorMessage } from '@/lib/shop-errors';
 import { useBusyAction } from './useBusyAction';
 import {
   cancelOrderFormReducer,
-  cancelsInstantly,
   initialCancelOrderForm,
   nextAfterLookup,
   type CancellationResult,
@@ -21,15 +20,15 @@ const LOOKUP_ERRORS = {
   notAllowed: { key: 'cancellationNotAllowed' },
 } as const;
 
-async function sendCancellation(payload: PublicCancellationPayload, instant: boolean): Promise<CancellationResult> {
-  const res = await api.post<CancellationResult>('/cancellations', { ...payload, instant });
+async function sendCancellation(payload: PublicCancellationPayload): Promise<CancellationResult> {
+  const res = await api.post<CancellationResult>('/cancellations', payload);
   return res.data;
 }
 
 /**
- * Public cancellation flow. Step 1 checks the order (number + email); inside
- * the free window the shopper then chooses an instant cancel or a call first,
- * otherwise a request is filed right away. Both go through POST /cancellations.
+ * Public cancellation flow. Step 1 checks the order (number + email); an order
+ * that has not shipped is then cancelled once the shopper confirms, a shipped
+ * one gets a request filed right away. Both go through POST /cancellations.
  */
 export function useCancelOrderForm() {
   const locale = useLocale();
@@ -40,8 +39,8 @@ export function useCancelOrderForm() {
   const lookUp = async (payload: PublicCancellationPayload) => {
     const res = await api.post<FoundOrder>('/orders/lookup', { orderNumber: payload.orderNumber, email: payload.email });
     const next = nextAfterLookup(res.data.order.cancellation);
-    if (next === 'choose') dispatch({ type: 'found', found: res.data });
-    else if (next === 'request') dispatch({ type: 'completed', result: await sendCancellation(payload, false) });
+    if (next === 'confirm') dispatch({ type: 'found', found: res.data });
+    else if (next === 'request') dispatch({ type: 'completed', result: await sendCancellation(payload) });
     else dispatch({ type: 'failed', error: LOOKUP_ERRORS[next] });
   };
 
@@ -60,7 +59,7 @@ export function useCancelOrderForm() {
     dispatch({ type: 'submitting' });
     await run(async () => {
       try {
-        if (found) dispatch({ type: 'completed', result: await sendCancellation(check.data, cancelsInstantly(state)) });
+        if (found) dispatch({ type: 'completed', result: await sendCancellation(check.data) });
         else await lookUp(check.data);
       } catch (err) {
         dispatch({ type: 'failed', error: shopErrorMessage(err, locale) });

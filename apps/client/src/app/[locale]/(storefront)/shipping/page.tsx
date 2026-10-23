@@ -32,7 +32,6 @@ export default async function ShippingPage({ params }: { params: Promise<{ local
     courierEta: info.courierEtaDays,
     pickupEta: info.pickupEtaDays,
     threshold: info.freeShippingThreshold,
-    cancelHours: info.selfCancelWindowHours,
   };
   const sections = (t.raw('sections') as StaticSection[]).map((s) => ({
     title: fillTemplate(s.title, vars),

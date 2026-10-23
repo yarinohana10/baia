@@ -48,6 +48,7 @@ describe('Payment: mock hosted page simulation and payment details (e2e)', () =>
   it('GET /payment/config exposes the provider and test mode (no secrets)', async () => {
     let res = await t.http().get('/v1/payment/config').expect(200);
     expect(res.body).toEqual({
+      enabled: true,
       provider: 'spy',
       testMode: false,
       methods: ['card', 'bit', 'apple_pay'],
@@ -174,19 +175,38 @@ describe('Payment: mock hosted page simulation and payment details (e2e)', () =>
     // Without `simulation` the real provider is used as usual.
     await pay(browser, order.id, { method: 'card', cardBrand: 'visa', cardLast4: '4242' }).expect(200);
     expect(t.payments.calls[0]).not.toHaveProperty('simulation');
+    // A real provider gets no browser-supplied card display data, and none is stored.
+    expect(t.payments.calls[0]).not.toHaveProperty('displayHint');
+    const row = await t.prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    expect(row).toMatchObject({ paymentMethod: 'card', cardBrand: null, cardLast4: null });
+  });
+
+  it('stores the card brand and last 4 the provider reports, not what the browser sent', async () => {
+    const { order, browser } = await guestOrder();
+    t.payments.nextResult = {
+      success: true,
+      transactionId: 'spy_real',
+      details: { method: 'card', cardBrand: 'isracard', cardLast4: '1111', installments: 1 },
+    };
+    await pay(browser, order.id, { method: 'card', cardBrand: 'visa', cardLast4: '4242' }).expect(200);
+    const row = await t.prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    expect(row).toMatchObject({ paymentMethod: 'card', cardBrand: 'isracard', cardLast4: '1111', paymentInstallments: 1 });
   });
 
   it('rejects `simulation` in production even with the mock bound', async () => {
     useMockBehaviour();
     const { order, browser } = await guestOrder();
-    const prev = process.env.NODE_ENV;
+    const prev = { env: process.env.NODE_ENV, enabled: process.env.PAYMENTS_ENABLED };
     process.env.NODE_ENV = 'production';
+    process.env.PAYMENTS_ENABLED = 'true';
     try {
       await pay(browser, order.id, { method: 'card', simulation: 'decline' }).expect(400);
       const res = await t.http().get('/v1/payment/config').expect(200);
       expect(res.body.testMode).toBe(false);
     } finally {
-      process.env.NODE_ENV = prev;
+      process.env.NODE_ENV = prev.env;
+      if (prev.enabled === undefined) delete process.env.PAYMENTS_ENABLED;
+      else process.env.PAYMENTS_ENABLED = prev.enabled;
     }
     expect(t.payments.calls).toHaveLength(0);
   });

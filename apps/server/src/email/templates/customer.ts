@@ -12,6 +12,8 @@ import { telHref } from './layout';
 export interface CustomerTemplateData {
   /** Sent once on email/password sign-up: a warm welcome that also carries the verify button. */
   'welcome-verify': { name?: string | null; url: string; expiresInHours: number; shopUrl: string };
+  /** Owner invited this address to be an Admin; it applies once they register and verify the same email. */
+  'admin-invitation': { url: string; invitedBy: string };
   /** To the store inbox when a shopper submits the contact form (reply-to = shopper). */
   'contact-notification': {
     name: string;
@@ -150,8 +152,46 @@ const contactAutoReply: EmailTemplate<CustomerTemplateData['contact-auto-reply']
   );
 };
 
+const adminInvitation: EmailTemplate<CustomerTemplateData['admin-invitation']> = (data, locale, ctx) => {
+  if (locale === 'he') {
+    return render(
+      {
+        locale,
+        preheader: 'הוזמנת לנהל את החנות של BAIA',
+        heading: 'הוזמנת להיות מנהל/ת ב-BAIA',
+        paragraphs: [
+          'שלום,',
+          `${data.invitedBy} הזמין/ה אותך לנהל את חנות BAIA.`,
+          'כדי להפעיל את הגישה, יש להירשם לאתר עם כתובת המייל הזו ולאמת אותה (אם כבר יש לך חשבון, מספיק לאמת את המייל). ההרשאה תופעל אוטומטית לאחר האימות.',
+        ],
+        cta: { label: 'הרשמה לאתר', url: data.url },
+        footnote: 'אם לא ציפית להזמנה הזו, אפשר להתעלם ממנה - ללא אימות המייל לא תינתן הרשאה.',
+      },
+      'הוזמנת לנהל את חנות BAIA',
+      ctx,
+    );
+  }
+  return render(
+    {
+      locale,
+      preheader: 'You have been invited to manage the BAIA store',
+      heading: 'You have been invited as an admin',
+      paragraphs: [
+        'Hi,',
+        `${data.invitedBy} invited you to manage the BAIA store.`,
+        'To activate access, register on the site with this email address and verify it (if you already have an account, just verify your email). Access is granted automatically once the email is verified.',
+      ],
+      cta: { label: 'Register', url: data.url },
+      footnote: "If you weren't expecting this invitation you can ignore it - no access is granted without verifying this email.",
+    },
+    'You have been invited to manage the BAIA store',
+    ctx,
+  );
+};
+
 export const customerTemplates: { [K in keyof CustomerTemplateData]: EmailTemplate<CustomerTemplateData[K]> } = {
   'welcome-verify': welcomeVerify,
+  'admin-invitation': adminInvitation,
   'contact-notification': contactNotification,
   'contact-auto-reply': contactAutoReply,
 };

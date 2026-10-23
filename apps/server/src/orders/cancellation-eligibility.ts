@@ -1,7 +1,5 @@
 import { CancellationStatus, OrderStatus } from '../generated/prisma';
 
-export const DEFAULT_SELF_CANCEL_WINDOW_HOURS = 48;
-
 /** Reason codes shown as a select on the storefront (customer labels live in the client). */
 export const CANCELLATION_REASONS = ['SIZE', 'CHANGED_MIND', 'ORDERED_BY_MISTAKE', 'SHIPPING_DELAY', 'OTHER'] as const;
 export type CancellationReason = (typeof CANCELLATION_REASONS)[number];
@@ -15,66 +13,32 @@ export const REASON_LABELS_HE: Record<string, string> = {
   OTHER: 'אחר',
 };
 
-/** Paid, not yet shipped: inside the window the customer can cancel instantly. */
-const SELF_CANCELLABLE: OrderStatus[] = [OrderStatus.CONFIRMED, OrderStatus.PROCESSING];
-/** Statuses a cancellation request (reviewed by the store) can be filed for. */
-const REQUESTABLE: OrderStatus[] = [
-  OrderStatus.CONFIRMED,
-  OrderStatus.PROCESSING,
-  OrderStatus.SHIPPED,
-  OrderStatus.DELIVERED,
-];
+/** Until the parcel ships the customer cancels instantly (refunded in full when paid). */
+const SELF_CANCELLABLE: OrderStatus[] = [OrderStatus.PENDING_PAYMENT, OrderStatus.CONFIRMED, OrderStatus.PROCESSING];
+/** Once shipped, the store reviews a Cancellation Request (the parcel must be returned). */
+const REQUESTABLE: OrderStatus[] = [OrderStatus.SHIPPED, OrderStatus.DELIVERED];
 
-export type EligibilityOrder = {
-  status: OrderStatus;
-  paidAt: Date | null;
-  createdAt: Date;
-  shippedAt: Date | null;
-};
+export type EligibilityOrder = { status: OrderStatus };
 
 export type OpenRequest = { id: string; status: CancellationStatus; reason: string; createdAt: Date } | null;
 
 export type CancellationInfo = {
   /** Cancel right now, free of charge (and refunded in full when paid). */
   canSelfCancel: boolean;
-  /** End of the free self-service window (null when not paid or already past). */
-  selfCancelDeadline: string | null;
-  /** A request the store reviews (after the window, or shipped orders). */
+  /** File a request the store reviews (shipped / delivered orders). */
   canRequest: boolean;
   /** The parcel is already on its way / delivered: it must be returned. */
   requiresReturn: boolean;
-  windowHours: number;
   openRequest: { id: string; status: CancellationStatus; reason: string; createdAt: string } | null;
 };
 
-export function selfCancelDeadline(order: Pick<EligibilityOrder, 'paidAt' | 'createdAt'>, windowHours: number): Date {
-  const start = order.paidAt ?? order.createdAt;
-  return new Date(start.getTime() + windowHours * 60 * 60 * 1000);
-}
-
-export function cancellationEligibility(
-  order: EligibilityOrder,
-  windowHours: number,
-  openRequest: OpenRequest,
-  now = new Date(),
-): CancellationInfo {
-  const hours = Number.isFinite(windowHours) && windowHours >= 0 ? windowHours : DEFAULT_SELF_CANCEL_WINDOW_HOURS;
-  const deadline = selfCancelDeadline(order, hours);
-  const shipped = !!order.shippedAt || order.status === OrderStatus.SHIPPED || order.status === OrderStatus.DELIVERED;
-  const insideWindow = now.getTime() < deadline.getTime();
-
-  const unpaid = order.status === OrderStatus.PENDING_PAYMENT;
-  const paidSelfCancel = SELF_CANCELLABLE.includes(order.status) && !shipped && insideWindow;
-
+export function cancellationEligibility(order: EligibilityOrder, openRequest: OpenRequest): CancellationInfo {
+  const requestable = REQUESTABLE.includes(order.status);
   return {
-    canSelfCancel: !openRequest && (unpaid || paidSelfCancel),
-    selfCancelDeadline: paidSelfCancel ? deadline.toISOString() : null,
-    canRequest: !openRequest && REQUESTABLE.includes(order.status),
-    requiresReturn: shipped && REQUESTABLE.includes(order.status),
-    windowHours: hours,
-    openRequest: openRequest
-      ? { ...openRequest, createdAt: openRequest.createdAt.toISOString() }
-      : null,
+    canSelfCancel: !openRequest && SELF_CANCELLABLE.includes(order.status),
+    canRequest: !openRequest && requestable,
+    requiresReturn: requestable,
+    openRequest: openRequest ? { ...openRequest, createdAt: openRequest.createdAt.toISOString() } : null,
   };
 }
 

@@ -1,0 +1,111 @@
+{
+  "admin": {
+    "dashboard": {
+      "sectionFailed": "We couldn't load this section.",
+      "retry": "Try again",
+      "subtitle": "How the store is performing, for the dates you choose",
+      "breakdown": {
+        "title": "Sales by colour and size",
+        "groupBy": "Group by",
+        "color": "Colour",
+        "size": "Size"
+      },
+      "sales": {
+        "measure": "Measure",
+        "metric": {
+          "revenue": "Revenue",
+          "orders": "Orders",
+          "units": "Units"
+        },
+        "date": "Date",
+        "by": {
+          "day": "By day",
+          "week": "By week (Sunday to Saturday)",
+          "month": "By month"
+        },
+        "weekOf": "Week of {date}",
+        "detailOrders": "{count} orders",
+        "detailRevenue": "{amount} revenue",
+        "exportChart": "Export chart",
+        "exportOrders": "Export orders",
+        "exporting": "Exporting…",
+        "exportFailed": "Export failed. Please try again."
+      },
+      "delivered": {
+        "title": "Orders delivered",
+        "revenue": "Delivered revenue",
+        "total": "{count} orders delivered, worth {amount}",
+        "detail": "{amount} delivered",
+        "weekOf": "Week of {date}",
+        "date": "Date",
+        "empty": "No orders were delivered in this period.",
+        "failed": "We couldn't load this section."
+      },
+      "top": {
+        "rankBy": "Rank by",
+        "byUnits": "Units",
+        "byRevenue": "Revenue",
+        "orders": "orders"
+      },
+      "category": {
+        "groupBy": "Group by",
+        "audience": "Audience",
+        "type": "Product type"
+      },
+      "kpi": {
+        "revenue": "Revenue",
+        "revenueSub": "Paid orders, before refunds",
+        "orders": "Orders",
+        "ordersSub": "Paid orders, not cancelled",
+        "averageOrder": "Average order",
+        "units": "Units sold",
+        "delivered": "Delivered",
+        "deliveredSub": "Worth {amount}",
+        "shipped": "Shipped",
+        "cancelled": "Cancelled / refunded",
+        "cancelledSub": "{cancelled} cancelled, {refunded} refunded · {amount}",
+        "discounts": "Discounts given",
+        "discountsSub": "{count} orders used a coupon",
+        "shippingRevenue": "Shipping revenue",
+        "newCustomers": "New customers",
+        "newCustomersSub": "{count} returning",
+        "was": "was {value}"
+      },
+      "range": {
+        "label": "Date range",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "thisWeek": "This week",
+        "last7Days": "Last 7 days",
+        "thisMonth": "This month",
+        "last30Days": "Last 30 days",
+        "thisYear": "This year",
+        "allTime": "All time",
+        "custom": "Custom",
+        "from": "From",
+        "to": "To",
+        "apply": "Apply",
+        "invalid": {
+          "incomplete": "Choose both dates.",
+          "order": "The start date must not be after the end date.",
+          "tooLong": "Choose a range of up to 3 years."
+        },
+        "showing": "{from} to {to}",
+        "bucket": {
+          "day": "daily",
+          "week": "weekly",
+          "month": "monthly"
+        },
+        "comparedWith": "compared with {from} to {to}",
+        "noComparison": "nothing to compare with",
+        "updating": "updating…"
+      },
+      "needs": {
+        "pendingRefunds": "Refunds to pay",
+        "lowStock": "Low stock",
+        "outOfStock": "Out of stock",
+        "threshold": "{count} or fewer"
+      }
+    }
+  }
+}

@@ -1,5 +1,8 @@
 /**
- * Bootstrap or promote an admin account.
+ * Operator bootstrap: create or promote an admin account directly in the database
+ * (e.g. a fresh local DB). In production the Owner is pinned by OWNER_EMAIL and
+ * other Admins are managed by the Owner in the admin screen (Admin Invitations);
+ * this CLI is the break-glass path and is never run on deploy.
  *
  *   ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='...' pnpm --filter @baia/server admin:create
  *   pnpm --filter @baia/server admin:create --email you@example.com [--name "You"] [--reset-password]

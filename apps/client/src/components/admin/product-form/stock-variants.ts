@@ -9,6 +9,8 @@ export type Variant = {
   /** SKU is generated from slug/color/size until the admin edits it. */
   autoSku?: boolean;
   stockQuantity: number;
+  /** Quantity the server had when this form loaded (or last saved); sent so the API applies the edit as a difference. */
+  loadedStock?: number;
   /** false = unlimited stock. */
   trackInventory?: boolean;
   priceOverride: number | string | null;
@@ -24,6 +26,9 @@ export type SizeSet = { id: string; key: string; nameHe: string; nameEn: string;
 export type ColorBlock = { key: string; name: string };
 
 export const LOW_STOCK_THRESHOLD = 5;
+
+/** Remembers a saved variant's stock as loaded, so a later save can't overwrite sales made since. */
+export const withLoadedStock = (v: Variant): Variant => (v.id ? { ...v, loadedStock: v.stockQuantity } : v);
 
 export const isUnlimited = (v: Variant) => v.trackInventory === false;
 export const sameColor = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();

@@ -65,7 +65,7 @@ export class SiteConfigService {
       'accessibilityCoordinatorName',
       'accessibilityCoordinatorPhone',
       'accessibilityCoordinatorEmail',
-      'selfCancelWindowHours',
+      'lowStockThreshold',
     ] as const;
     for (const key of keys) {
       if (data[key] !== undefined) (updateData as Record<string, unknown>)[key] = data[key];

@@ -21,7 +21,7 @@ Work the **frontier**: any ticket whose blockers are all done.
 
 ## 2. Auth + database foundation
 
-**What to build:** Prisma schema with User/Session/Account models, better-auth configured on the server, login and register pages on the client, admin role-based route guard, and a seed script creating the admin account (yarinohana9@gmail.com).
+**What to build:** Prisma schema with User/Session/Account models, better-auth configured on the server, login and register pages on the client, admin role-based route guard, and a way to bootstrap the Owner admin: the Owner's email is pinned by the `OWNER_EMAIL` env var and promoted to admin once that email is registered and verified (nothing is seeded in production).
 
 **Blocked by:** 1. Monorepo scaffold + dev environment
 

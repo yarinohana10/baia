@@ -11,6 +11,7 @@ export function OrderDelivery({ order, showEta }: { order: CustomerOrder; showEt
   const tPage = useTranslations('orderPage');
   const tDelivery = useTranslations('delivery');
   const tOrders = useTranslations('orders');
+  const tCheckout = useTranslations('checkout');
   const shipping = useCartStore((s) => s.shipping);
   const pickup = order.deliveryMethod === 'PICKUP_POINT';
 
@@ -44,8 +45,12 @@ export function OrderDelivery({ order, showEta }: { order: CustomerOrder; showEt
           </p>
         </>
       )}
+      <p className="mt-1">
+        <span className="text-gray-400">{tCheckout('email')}: </span>
+        <span dir="ltr">{order.customerEmail}</span>
+      </p>
       {order.phone && (
-        <p className="mt-1">
+        <p>
           <span className="text-gray-400">{tOrders('phone')}: </span>
           <span dir="ltr">{order.phone}</span>
         </p>

@@ -10,7 +10,7 @@
     "colorOption": "Color {color}",
     "size": "Size",
     "sizeOption": "Size {size}",
-    "sizeSoldOut": "Size {size} – sold out",
+    "sizeBackSoon": "Size {size} – back soon",
     "selectSize": "Select a size",
     "lowStock": "{count, plural, one {Only 1 left} other {Only # left}}",
     "quantity": "Quantity",
@@ -18,13 +18,13 @@
     "increase": "Increase quantity",
     "addToCart": "Add to bag",
     "adding": "Adding…",
-    "soldOut": "Sold out",
+    "backSoon": "Back Soon",
     "sku": "SKU: {sku}",
     "notFound": "Product not found.",
     "trust": {
       "label": "Why shop with us",
       "freeShipping": "Free shipping over {threshold}",
-      "freeCancel": "Free cancellation within {hours} hours",
+      "freeCancel": "Free cancellation until your order ships",
       "returns": "14-day returns & exchanges",
       "securePayment": "Secure payment"
     },
@@ -43,7 +43,7 @@
       "pickup": "Pickup point",
       "eta": "{days} business days",
       "freeOver": "Free shipping on orders over {threshold}",
-      "cancel": "Free cancellation within {hours} hours of payment, right from your account.",
+      "cancel": "Free cancellation as long as the order hasn't shipped, right from your account.",
       "returns": "Returns or exchanges within 14 days of delivery.",
       "hygiene": "For hygiene reasons, swimwear can only be returned with the hygiene liner still in place and unworn beyond trying on.",
       "shippingLink": "Shipping policy",
@@ -101,7 +101,7 @@
     }
   },
   "productCard": {
-    "soldOut": "Sold out",
+    "backSoon": "Back Soon",
     "sale": "Sale",
     "salePercent": "-{pct}%"
   },

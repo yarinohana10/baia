@@ -5,3 +5,4 @@ export * from './schemas/checkout';
 export * from './schemas/storefront';
 export * from './schemas/admin';
 export * from './validation';
+export * from './error-reporting';

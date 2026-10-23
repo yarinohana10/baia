@@ -93,9 +93,15 @@ export interface CreateAuthOptions {
   database: BetterAuthOptions['database'];
   email: EmailService;
   env?: NodeJS.ProcessEnv;
+  /**
+   * Applies what a verified email is entitled to (Owner / Admin Invitation /
+   * Order Claim). Called after account creation, after any user update (e.g.
+   * email verification) and after every sign-in; it re-checks verification.
+   */
+  applyGrants?: (userId: string) => Promise<void>;
 }
 
-export function createAuth({ database, email, env = process.env }: CreateAuthOptions) {
+export function createAuth({ database, email, env = process.env, applyGrants }: CreateAuthOptions) {
   const isProduction = env.NODE_ENV === 'production';
   const clientUrl = (env.CLIENT_URL || 'http://localhost:3000').split(',')[0].trim().replace(/\/$/, '');
   const trustedOrigins = Array.from(new Set([...parseList(env.CLIENT_URL), ...parseList(env.TRUSTED_ORIGINS)]));
@@ -171,6 +177,22 @@ export function createAuth({ database, email, env = process.env }: CreateAuthOpt
           // welcome-verify email - welcome them on creation instead.
           after: async (user, ctx) => {
             if (user.emailVerified) void welcome(user, resolveRequestLocale(ctx?.request));
+            if (user.emailVerified) await applyGrants?.(user.id);
+          },
+        },
+        // Email verification (and Google linking) flips emailVerified via an update.
+        update: {
+          after: async (user) => {
+            if (user?.emailVerified && typeof user.id === 'string') await applyGrants?.(user.id);
+          },
+        },
+      },
+      // Sign-in of an already-verified account: picks up orders placed while
+      // logged out and a grant made since the last visit.
+      session: {
+        create: {
+          after: async (session) => {
+            await applyGrants?.(session.userId);
           },
         },
       },

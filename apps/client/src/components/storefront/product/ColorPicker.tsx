@@ -12,7 +12,7 @@ type Props = {
   onSelect: (color: string) => void;
 };
 
-/** Colour swatches (or text pills for colours without a known swatch); sold-out colours are struck through. */
+/** Colour swatches (or text pills for colours without a known swatch); colours with nothing in stock are struck through (still selectable, to see photos and sizes). */
 export function ColorPicker({ colors, selected, variants, onSelect }: Props) {
   const t = useTranslations('pdp');
   const inStock = new Set<string>();
@@ -35,7 +35,7 @@ export function ColorPicker({ colors, selected, variants, onSelect }: Props) {
               type="button"
               onClick={() => onSelect(color)}
               aria-pressed={isSelected}
-              aria-label={soldOut ? `${t('colorOption', { color })} – ${t('soldOut')}` : t('colorOption', { color })}
+              aria-label={soldOut ? `${t('colorOption', { color })} – ${t('backSoon')}` : t('colorOption', { color })}
               title={color}
               className={cn(
                 'relative rounded-full transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-600',

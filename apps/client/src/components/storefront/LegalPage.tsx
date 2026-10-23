@@ -49,7 +49,6 @@ export async function legalVars(config: SiteConfig | null): Promise<{ info: Busi
       threshold: info.freeShippingThreshold,
       courierEta: info.courierEtaDays,
       pickupEta: info.pickupEtaDays,
-      cancelHours: info.selfCancelWindowHours,
     },
   };
 }

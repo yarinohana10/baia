@@ -3,6 +3,7 @@
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCheckout } from '@/hooks/storefront/useCheckout';
+import { usePaymentConfig } from '@/hooks/storefront/usePaymentConfig';
 import type { CheckoutFields } from '@/hooks/storefront/checkoutFormState';
 import { CheckoutErrorBanner } from './CheckoutErrorBanner';
 import { CheckoutSkeleton } from './CheckoutSkeleton';
@@ -10,6 +11,7 @@ import { CheckoutSummary } from './CheckoutSummary';
 import { ContactSection } from './ContactSection';
 import { CouponSection } from './CouponSection';
 import { DeliverySection } from './DeliverySection';
+import { PaymentsComingSoon } from './PaymentsComingSoon';
 import { ShippingAddressSection } from './ShippingAddressSection';
 
 /** Checkout page: contact, delivery, address and coupon on one side, the order summary on the other. */
@@ -17,9 +19,12 @@ export function CheckoutView() {
   const t = useTranslations('cart');
   const tCheckout = useTranslations('checkout');
   const checkout = useCheckout();
+  const paymentConfig = usePaymentConfig();
   const { form, dispatch, coupon, locked } = checkout;
 
-  if (!checkout.loaded) return <CheckoutSkeleton />;
+  if (!checkout.loaded || !paymentConfig) return <CheckoutSkeleton />;
+  // Payments are off on the server: there is no way to place an order, so don't offer the form.
+  if (!paymentConfig.enabled) return <PaymentsComingSoon />;
 
   if (checkout.items.length === 0 && !locked) {
     return (

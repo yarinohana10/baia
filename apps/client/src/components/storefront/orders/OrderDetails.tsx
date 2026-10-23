@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useSession } from '@/lib/auth-client';
-import type { CustomerOrder } from '@/lib/orders';
+import { statusLabelKey, type CustomerOrder } from '@/lib/orders';
 import { CancellationOutcome } from './CancellationOutcome';
 import { OrderActions } from './OrderActions';
 import { OrderCancellation } from './OrderCancellation';
@@ -31,7 +31,8 @@ export function OrderDetails({
   const viewer: Viewer = session?.user as Viewer;
   const phase = orderPhase(order.status);
   const access = viewerAccess(order, viewer, guestToken);
-  const statusLabel = t.has(`status.${order.status}`) ? t(`status.${order.status}`) : order.status;
+  const statusKey = statusLabelKey(order);
+  const statusLabel = t.has(`status.${statusKey}`) ? t(`status.${statusKey}`) : order.status;
 
   return (
     <div className="max-w-2xl mx-auto py-16 px-4">
@@ -49,7 +50,11 @@ export function OrderDetails({
         <OrderLines items={order.items} />
         <PaymentMethodLine order={order} className="border-t border-gray-100 pt-4 text-sm" />
         <OrderTotals order={order} />
-        <CancellationOutcome requests={order.cancellationRequests ?? []} closed={phase.closed} />
+        <CancellationOutcome
+          requests={order.cancellationRequests ?? []}
+          refunds={order.refunds ?? []}
+          closed={phase.closed}
+        />
       </div>
 
       {access.canCancel && !phase.closed && (

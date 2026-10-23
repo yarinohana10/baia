@@ -23,6 +23,8 @@ function keyFor(err: ServerFieldError): string {
       return 'skuDuplicate';
     case 'duplicateCombination':
       return 'variantDuplicate';
+    case 'stockChanged':
+      return 'stockChanged';
     case 'saleBelowPrice':
       return 'saleBelowPrice';
     case 'saleDateRange':

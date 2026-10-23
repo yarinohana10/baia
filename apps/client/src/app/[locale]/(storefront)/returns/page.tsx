@@ -31,7 +31,7 @@ export default async function ReturnsPage({ params }: { params: Promise<{ locale
   ]);
   const info = businessInfo(config);
   const whatsapp = whatsappHref(info.whatsappNumber, tWhatsapp('prefill'));
-  const vars = { cancelHours: info.selfCancelWindowHours };
+  const vars = {};
   const sections = (t.raw('sections') as StaticSection[]).map((s) => ({
     title: fillTemplate(s.title, vars),
     body: fillTemplate(s.body, vars),

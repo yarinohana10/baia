@@ -9,8 +9,10 @@ const TH = 'px-5 py-3.5 font-body text-xs font-semibold uppercase tracking-[0.06
 
 type Props = {
   products: AdminProduct[];
+  lowStockThreshold: number;
   onToggleFeatured: (product: AdminProduct) => void;
   onToggleActive: (product: AdminProduct) => void;
+  onToggleBackSoon: (product: AdminProduct) => void;
   onDelete: (id: string) => void;
 };
 

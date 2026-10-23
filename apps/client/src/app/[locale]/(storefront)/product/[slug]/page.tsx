@@ -46,13 +46,13 @@ export default async function ProductPage({ params }: Props) {
         key={product.id}
         product={product}
         whatsappNumber={info.whatsappNumber}
+        lowStockThreshold={info.lowStockThreshold}
         shipping={{
           courierCost: info.courierCost,
           pickupCost: info.pickupCost,
           courierEtaDays: info.courierEtaDays,
           pickupEtaDays: info.pickupEtaDays,
           freeShippingThreshold: info.freeShippingThreshold,
-          selfCancelWindowHours: info.selfCancelWindowHours,
         }}
       />
 

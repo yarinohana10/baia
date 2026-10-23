@@ -47,7 +47,7 @@ if it is about an order.
   locale, orderId, status `SENT`/`FAILED`, attempts, error, createdAt. The HTML
   body is never stored (it can contain one-time links).
 - **Admin**: order panel → "מיילים שנשלחו" (`GET /v1/admin/orders/:id/emails`), with
-  "שליחה חוזרת של אישור הזמנה" (`POST /v1/admin/orders/:id/resend-confirmation`, paid orders only).
+  "שליחה חוזרת של אישור הזמנה" (`POST /v1/admin/orders/:id/resend-confirmation`, paid orders only). Any other order email can be re-rendered from the order's current data with `POST /v1/admin/orders/:id/resend-email` `{ template }` (order-confirmation, admin-new-order, order-processing, order-shipped, order-delivered, order-cancelled, refund-completed); the business inbox is `ADMIN_NOTIFY_EMAIL`, else the site contact email.
 - **Server log**: failures print `[email] failed to send "<template>" via <transport> after N attempt(s): <error>`.
 - **Dev**: Mailpit catches everything sent to `localhost:1025` - UI at http://localhost:8025.
 

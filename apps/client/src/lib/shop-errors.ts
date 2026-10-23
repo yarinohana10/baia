@@ -22,7 +22,8 @@ export type ShopErrorCode =
   | 'ORDER_LOOKUP_FAILED'
   | 'SELF_CANCEL_UNAVAILABLE'
   | 'CANCELLATION_NOT_ALLOWED'
-  | 'CANCELLATION_ALREADY_REQUESTED';
+  | 'CANCELLATION_ALREADY_REQUESTED'
+  | 'PAYMENTS_DISABLED';
 
 type ErrorBody = {
   code?: string;
@@ -98,6 +99,8 @@ export function shopErrorMessage(err: unknown, locale: string): ErrorMessage {
       return { key: 'cancellationNotAllowed' };
     case 'CANCELLATION_ALREADY_REQUESTED':
       return { key: 'cancellationAlreadyRequested' };
+    case 'PAYMENTS_DISABLED':
+      return { key: 'paymentsDisabled' };
   }
 
   if (status === 429) return { key: 'tooManyRequests' };

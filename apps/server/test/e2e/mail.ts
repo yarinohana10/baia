@@ -3,7 +3,7 @@ import { MemoryEmailTransport } from '../../src/email/transports/console.transpo
 import type { TestApp } from './app';
 
 /** Routes every email the app sends into memory for the duration of a spec. */
-export function captureEmails(t: TestApp) {
+export function captureEmails(t: Pick<TestApp, 'app'>) {
   const transport = new MemoryEmailTransport();
   t.app.get(EmailService).setTransport(transport);
   return transport;

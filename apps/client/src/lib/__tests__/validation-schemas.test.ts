@@ -12,6 +12,7 @@ import {
   contactSchema,
   createOrderSchema,
   deliverySettingsSchema,
+  inventorySettingsSchema,
   emailSchema,
   newsletterSubscribeSchema,
   optionalPhoneSchema,
@@ -271,7 +272,6 @@ describe('admin schemas', () => {
     freeShippingThreshold: '249',
     courierEtaDays: '3-5',
     pickupEtaDays: '2',
-    selfCancelWindowHours: '48',
   };
 
   it('delivery settings: converts form strings and validates ranges', () => {
@@ -281,7 +281,6 @@ describe('admin schemas', () => {
       freeShippingThreshold: 249,
       courierEtaDays: '3-5',
       pickupEtaDays: '2',
-      selfCancelWindowHours: 48,
     });
     expect(
       keys(deliverySettingsSchema, {
@@ -290,15 +289,22 @@ describe('admin schemas', () => {
         pickupPointCost: 'abc',
         freeShippingThreshold: '-1',
         courierEtaDays: '3 to 5',
-        selfCancelWindowHours: '1.5',
       }),
     ).toEqual({
       shippingCost: 'validation.required',
       pickupPointCost: 'validation.amountInvalid',
       freeShippingThreshold: 'validation.outOfRange',
       courierEtaDays: 'validation.etaInvalid',
-      selfCancelWindowHours: 'validation.wholeNumber',
     });
+  });
+
+  it('inventory settings: low-stock threshold is a whole number from 0 to 1000', () => {
+    expect(inventorySettingsSchema.parse({ lowStockThreshold: '5' })).toEqual({ lowStockThreshold: 5 });
+    expect(inventorySettingsSchema.parse({ lowStockThreshold: '0' })).toEqual({ lowStockThreshold: 0 });
+    expect(keys(inventorySettingsSchema, { lowStockThreshold: '1.5' })).toEqual({ lowStockThreshold: 'validation.wholeNumber' });
+    expect(keys(inventorySettingsSchema, { lowStockThreshold: '-1' })).toEqual({ lowStockThreshold: 'validation.outOfRange' });
+    expect(keys(inventorySettingsSchema, { lowStockThreshold: '1001' })).toEqual({ lowStockThreshold: 'validation.outOfRange' });
+    expect(keys(inventorySettingsSchema, { lowStockThreshold: '' })).toEqual({ lowStockThreshold: 'validation.required' });
   });
 
   it('pickup point: blank hours clear, blank sort order is omitted', () => {

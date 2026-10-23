@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cardErrors, cardFormReducer, cardRequest, futureExpiry, initialCardForm } from '../cardFormState';
 import type { PaymentConfig } from '@/lib/payment';
 
-const config: PaymentConfig = { provider: 'mock', testMode: true, methods: ['card'], installments: { max: 3, minTotal: 100 } };
+const config: PaymentConfig = { enabled: true, provider: 'mock', testMode: true, methods: ['card'], installments: { max: 3, minTotal: 100 } };
 
 describe('cardFormReducer', () => {
   it('formats what is typed', () => {

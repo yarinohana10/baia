@@ -4,7 +4,6 @@ export type DeliverySettings = {
   freeShippingThreshold: string;
   courierEtaDays: string;
   pickupEtaDays: string;
-  selfCancelWindowHours: string;
 };
 
 export type PickupPoint = {
@@ -28,7 +27,6 @@ type SiteConfigDelivery = Partial<{
   freeShippingThreshold: string | number;
   courierEtaDays: string;
   pickupEtaDays: string;
-  selfCancelWindowHours: number;
 }>;
 
 /** Form strings from the site config, with the store defaults for unset values. */
@@ -39,7 +37,6 @@ export function settingsFromConfig(d: SiteConfigDelivery): DeliverySettings {
     freeShippingThreshold: String(Number(d.freeShippingThreshold ?? 249)),
     courierEtaDays: d.courierEtaDays ?? '3-5',
     pickupEtaDays: d.pickupEtaDays ?? '2-4',
-    selfCancelWindowHours: String(d.selfCancelWindowHours ?? 48),
   };
 }
 

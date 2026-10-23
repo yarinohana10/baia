@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { canIncrease, cartSubtotal, decreasedQuantity, lineIssue, shippingFor, type CartItem } from '../cart';
 
-function line(quantity: number, variant: Partial<CartItem['variant']> = {}, productActive = true): CartItem {
+function line(quantity: number, variant: Partial<CartItem['variant']> = {}, productActive = true, backSoon = false): CartItem {
   return {
     id: 'line',
     quantity,
@@ -18,7 +18,7 @@ function line(quantity: number, variant: Partial<CartItem['variant']> = {}, prod
       saleStart: null,
       saleEnd: null,
       ...variant,
-      product: { id: 'p', nameHe: 'גל', nameEn: 'Wave', slug: 'wave', basePrice: '89.90', isActive: productActive, images: [] },
+      product: { id: 'p', nameHe: 'גל', nameEn: 'Wave', slug: 'wave', basePrice: '89.90', isActive: productActive, backSoon, images: [] },
     },
   };
 }
@@ -28,6 +28,7 @@ describe('cart lines', () => {
     expect(lineIssue(line(1))).toBeNull();
     expect(lineIssue(line(1, { isActive: false }))).toEqual({ kind: 'unavailable' });
     expect(lineIssue(line(1, {}, false))).toEqual({ kind: 'unavailable' });
+    expect(lineIssue(line(1, {}, true, true))).toEqual({ kind: 'unavailable' });
     expect(lineIssue(line(1, { stockQuantity: 0 }))).toEqual({ kind: 'outOfStock' });
     expect(lineIssue(line(5, { stockQuantity: 2 }))).toEqual({ kind: 'insufficient', available: 2 });
   });

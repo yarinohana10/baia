@@ -151,11 +151,18 @@ describe('EmailService reliability', () => {
       to: 'store@baia.test',
       data: {
         orderNumber: 'BA-1',
+        orderDate: '1 בינואר 2026',
         customer: 'Dana',
         email: 'dana@example.test',
+        items: [{ name: 'בגד ים', color: 'שחור', size: 'M', quantity: 1, lineTotal: '₪100' }],
+        subtotal: '₪100',
+        shipping: 'חינם',
+        discount: null,
         total: '₪100',
         itemCount: 1,
-        delivery: 'שליח',
+        deliveryMethod: 'COURIER' as const,
+        addressLines: ['Dana', 'הרצל 1', 'תל אביב'],
+        payment: null,
         marketingConsent: false,
         adminUrl: 'https://shop.test/he/admin/orders',
       },
@@ -248,7 +255,6 @@ describe('order email content', () => {
     etaDays: '3-5',
     trackUrl: 'https://shop.test/he/order-status',
     cancelUrl: 'https://shop.test/he/cancel-order',
-    cancelWindowHours: 48,
     contactUrl: 'https://shop.test/he/contact',
     payment: { method: 'card', cardBrand: 'visa', cardLast4: '4242', installments: 3 },
     ...overrides,
@@ -271,7 +277,7 @@ describe('order email content', () => {
     expect(r.text).toContain('- 2 × בגד ים <img src=x onerror=alert(1)>');
     expect(r.text).toContain('סה״כ: ₪377.00');
     expect(r.text).toContain('מעקב אחר ההזמנה: https://shop.test/he/order-status');
-    expect(r.text).toContain('48 שעות');
+    expect(r.text).toContain('אפשר לבטל ללא עלות בכל שלב');
     expect(r.subject).toBe('אישור הזמנה BA-1001 - BAIA');
   });
 

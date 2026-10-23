@@ -1,30 +1,16 @@
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import type { InventoryData } from './types';
+import type { Attention } from './types';
 
-/** Same output as `Number#toLocaleString()` with the runtime's default locale. */
-const STOCK_FORMAT = new Intl.NumberFormat();
-
-/** Stock summary badges plus the variants that are out of or low on stock. */
-export function InventoryAlerts({ data }: { data: InventoryData }) {
+/** Variants that are out of or low on stock (at or below the store's low-stock threshold). */
+export function InventoryAlerts({ data }: { data: Attention }) {
   const t = useTranslations('admin.dashboard');
   const locale = useLocale();
 
   return (
     <div className="space-y-3">
-      {/* Summary badges */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
-          <span className="font-body text-xs text-muted-foreground">{t('totalStock')}</span>
-          <span className="font-body text-sm font-semibold text-foreground">{STOCK_FORMAT.format(data.totalStock)} {t('stockUnits')}</span>
-        </div>
-        {(data.unlimitedVariants ?? 0) > 0 && (
-          <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
-            <span className="font-body text-xs text-muted-foreground">{t('unlimitedStock')}</span>
-            <span className="font-body text-sm font-semibold text-foreground">{t('sizesCount', { count: data.unlimitedVariants ?? 0 })}</span>
-          </div>
-        )}
+      <div className="mb-4 flex flex-wrap gap-3">
         {data.outOfStockCount > 0 && (
           <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2">
             <span className="font-body text-xs text-destructive">{t('outOfStock')}</span>
@@ -37,13 +23,14 @@ export function InventoryAlerts({ data }: { data: InventoryData }) {
             <span className="font-body text-sm font-semibold text-amber-700">{data.lowStockCount}</span>
           </div>
         )}
+        <p className="self-center font-body text-xs text-muted-foreground">{t('needs.threshold', { count: data.lowStockThreshold })}</p>
       </div>
 
       {/* Items list */}
-      {data.lowStockItems.length === 0 ? (
+      {data.stockItems.length === 0 ? (
         <p className="py-8 text-center font-body text-sm text-muted-foreground">{t('noAlerts')}</p>
       ) : (
-        data.lowStockItems.map((item) => {
+        data.stockItems.map((item) => {
           const name = locale === 'he' ? item.productNameHe : item.productNameEn;
           const isOut = item.stockQuantity === 0;
 

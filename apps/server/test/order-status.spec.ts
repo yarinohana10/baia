@@ -13,9 +13,10 @@ describe('order status transitions', () => {
     expect(canTransition(OrderStatus.DELIVERED, OrderStatus.REFUNDED)).toBe(true);
   });
 
-  it('treats cancelled and refunded as final', () => {
-    expect(allowedTransitions(OrderStatus.CANCELLED)).toEqual([]);
+  it('never reopens a cancelled or refunded order; cancelled can only be settled as refunded', () => {
+    expect(allowedTransitions(OrderStatus.CANCELLED)).toEqual([OrderStatus.REFUNDED]);
     expect(allowedTransitions(OrderStatus.REFUNDED)).toEqual([]);
+    expect(canTransition(OrderStatus.CANCELLED, OrderStatus.CONFIRMED)).toBe(false);
   });
 
   it('never moves a paid order back to awaiting payment', () => {
