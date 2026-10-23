@@ -104,7 +104,7 @@ export interface AppConfig {
     ownerEmail: string | undefined;
   };
   email: {
-    provider: 'smtp' | 'console';
+    provider: 'smtp' | 'resend' | 'console';
     from: string;
     smtp: { host: string; port: number; secure: boolean; user?: string; password?: string } | null;
     adminNotifyEmail: string | undefined;
@@ -158,6 +158,7 @@ const rawEnvSchema = z.object({
   OWNER_EMAIL: optionalString,
   EMAIL_PROVIDER: optionalString,
   EMAIL_FROM: optionalString,
+  RESEND_API_KEY: optionalString,
   SMTP_HOST: optionalString,
   SMTP_PORT: optionalString,
   SMTP_SECURE: optionalString,
@@ -299,10 +300,11 @@ export function parseEnv(env: Env): EnvParseResult {
 
   // ── Email ──────────────────────────────────────────
   const emailProviderRaw = (raw.EMAIL_PROVIDER ?? (raw.SMTP_HOST ? 'smtp' : 'console')).toLowerCase();
-  if (!['smtp', 'console'].includes(emailProviderRaw)) {
-    errors.push(`EMAIL_PROVIDER must be "smtp" or "console" (got "${raw.EMAIL_PROVIDER}").`);
+  if (!['smtp', 'resend', 'console'].includes(emailProviderRaw)) {
+    errors.push(`EMAIL_PROVIDER must be "smtp", "resend" or "console" (got "${raw.EMAIL_PROVIDER}").`);
   }
-  const emailProvider = (emailProviderRaw === 'smtp' ? 'smtp' : 'console') as 'smtp' | 'console';
+  const emailProvider = (['smtp', 'resend'].includes(emailProviderRaw) ? emailProviderRaw : 'console') as 'smtp' | 'resend' | 'console';
+  if (emailProvider === 'resend' && !raw.RESEND_API_KEY) errors.push('RESEND_API_KEY is required when EMAIL_PROVIDER=resend.');
   requireInProd('EMAIL_PROVIDER', 'set it to "smtp" (or "console" to deliberately disable email delivery).');
   if (isProduction && emailProvider === 'console' && raw.EMAIL_PROVIDER) {
     warnings.push('EMAIL_PROVIDER=console in production: order confirmations and password resets will NOT be delivered.');
@@ -336,8 +338,8 @@ export function parseEnv(env: Env): EnvParseResult {
   if (raw.ADMIN_NOTIFY_EMAIL && !emailRe.test(raw.ADMIN_NOTIFY_EMAIL)) {
     errors.push(`ADMIN_NOTIFY_EMAIL must be an email address (got "${raw.ADMIN_NOTIFY_EMAIL}").`);
   }
-  if (isProduction && emailProvider === 'smtp' && !raw.ADMIN_NOTIFY_EMAIL) {
-    errors.push('ADMIN_NOTIFY_EMAIL is required in production when EMAIL_PROVIDER=smtp: the business inbox that receives new-order and cancellation alerts.');
+  if (isProduction && emailProvider !== 'console' && !raw.ADMIN_NOTIFY_EMAIL) {
+    errors.push('ADMIN_NOTIFY_EMAIL is required in production when email delivery is on: the business inbox that receives new-order and cancellation alerts.');
   }
   if (raw.EMAIL_RETRY_DELAYS_MS && !/^\s*\d+(\s*,\s*\d+)*\s*$/.test(raw.EMAIL_RETRY_DELAYS_MS)) {
     errors.push('EMAIL_RETRY_DELAYS_MS must be a comma-separated list of milliseconds, e.g. "0,2000,8000".');

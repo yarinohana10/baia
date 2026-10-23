@@ -242,6 +242,12 @@ describe('server env validation: S3 endpoints', () => {
 });
 
 describe('server env validation: payments flag and business inbox', () => {
+  it('accepts EMAIL_PROVIDER=resend with RESEND_API_KEY and rejects it without the key', () => {
+    const base = { EMAIL_PROVIDER: 'resend', SMTP_HOST: undefined, SMTP_USER: undefined, SMTP_PASSWORD: undefined, ADMIN_NOTIFY_EMAIL: 'shop@example.org' };
+    expect(errorsOf(prodEnv({ ...base, RESEND_API_KEY: 're_x' }))).toEqual([]);
+    expect(errorsOf(prodEnv(base)).join('\n')).toMatch(/RESEND_API_KEY is required/);
+  });
+
   it('requires ADMIN_NOTIFY_EMAIL in production when EMAIL_PROVIDER=smtp', () => {
     expect(errorsOf(prodEnv({ ADMIN_NOTIFY_EMAIL: undefined })).join('\n')).toMatch(/ADMIN_NOTIFY_EMAIL is required/);
     expect(errorsOf(prodEnv({ ADMIN_NOTIFY_EMAIL: undefined, EMAIL_PROVIDER: 'console', SMTP_HOST: undefined })).join('\n')).not.toMatch(
