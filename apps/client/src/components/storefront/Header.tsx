@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useSession, signOut } from '@/lib/auth-client';
-import { ShoppingBag, User, Menu, X, LogOut, Shield, Search } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, LogOut, LayoutDashboard, Search } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { Wordmark } from './Wordmark';
 import { SearchForm } from './SearchForm';
@@ -37,7 +37,7 @@ function LocaleSwitcher({ pathname, className, onAfterSwitch }: LocaleSwitcherPr
         onAfterSwitch?.();
       }}
       className={className}
-      aria-label={t('switchLang')}
+      aria-label={t('switchLang')} title={t('switchLang')}
       lang={target}
     >
       {target === 'en' ? 'EN' : 'עב'}
@@ -105,6 +105,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               aria-label={menuOpen ? ts('closeMenu') : ts('menu')}
+              title={menuOpen ? ts('closeMenu') : ts('menu')}
             >
               {menuOpen ? <X size={22} strokeWidth={1.6} /> : <Menu size={22} strokeWidth={1.6} />}
             </button>
@@ -143,6 +144,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
               aria-expanded={searchOpen}
               aria-controls="header-search"
               aria-label={searchOpen ? ts('search.close') : ts('search.open')}
+              title={searchOpen ? ts('search.close') : ts('search.open')}
             >
               {searchOpen ? <X size={20} strokeWidth={1.6} /> : <Search size={20} strokeWidth={1.6} />}
             </button>
@@ -151,31 +153,31 @@ export function Header({ nav }: { nav: NavItem[] }) {
 
             {session?.user ? (
               <>
-                <Link href="/account" className={iconButton} aria-label={t('myAccount')}>
+                <Link href="/account" className={iconButton} aria-label={t('myAccount')} title={t('myAccount')}>
                   <User size={20} strokeWidth={1.6} />
                 </Link>
                 <button
                   type="button"
                   onClick={handleSignOut}
                   className={`${iconButton} max-sm:hidden`}
-                  aria-label={t('signOut')}
+                  aria-label={t('signOut')} title={t('signOut')}
                 >
                   <LogOut size={18} strokeWidth={1.6} />
                 </button>
               </>
             ) : (
-              <Link href="/login" className={iconButton} aria-label={t('userTooltip')}>
+              <Link href="/login" className={iconButton} aria-label={t('signIn')} title={t('signIn')}>
                 <User size={20} strokeWidth={1.6} />
               </Link>
             )}
 
             {isAdmin && (
-              <Link href="/admin" className={`${iconButton} max-sm:hidden`} aria-label={t('adminPanel')}>
-                <Shield size={19} strokeWidth={1.6} />
+              <Link href="/admin" className={`${iconButton} max-sm:hidden`} aria-label={t('adminPanel')} title={t('adminPanel')}>
+                <LayoutDashboard size={19} strokeWidth={1.6} />
               </Link>
             )}
 
-            <button type="button" onClick={openDrawer} className={`${iconButton} -me-2`} aria-label={t('cartTooltip')}>
+            <button type="button" onClick={openDrawer} className={`${iconButton} -me-2`} aria-label={t('cartTooltip')} title={t('cartTooltip')}>
               <ShoppingBag size={20} strokeWidth={1.6} />
               {cartCount > 0 && (
                 <span className="absolute end-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral px-1 text-[10px] font-bold text-white">
@@ -227,7 +229,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
             />
             {isAdmin && (
               <Link href="/admin" className="inline-flex items-center gap-2 rounded-full border border-ink/20 px-4 py-2 text-ink">
-                <Shield size={16} strokeWidth={1.6} />
+                <LayoutDashboard size={16} strokeWidth={1.6} />
                 {t('adminPanel')}
               </Link>
             )}
