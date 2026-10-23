@@ -42,6 +42,7 @@ cookie. That is why A is the default. A keeps working after you add a custom dom
 | `AUTH_COOKIE_DOMAIN` | R\* | B only: `.baia.co.il` | Shares the session between the storefront and API subdomains. A `*.up.railway.app` value is rejected. Leave it empty in setup A. |
 | `AUTH_RATE_LIMIT` | O | `true` | better-auth rate limiting (default on). |
 | `AUTH_TRUSTED_PROXIES` | O | | Proxy IPs/CIDRs better-auth may strip from a multi-hop `X-Forwarded-For`. |
+| `OWNER_EMAIL` | R | `yarinohana9@gmail.com` | The business owner's email, pinned as the **Owner**: the only Admin who can add or remove other Admins. Register and verify this address on the live site and the account becomes Admin automatically. Re-applied on every boot; a deploy never demotes anyone (ADR-0006). |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | O | *(secret)* | Google sign-in. Set both or neither. Redirect URI: `<BETTER_AUTH_URL>/api/auth/callback/google`. |
 | `EMAIL_PROVIDER` | R | `smtp` | `smtp`, or `console` (nothing is delivered; a warning is logged). |
 | `SMTP_HOST` | R\* | `smtp.gmail.com` / `smtp.resend.com` | Required when `EMAIL_PROVIDER=smtp`. |
@@ -49,8 +50,8 @@ cookie. That is why A is the default. A keeps working after you add a custom dom
 | `SMTP_SECURE` | O | `true` | `true` = implicit TLS (465). `false` = STARTTLS (587). |
 | `SMTP_USER` | R\* | `baiaswimwear0@gmail.com` / `resend` | SMTP login. |
 | `SMTP_PASSWORD` | R\* | *(secret)* Gmail App Password / Resend API key | Required when `SMTP_USER` is set. |
-| `EMAIL_FROM` | R | `BAIA Swimwear <baiaswimwear0@gmail.com>` or `BAIA Swimwear <orders@baia.co.il>` | The sender. It must be a sender your provider allows (Gmail: the account itself). Placeholder domains are rejected. |
-| `ADMIN_NOTIFY_EMAIL` | O | `baiaswimwear0@gmail.com` | Store inbox for new-order and cancellation alerts. **Admin › Settings › contact email** takes precedence, and customer emails use it as Reply-To. Set that field too. |
+| `EMAIL_FROM` | R | `BAIA Swimwear <baiaswimwear0@gmail.com>` or `BAIA Swimwear <orders@baia.co.il>` | The sender. It must be a sender your provider allows (Gmail: the account itself; Resend: an address on the verified domain). Placeholder domains are rejected. |
+| `ADMIN_NOTIFY_EMAIL` | R (with `EMAIL_PROVIDER=smtp`) | `baiaswimwear0@gmail.com` | Store inbox for new-order and cancellation alerts. **Admin › Settings › contact email** takes precedence, and customer emails use it as Reply-To. Set that field too. |
 | `EMAIL_RETRY_DELAYS_MS` | O | `0,2000,8000` | Retry schedule for failed sends. |
 | `STORAGE_PROVIDER` | R | `s3` | Must be `s3` in production (container disks are wiped on every deploy). |
 | `S3_ENDPOINT` | R\* | R2: `https://<account-id>.r2.cloudflarestorage.com` | S3 API endpoint. Omit for AWS S3. |
@@ -59,10 +60,11 @@ cookie. That is why A is the default. A keeps working after you add a custom dom
 | `S3_ACCESS_KEY` / `S3_SECRET_KEY` | R | *(secret)* | Bucket-scoped API token (read + write). |
 | `S3_PUBLIC_URL` | R | R2 custom domain: `https://images.baia.co.il` | Public base URL the images are served from. Must be https. |
 | `S3_PUBLIC_URL_INCLUDES_BUCKET` | O | `false` for R2 public domains / CDNs | `true` (default) gives `<public>/<bucket>/<key>`. `false` gives `<public>/<key>`. |
-| `S3_FORCE_PATH_STYLE` | O | | Path-style S3 requests. Detected automatically for localhost. Set `true` for MinIO-like endpoints. |
+| `S3_FORCE_PATH_STYLE` | O | | Path-style S3 requests. On by default for every non-AWS endpoint (R2, LocalStack, MinIO); only real AWS S3 uses virtual-hosted style. Set `false` to override. Cloudflare R2 needs no other setting (no ACLs are sent). |
 | `CDN_URL` | O | `https://cdn.baia.co.il` | Overrides `S3_PUBLIC_URL`. |
 | `UPLOADS_DIR` | O | | Local storage only (development). |
-| `PAYMENT_PROVIDER` | R | — | **There is no real payment provider yet.** `mock` confirms orders **without charging**. Use it only on a demo or staging site. The server logs a warning on every boot. |
+| `PAYMENT_PROVIDER` | R | `mock` | **There is no real payment provider yet.** `mock` confirms orders **without charging**, so production keeps it together with `PAYMENTS_ENABLED=false`. The server logs a warning on every boot. |
+| `PAYMENTS_ENABLED` | O (default `false` in production, `true` elsewhere) | `false` | `false`: the shop is browsable but checkout shows "Payments coming soon" and the API refuses to create orders or payments. Set `true` only when a real provider is integrated (or on a private staging site that tests the mock flow). Read at request time; changing it restarts the service (ADR-0008). |
 | `PAYMENT_WEBHOOK_SECRET` | O | *(secret)* | HMAC secret for provider webhooks, once a real PSP exists. |
 | `MOCK_PAYMENT_DELAY_MS` | O | `500` | Mock provider latency. |
 | `PAYMENT_INSTALLMENTS_MIN_TOTAL` | O | `300` | Minimum order total (₪) for installments. |
@@ -71,6 +73,9 @@ cookie. That is why A is the default. A keeps working after you add a custom dom
 | `TRACKING_URL_TEMPLATE` | O | `https://carrier.example/track?n={tracking}` | Carrier link in "shipped" emails. Must contain `{tracking}`. |
 | `TRACKING_CARRIER_NAME` | O | | The carrier's display name. |
 | `SERVER_URL` | O | | Origin for relative image paths in emails. Defaults to `BETTER_AUTH_URL`. |
+| `SENTRY_DSN` | O | `https://<key>@o123.ingest.sentry.io/456` | Error reporting for the API (Sentry free tier). Unset = completely off. Reports 5xx errors and crashes with personal data scrubbed (emails, phones, addresses, cookies, authorization headers, tokens). An invalid DSN only logs a warning. |
+| `SENTRY_ENVIRONMENT` | O | `production` | Defaults to `RAILWAY_ENVIRONMENT_NAME`, then `NODE_ENV`. |
+| `SENTRY_RELEASE` | O | | Defaults to Railway's `RAILWAY_GIT_COMMIT_SHA` (set automatically). |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | O | *(one-off)* | Read only by the admin bootstrap CLI. Do not leave them set on the service. |
 
 ## client (Next.js storefront)
@@ -86,7 +91,24 @@ cookie. That is why A is the default. A keeps working after you add a custom dom
 | `NEXT_PUBLIC_AUTH_COOKIE_PREFIX` | build | O | `baia` | Must match the server's `AUTH_COOKIE_PREFIX`. |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | build | O | `baiaswimwear0@gmail.com` | Fallback contact email when the API is unreachable. |
 | `NEXT_PUBLIC_TRACKING_URL_TEMPLATE` | build | O | | Tracking link on order pages. |
+| `NEXT_PUBLIC_SENTRY_DSN` | build | O | `https://<key>@o123.ingest.sentry.io/789` | Error reporting for the storefront (browser and Next server). Unset = off, nothing is attached. A DSN is public by design. Use a separate Sentry project from the API. Add its host to the CSP if you enforce one. |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | build | O | `production` | Defaults to `NODE_ENV`. The release name is Railway's commit SHA, taken automatically at build. |
 | `PORT` | runtime | O | `3000` | |
+
+## backup (Railway Cron service, optional)
+
+A third service built from `scripts/backup/Dockerfile` that runs `scripts/backup-db.sh` and exits (see DEPLOYMENT.md §11).
+
+| Variable | Req | Example / Railway value | Description |
+|---|---|---|---|
+| `DATABASE_URL` | R | `${{Postgres.DATABASE_URL}}` | Private connection string. |
+| `BACKUP_S3_BUCKET` | R | `baia-backups` | A **private** R2 bucket. The script refuses the public image bucket (`S3_BUCKET`). |
+| `BACKUP_S3_ENDPOINT` | R\* | `https://<account-id>.r2.cloudflarestorage.com` | Falls back to `S3_ENDPOINT`. |
+| `BACKUP_S3_ACCESS_KEY` / `BACKUP_S3_SECRET_KEY` | R | *(secret)* | R2 token with Object Read & Write on the backup bucket. Fall back to `S3_ACCESS_KEY`/`S3_SECRET_KEY` only if that token also covers the backup bucket. |
+| `BACKUP_S3_REGION` | O | `auto` | |
+| `BACKUP_PREFIX` | O | `backups/` | Key prefix. |
+| `BACKUP_KEEP_DAILY` / `BACKUP_KEEP_WEEKLY` | O | `14` / `8` | Retention: newest N days and newest N Sundays. |
+| `BACKUP_DRY_RUN` | O | `true` | Dump and verify only; upload and prune nothing. |
 
 ## Postgres (Railway plugin)
 
@@ -104,13 +126,14 @@ DATABASE_URL=${{Postgres.DATABASE_URL}}
 CLIENT_URL=https://${{client.RAILWAY_PUBLIC_DOMAIN}}
 BETTER_AUTH_URL=https://${{client.RAILWAY_PUBLIC_DOMAIN}}
 BETTER_AUTH_SECRET=<openssl rand -base64 32>
+OWNER_EMAIL=yarinohana9@gmail.com
 EMAIL_PROVIDER=smtp
-SMTP_HOST=smtp.gmail.com
+SMTP_HOST=smtp.resend.com
 SMTP_PORT=465
 SMTP_SECURE=true
-SMTP_USER=baiaswimwear0@gmail.com
-SMTP_PASSWORD=<16-char Gmail App Password>
-EMAIL_FROM=BAIA Swimwear <baiaswimwear0@gmail.com>
+SMTP_USER=resend
+SMTP_PASSWORD=<Resend API key>
+EMAIL_FROM=BAIA Swimwear <orders@baia.co.il>
 ADMIN_NOTIFY_EMAIL=baiaswimwear0@gmail.com
 STORAGE_PROVIDER=s3
 S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
@@ -120,7 +143,9 @@ S3_ACCESS_KEY=<R2 token access key>
 S3_SECRET_KEY=<R2 token secret>
 S3_PUBLIC_URL=https://images.baia.co.il
 S3_PUBLIC_URL_INCLUDES_BUCKET=false
-PAYMENT_PROVIDER=<decide: see DEPLOYMENT.md "Payments">
+PAYMENT_PROVIDER=mock
+PAYMENTS_ENABLED=false
+SENTRY_DSN=<optional>
 ```
 
 **client**
@@ -131,6 +156,7 @@ NEXT_PUBLIC_API_URL=/v1
 API_INTERNAL_URL=http://${{server.RAILWAY_PRIVATE_DOMAIN}}:8000
 IMAGE_REMOTE_PATTERNS=https://images.baia.co.il
 NEXT_PUBLIC_CONTACT_EMAIL=baiaswimwear0@gmail.com
+NEXT_PUBLIC_SENTRY_DSN=<optional>
 ```
 
 When `baia.co.il` is attached to the **client** service, replace both `https://${{...RAILWAY_PUBLIC_DOMAIN}}`

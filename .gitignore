@@ -50,3 +50,6 @@ storybook-static
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Local production simulation settings (may hold a Resend key); template: .env.railsim.example
+.env.railsim

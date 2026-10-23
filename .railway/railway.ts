@@ -11,6 +11,10 @@
  * Railway dashboard (Variables tab). Set them there before the first deploy.
  * The full variable reference is docs/railway-env.md; the runbook is
  * docs/DEPLOYMENT.md (which also lists the equivalent dashboard settings).
+ *
+ * Not modelled here: the nightly database-backup Cron service (scripts/backup/Dockerfile).
+ * Railway's cron schedule is a dashboard setting; docs/DEPLOYMENT.md §11 and docs/GO-LIVE.md
+ * walk through it.
  */
 import { defineRailway, github, postgres, preserve, project, service } from 'railway/iac';
 
@@ -54,6 +58,8 @@ export default defineRailway(() => {
       BETTER_AUTH_URL: SITE_URL_FROM_SERVER,
       CLIENT_URL: SITE_URL_FROM_SERVER,
       BETTER_AUTH_SECRET: preserve(),
+      // The Owner: the pinned Admin who alone adds/removes Admins (docs/adr/0006).
+      OWNER_EMAIL: preserve(),
       TRUST_PROXY: '1',
       EMAIL_PROVIDER: 'smtp',
       SMTP_HOST: preserve(),
@@ -72,6 +78,10 @@ export default defineRailway(() => {
       S3_ACCESS_KEY: preserve(),
       S3_SECRET_KEY: preserve(),
       PAYMENT_PROVIDER: preserve(),
+      // false until a real provider is integrated: checkout shows "payments coming soon" (docs/adr/0008).
+      PAYMENTS_ENABLED: preserve(),
+      // Optional error reporting; empty = off.
+      SENTRY_DSN: preserve(),
     },
   });
 
@@ -96,6 +106,8 @@ export default defineRailway(() => {
       API_INTERNAL_URL: 'http://${{server.RAILWAY_PRIVATE_DOMAIN}}:8000',
       IMAGE_REMOTE_PATTERNS: preserve(),
       NEXT_PUBLIC_CONTACT_EMAIL: preserve(),
+      // Optional error reporting; empty = off. Build-time: redeploy after changing.
+      NEXT_PUBLIC_SENTRY_DSN: preserve(),
     },
   });
 

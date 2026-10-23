@@ -139,7 +139,7 @@ better-auth with Prisma adapter, matching the Brain project's auth setup:
 - **Customer auth**: email/password + Google OAuth
 - **Admin auth**: same mechanism, differentiated by `role` field on User
 - **Guest checkout**: no auth required — Order is created with just an email address
-- Admin account `yarinohana9@gmail.com` is seeded with `role: admin`
+- The Owner is pinned by the `OWNER_EMAIL` env var (yarinohana9@gmail.com in production): once that email is registered and verified it is promoted to `role: ADMIN` on every deploy. Nothing is seeded. Only the Owner can add/remove other admins (Admin Invitations for emails without a verified account)
 
 ### Database Schema (key entities)
 
@@ -275,9 +275,9 @@ Tests should verify external behavior through public interfaces, not implementat
 
 18+ swimwear product images have been provided (swim shorts in various colors: brown, black, burgundy, yellow, orange, red, blue patterned, striped, green, camo, etc.). These will be used to seed the initial product catalog with realistic data during development.
 
-### Admin Seed Account
+### Owner and Admins
 
-`yarinohana9@gmail.com` will be seeded as the admin user with full access to the admin panel on first database migration.
+The Owner (`OWNER_EMAIL`, yarinohana9@gmail.com) is not seeded: they register normally, verify their email and are promoted to admin automatically (re-applied on every boot, promotion only). The Owner alone adds or removes other admins in the admin panel; an email without a verified account gets an Admin Invitation that applies when it registers and verifies.
 
 ### Inspiration Sources
 
