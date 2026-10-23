@@ -152,7 +152,7 @@ The schema is managed by **Prisma Migrate** (`apps/server/prisma/migrations`). T
 5. In **Admin › Settings**, fill in the business details: legal name, ח.פ./ע.מ., address, phone, and
    **contact email** (`baiaswimwear0@gmail.com`). The contact email receives new-order alerts and
    is the Reply-To on customer emails. Until it's set, the schema default address
-   (`hello@baia-swimwear.co.il`) is shown. Every placeholder to replace is listed in
+   (`baiaswimwear0@gmail.com`) is shown. Every placeholder to replace is listed in
    [`GO-LIVE.md`](./GO-LIVE.md#step-9-replace-every-placeholder-in-admin-settings).
 
 ## 6. Custom domain (`baia.co.il`) and DNS
@@ -417,7 +417,7 @@ anonymous auth calls in one shared bucket. On Railway the edge provides the head
       the 14-day cancellation right) and the accessibility statement (IS 5568 / WCAG AA), with a lawyer
 - [ ] **Real business details** everywhere: company/VAT number (it currently shows "יעודכן בקרוב"),
       address, phone `050-0000000` placeholder, WhatsApp number, and the fallback contact email
-      `hello@baia-swimwear.co.il`
+      `baiaswimwear0@gmail.com`
 - [ ] **Analytics and cookie consent:** choose analytics (GA4/Plausible/PostHog), wire it to the
       existing consent banner (essential-only by default), and update the privacy policy
 - [ ] **Error monitoring:** optional Sentry DSNs set for the API and the storefront (§12)

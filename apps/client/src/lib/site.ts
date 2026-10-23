@@ -6,7 +6,7 @@ import { LOW_STOCK_THRESHOLD, formatPrice } from './catalog/pricing';
  * The live values come from the admin site settings (GET /site-config); this is
  * only the fallback when the API is unreachable.
  */
-export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'hello@baia-swimwear.co.il';
+export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'baiaswimwear0@gmail.com';
 
 /** ח.פ. value meaning "company not registered yet" (schema default). */
 export const COMPANY_ID_PLACEHOLDER = '000000000';

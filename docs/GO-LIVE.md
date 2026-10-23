@@ -233,11 +233,11 @@ Open **Admin → Settings**. The shop ships with fake values that customers can 
 | Company number (ח.פ./ע.מ.) | `000000000` | the real number |
 | Business address | `מושב גילת` | the registered address |
 | Business phone | `050-0000000` | the real phone |
-| Contact email | `hello@baia-swimwear.co.il` | `baiaswimwear0@gmail.com` (alerts arrive here, customers reply here) |
+| Contact email | `baiaswimwear0@gmail.com` | `baiaswimwear0@gmail.com` (alerts arrive here, customers reply here) |
 | WhatsApp number | `972500000000` | the real number, international format without `+` or spaces |
 | Accessibility coordinator name | `יעודכן בקרוב` ("will be updated soon") | a real person |
 | Accessibility coordinator phone | `050-0000000` | their real phone |
-| Accessibility coordinator email | `hello@baia-swimwear.co.il` | their real email |
+| Accessibility coordinator email | `baiaswimwear0@gmail.com` | their real email |
 
 Also do, in the admin:
 
@@ -247,7 +247,7 @@ Also do, in the admin:
   **placeholder text** (they say so on the page). Have a lawyer review and replace them before opening
   to customers. Consumer-law points (14-day cancellation right) and the accessibility statement need a professional.
 - If a placeholder still appears somewhere on the site after you saved settings, tell your developer: the code also
-  has fallback copies (for example `hello@baia-swimwear.co.il` when the server cannot be reached, and
+  has fallback copies (for example `baiaswimwear0@gmail.com` when the server cannot be reached, and
   the build variable `NEXT_PUBLIC_CONTACT_EMAIL`).
 
 ## Step 10: Smoke test after every first deploy
