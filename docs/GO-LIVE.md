@@ -324,6 +324,15 @@ When the provider is integrated and tested on a private staging copy:
 - Uploads fail in Admin: the server log shows the S3 error. Usually wrong `S3_ENDPOINT` (account id),
   or the token is not for this bucket. The server only logs a warning at startup for these; it does not stop.
 
+**Emails arrive but the logo or product pictures are missing.**
+- Email pictures are loaded by the reader's mail service (Gmail, Outlook) from the public internet, so they
+  only work with public https addresses. In a local test they always break because the addresses point at
+  `localhost`. On the live site the logo is `https://<your domain>/email/baia-logo.png` (taken from
+  `CLIENT_URL`) and the product pictures come from `S3_PUBLIC_URL` (your `images.<domain>` address).
+- Open the logo address and one product picture address in a private browser window. If either fails, fix
+  `CLIENT_URL` or the R2 custom domain (step 3.3). Gmail may also hide pictures until the reader taps
+  "Display images below"; that is normal for a new sender and improves as the domain builds a reputation.
+
 **Cannot stay logged in / login loops / "invalid origin" errors (cookies, CORS).**
 - `CLIENT_URL` and `BETTER_AUTH_URL` must be exactly the address in the browser (`https://baia.co.il`,
   no trailing path), and `NEXT_PUBLIC_SITE_URL` the same. If you use both `www` and the bare domain, list
