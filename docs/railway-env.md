@@ -162,3 +162,8 @@ NEXT_PUBLIC_SENTRY_DSN=<optional>
 When `baia.co.il` is attached to the **client** service, replace both `https://${{...RAILWAY_PUBLIC_DOMAIN}}`
 values with `https://baia.co.il`. If you also serve `www`, set `CLIENT_URL=https://baia.co.il,https://www.baia.co.il`.
 Then redeploy both services.
+
+
+## Email on Railway Hobby/Trial
+
+Railway blocks outbound SMTP (ports 25/465/587) on non-Pro plans, so `EMAIL_PROVIDER=smtp` times out. Use Resend's HTTPS API instead: `EMAIL_PROVIDER=resend` and `RESEND_API_KEY=<key>` (seal it). `EMAIL_FROM` is unchanged.
