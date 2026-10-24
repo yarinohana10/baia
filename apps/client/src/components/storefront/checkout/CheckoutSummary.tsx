@@ -14,7 +14,7 @@ export function CheckoutSummary({ checkout }: { checkout: Checkout }) {
   const tDelivery = useTranslations('delivery');
   const { form, dispatch, shipping, locked } = checkout;
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 h-fit space-y-4">
+    <div className="bg-white border border-gray-200 rounded-none p-6 h-fit space-y-4">
       <h2 className="font-medium text-gray-800">{tCheckout('orderSummary')}</h2>
 
       <CheckoutItems items={checkout.items} />

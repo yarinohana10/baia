@@ -269,7 +269,8 @@ describe('Order emails, order lookup and guest tracking (e2e)', () => {
   describe('admin CSV export', () => {
     it('exports orders for a date range, admin only', async () => {
       const { order } = await paidGuestOrder();
-      const today = new Date().toISOString().slice(0, 10);
+      // The export works in Israel calendar days (en-CA formats as YYYY-MM-DD).
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
       await t.http().get('/v1/admin/orders/export').expect(401);
       const admin = await signUp(t, { admin: true });
       const res = await admin.agent.get('/v1/admin/orders/export').query({ from: today, to: today }).expect(200);

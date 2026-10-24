@@ -35,11 +35,11 @@ export function VerifyEmailBanner({ email }: { email: string }) {
   if (verified) return null;
 
   return (
-    <div className="flex items-start gap-3 bg-ocean-50/60 border border-ocean-200 rounded-xl p-4 mb-6">
-      <MailCheck size={20} strokeWidth={1.8} className="text-ocean-700 shrink-0 mt-0.5" />
+    <div className="flex items-start gap-3 bg-[#F7F7F7]/60 border border-neutral-300 rounded-none p-4 mb-6">
+      <MailCheck size={20} strokeWidth={1.8} className="text-black shrink-0 mt-0.5" />
       <div className="flex-1 space-y-2">
-        <p className="font-body text-sm font-semibold text-[#1a1c1c]">{t('verifyBannerTitle')}</p>
-        <p className="font-body text-sm text-[#3f484c]">
+        <p className="text-sm font-semibold text-black">{t('verifyBannerTitle')}</p>
+        <p className="text-sm text-neutral-600">
           {t.rich('verifyBannerText', {
             email: () => (
               <bdi dir="ltr" className="font-medium">
@@ -49,7 +49,7 @@ export function VerifyEmailBanner({ email }: { email: string }) {
           })}
         </p>
         {state === 'sent' ? (
-          <p role="status" className="font-body text-sm text-ocean-700">
+          <p role="status" className="text-sm text-black">
             {t('verificationSent')}
           </p>
         ) : (
@@ -58,13 +58,13 @@ export function VerifyEmailBanner({ email }: { email: string }) {
               type="button"
               onClick={resend}
               disabled={state === 'sending'}
-              className="inline-flex items-center gap-2 font-body text-sm font-semibold text-ocean-700 underline underline-offset-4 hover:text-ocean-900 disabled:opacity-60"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-black underline underline-offset-4 hover:text-black disabled:opacity-60"
             >
               {state === 'sending' && <Loader2 size={14} className="animate-spin" />}
               {t('resendVerification')}
             </button>
             {state === 'error' && (
-              <span role="alert" className="font-body text-sm text-[#93000a]">
+              <span role="alert" className="text-sm text-[#93000a]">
                 {t('verificationSendError')}
               </span>
             )}

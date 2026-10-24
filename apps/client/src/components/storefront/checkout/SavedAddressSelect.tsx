@@ -26,7 +26,7 @@ export function SavedAddressSelect({
         <label htmlFor="checkout-saved-address" className="block text-xs font-medium text-gray-500">
           {t('shipTo')}
         </label>
-        <Link href="/account/addresses" className="text-xs text-ocean-700 hover:underline">
+        <Link href="/account/addresses" className="text-xs text-black hover:underline">
           {t('manageAddresses')}
         </Link>
       </div>

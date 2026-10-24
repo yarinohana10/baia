@@ -60,7 +60,7 @@ export function BitForm({
   if (waiting) {
     return (
       <div role="status" className="flex flex-col items-center gap-3 py-10 text-center">
-        <Smartphone size={40} className="text-ocean-700 animate-pulse" aria-hidden="true" />
+        <Smartphone size={40} className="text-black animate-pulse" aria-hidden="true" />
         <p className="font-medium">{t('bit.waiting')}</p>
         <p className="text-sm text-gray-500">{t('bit.waitingHint')}</p>
         <p className="text-sm font-mono" dir="ltr">

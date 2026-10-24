@@ -43,16 +43,16 @@ export function MarketingCard() {
   };
 
   return (
-    <section aria-labelledby={`${id}-title`} className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+    <section aria-labelledby={`${id}-title`} className="bg-white border border-gray-200 rounded-none p-6 mb-6">
       <div className="flex items-start gap-4">
-        <div className="p-2.5 bg-ocean-50 rounded-lg text-ocean-700 shrink-0">
+        <div className="p-2.5 bg-[#F7F7F7] rounded-none text-black shrink-0">
           <Mail size={20} strokeWidth={1.8} aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 id={`${id}-title`} className="font-body text-base font-semibold text-[#1a1c1c]">
+          <h2 id={`${id}-title`} className="text-base font-semibold text-black">
             {t('marketingTitle')}
           </h2>
-          <p className="font-body text-sm text-[#3f484c] mt-1">{t('marketingDescription')}</p>
+          <p className="text-sm text-neutral-600 mt-1">{t('marketingDescription')}</p>
 
           <div className="mt-4 flex items-center gap-3">
             <button
@@ -63,8 +63,8 @@ export function MarketingCard() {
               aria-labelledby={`${id}-label`}
               disabled={consent === null || saving}
               onClick={() => toggle(!consent)}
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-700 disabled:opacity-50 ${
-                consent ? 'bg-ocean-700' : 'bg-gray-300'
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:opacity-50 ${
+                consent ? 'bg-black' : 'bg-gray-300'
               }`}
             >
               <span
@@ -74,24 +74,24 @@ export function MarketingCard() {
                 }`}
               />
             </button>
-            <span id={`${id}-label`} className="font-body text-sm text-[#1a1c1c]">
+            <span id={`${id}-label`} className="text-sm text-black">
               {t('marketingToggle')}
             </span>
             {(consent === null || saving) && <Loader2 size={14} className="animate-spin text-gray-400" aria-hidden="true" />}
           </div>
 
           {status === 'on' && (
-            <p role="status" className="mt-3 font-body text-sm text-ocean-700">
+            <p role="status" className="mt-3 text-sm text-black">
               {t('marketingSavedOn')}
             </p>
           )}
           {status === 'off' && (
-            <p role="status" className="mt-3 font-body text-sm text-ocean-700">
+            <p role="status" className="mt-3 text-sm text-black">
               {t('marketingSavedOff')}
             </p>
           )}
           {status === 'error' && (
-            <p role="alert" className="mt-3 font-body text-sm text-red-500">
+            <p role="alert" className="mt-3 text-sm text-red-500">
               {t('marketingError')}
             </p>
           )}

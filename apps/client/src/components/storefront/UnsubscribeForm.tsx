@@ -27,13 +27,13 @@ export function UnsubscribeForm({ initialEmail }: { initialEmail: string }) {
 
   if (status === 'done') {
     return (
-      <div role="status" className="rounded-xl border border-ocean-100 bg-ocean-50/60 p-6">
-        <CheckCircle2 size={28} strokeWidth={1.5} aria-hidden="true" className="text-ocean-700" />
+      <div role="status" className="rounded-none border border-neutral-200 bg-[#F7F7F7]/60 p-6">
+        <CheckCircle2 size={28} strokeWidth={1.5} aria-hidden="true" className="text-black" />
         <h2 className="!mt-3 text-lg font-semibold text-gray-900">{t('successTitle')}</h2>
         <p className="mt-2">{t('successBody', { email: email.trim() })}</p>
         <Link
           href="/"
-          className="mt-5 inline-flex rounded-lg bg-ocean-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ocean-600"
+          className="mt-5 inline-flex rounded-none bg-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
         >
           {t('backHome')}
         </Link>
@@ -56,18 +56,18 @@ export function UnsubscribeForm({ initialEmail }: { initialEmail: string }) {
           dir="ltr"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-3 text-[15px] text-gray-900 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-100 rtl:text-right"
+          className="mt-1.5 block w-full rounded-none border border-gray-300 bg-white px-3.5 py-3 text-[15px] text-gray-900 focus:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-neutral-200 rtl:text-right"
         />
       </div>
       {status === 'error' && (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm !text-red-700">
+        <p role="alert" className="rounded-none border border-red-200 bg-red-50 px-4 py-3 text-sm !text-red-700">
           {t('error')}
         </p>
       )}
       <button
         type="submit"
         disabled={status === 'sending'}
-        className="inline-flex items-center gap-2 rounded-lg bg-ocean-700 px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-ocean-600 disabled:opacity-70"
+        className="inline-flex items-center gap-2 rounded-none bg-black px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-neutral-800 disabled:opacity-70"
       >
         {status === 'sending' && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
         {status === 'sending' ? t('submitting') : t('submit')}

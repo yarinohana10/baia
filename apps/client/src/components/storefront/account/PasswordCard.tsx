@@ -79,14 +79,14 @@ export function PasswordCard() {
   const type = show ? 'text' : 'password';
 
   return (
-    <section aria-labelledby="password-title" className="bg-white border border-gray-200 rounded-xl p-6 mb-6 space-y-4">
+    <section aria-labelledby="password-title" className="bg-white border border-gray-200 rounded-none p-6 mb-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 id="password-title" className="font-body text-base font-semibold text-[#1a1c1c]">
+          <h2 id="password-title" className="text-base font-semibold text-black">
             {t('passwordTitle')}
           </h2>
           {hasPassword !== false && (
-            <p className="font-body text-sm text-[#3f484c]">{t('passwordDescription')}</p>
+            <p className="text-sm text-neutral-600">{t('passwordDescription')}</p>
           )}
         </div>
         {hasPassword && !open && (
@@ -103,10 +103,10 @@ export function PasswordCard() {
         )}
       </div>
 
-      {hasPassword === false && <p className="font-body text-sm text-[#3f484c]">{t('socialOnlyPassword')}</p>}
+      {hasPassword === false && <p className="text-sm text-neutral-600">{t('socialOnlyPassword')}</p>}
 
       {done && (
-        <p role="status" className="font-body text-sm text-ocean-700">
+        <p role="status" className="text-sm text-black">
           {t('passwordChanged')}
         </p>
       )}
@@ -133,7 +133,7 @@ export function PasswordCard() {
                 onClick={() => setShow((s) => !s)}
                 aria-label={show ? tAuth('hidePassword') : tAuth('showPassword')}
                 aria-pressed={show}
-                className="absolute end-2 top-1/2 -translate-y-1/2 text-[#3f484c] hover:text-[#1a1c1c] transition-colors"
+                className="absolute end-2 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-black transition-colors"
               >
                 {show ? <Eye size={16} /> : <EyeOff size={16} />}
               </button>
@@ -171,10 +171,10 @@ export function PasswordCard() {
               />
             </div>
           </div>
-          <p className="font-body text-xs text-[#3f484c]">{t('passwordSignOutNote')}</p>
+          <p className="text-xs text-neutral-600">{t('passwordSignOutNote')}</p>
 
           {error && (
-            <p role="alert" className="font-body text-sm text-red-500">
+            <p role="alert" className="text-sm text-red-500">
               {error}
             </p>
           )}

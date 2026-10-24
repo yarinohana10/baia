@@ -9,7 +9,7 @@ export function SelfCancelNotice({ unpaid, className }: { unpaid: boolean; class
   const t = useTranslations('cancellation');
   return (
     <p className={cn('flex items-start gap-2 text-sm', className)}>
-      <CalendarClock size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+      <CalendarClock size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
       <span>{unpaid ? t('unpaidCanCancel') : t('freeUntilShipped')}</span>
     </p>
   );

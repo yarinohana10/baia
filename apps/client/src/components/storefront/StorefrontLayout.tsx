@@ -5,6 +5,7 @@ import { CartDrawer } from './CartDrawer';
 import { SessionSync } from './SessionSync';
 import { WhatsAppButton } from './WhatsAppButton';
 import { CookieConsent } from './CookieConsent';
+import { AccessibilityMenu } from './AccessibilityMenu';
 import { getCategories, getSiteConfig } from '@/lib/catalog/server';
 
 export async function StorefrontLayout({ children }: { children: React.ReactNode }) {
@@ -25,8 +26,10 @@ export async function StorefrontLayout({ children }: { children: React.ReactNode
       ];
   const nav: NavItem[] = [...categoryNav, { label: tNav('newArrivals'), href: '/new-arrivals' }];
 
+  // --radius 0: shared UI pieces (inputs, cards, selects) render square in the store, as in
+  // the rest of the design; the admin keeps its own rounded look.
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col overflow-x-clip bg-white [--radius:0px]">
       <Header nav={nav} />
       <main id="main" className="flex-1">
         {children}
@@ -35,6 +38,7 @@ export async function StorefrontLayout({ children }: { children: React.ReactNode
       <CartDrawer />
       <SessionSync />
       <WhatsAppButton number={config?.whatsappNumber ?? null} />
+      <AccessibilityMenu />
       <CookieConsent />
     </div>
   );

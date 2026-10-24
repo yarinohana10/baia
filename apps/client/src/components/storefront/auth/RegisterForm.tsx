@@ -13,6 +13,7 @@ import { FloatingLabelField } from './FloatingLabelField';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { OrDivider } from './OrDivider';
 import { PasswordVisibilityToggle } from './PasswordVisibilityToggle';
+import { useLeaveIfSignedIn } from '@/hooks/useLeaveIfSignedIn';
 
 const FIELD_ORDER = ['name', 'email', 'password', 'confirmPassword'] as const;
 type Field = (typeof FIELD_ORDER)[number];
@@ -23,7 +24,7 @@ const FIELD_INPUT_ID: Record<Field, string> = {
   confirmPassword: 'confirmPassword',
 };
 
-const termsLinkClass = 'font-semibold text-[#005d72] underline underline-offset-2 hover:text-[#007791]';
+const termsLinkClass = 'font-semibold text-black underline underline-offset-2 hover:text-neutral-600';
 
 /** Name, email, password (twice), newsletter opt-in, then Google; errors show above the form. */
 export function RegisterForm() {
@@ -36,6 +37,7 @@ export function RegisterForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const onGoogleError = useCallback(() => setError(t('genericError')), [t]);
+  useLeaveIfSignedIn();
   const field = (name: Field) => ({
     id: FIELD_INPUT_ID[name],
     value: values[name],
@@ -97,7 +99,7 @@ export function RegisterForm() {
             <PasswordVisibilityToggle
               visible={showPassword}
               onToggle={() => setShowPassword((v) => !v)}
-              className="absolute end-1 top-3 text-[#3f484c] hover:text-[#1a1c1c] transition-colors"
+              className="absolute end-1 top-3 text-neutral-600 hover:text-black transition-colors"
             />
           </FloatingLabelField>
           <FloatingLabelField type="password" label={t('confirmPasswordLabel')} minLength={8} {...field('confirmPassword')} />
@@ -111,15 +113,15 @@ export function RegisterForm() {
               type="checkbox"
               checked={newsletter}
               onChange={(e) => setNewsletter(e.target.checked)}
-              className="w-4 h-4 rounded border-[#bec8cd] text-[#005d72] focus:ring-[#005d72] focus:ring-2 cursor-pointer accent-[#005d72]"
+              className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black focus:ring-2 cursor-pointer accent-black"
             />
           </div>
-          <label htmlFor="newsletter" className="font-body text-sm text-[#3f484c] cursor-pointer">
+          <label htmlFor="newsletter" className="text-sm text-neutral-600 cursor-pointer">
             {t('newsletterSignup')}
           </label>
         </div>
 
-        <p className="font-body text-xs leading-relaxed text-[#3f484c]">
+        <p className="text-xs leading-relaxed text-neutral-600">
           {t.rich('termsNotice', {
             terms: (chunks) => (
               <Link href="/terms" target="_blank" className={termsLinkClass}>
@@ -139,7 +141,7 @@ export function RegisterForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#565555] text-white font-body text-sm font-bold uppercase tracking-[0.1em] py-4 rounded-full hover:bg-[#1a1c1c] transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-70 flex items-center justify-center gap-2 group"
+            className="w-full bg-black text-white text-[12px] font-medium uppercase ltr:tracking-[0.16em] h-12 rounded-none hover:bg-neutral-800 transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-70 flex items-center justify-center gap-2 group"
           >
             {loading ? (
               <Loader2 size={18} className="animate-spin" />
@@ -156,11 +158,11 @@ export function RegisterForm() {
           <GoogleSignInButton onError={onGoogleError} className="rounded-full" />
 
           <div className="text-center">
-            <p className="font-body text-base text-[#3f484c]">
+            <p className="text-base text-neutral-600">
               {t('alreadyHaveAccount')}{' '}
               <Link
                 href="/login"
-                className="font-body text-sm font-bold uppercase tracking-[0.1em] text-[#005d72] hover:text-[#007791] transition-colors relative after:absolute after:bottom-0 after:start-0 after:w-full after:h-px after:bg-current after:scale-x-[0.95] hover:after:scale-x-100 after:origin-end hover:after:origin-start after:transition-transform after:duration-300"
+                className="text-sm font-bold uppercase tracking-[0.1em] text-black hover:text-neutral-600 transition-colors relative after:absolute after:bottom-0 after:start-0 after:w-full after:h-px after:bg-current after:scale-x-[0.95] hover:after:scale-x-100 after:origin-end hover:after:origin-start after:transition-transform after:duration-300"
               >
                 {t('signInLink')}
               </Link>

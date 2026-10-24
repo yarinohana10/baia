@@ -103,7 +103,9 @@
   "productCard": {
     "backSoon": "Back Soon",
     "sale": "Sale",
-    "salePercent": "-{pct}%"
+    "salePercent": "-{pct}%",
+    "prevImage": "Previous image",
+    "nextImage": "Next image"
   },
   "filters": {
     "title": "Filters",

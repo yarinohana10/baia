@@ -11,6 +11,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { ProductsController } from '../src/products/products.controller';
 import { ProductsService } from '../src/products/products.service';
+import { ProductImagesService } from '../src/products/product-images.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { STORAGE_SERVICE } from '../src/storage/storage.interface';
 import { AuthGuard } from '../src/auth/auth.guard';
@@ -56,6 +57,7 @@ describe('Products HTTP API', () => {
       controllers: [ProductsController],
       providers: [
         ProductsService,
+        ProductImagesService,
         { provide: PrismaService, useValue: prisma },
         { provide: STORAGE_SERVICE, useValue: storage },
       ],

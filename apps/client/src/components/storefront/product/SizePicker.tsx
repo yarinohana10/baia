@@ -24,9 +24,9 @@ type Props = {
 export function SizePicker({ options, selected, onSelect, lowStock, guide, backSoon = false }: Props) {
   const t = useTranslations('pdp');
   return (
-    <fieldset className="mb-6">
-      <div className="mb-2.5 flex items-center justify-between gap-4">
-        <legend className="text-sm font-medium text-charcoal">{t('size')}</legend>
+    <fieldset className="mb-5">
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <legend className="text-[13px] text-black">{t('size')}</legend>
         {guide}
       </div>
       <div className="flex flex-wrap gap-2">
@@ -44,11 +44,11 @@ export function SizePicker({ options, selected, onSelect, lowStock, guide, backS
                   aria-pressed={isSelected}
                   aria-label={available ? t('sizeOption', { size: v.size }) : t('sizeBackSoon', { size: v.size })}
                   className={cn(
-                    'relative h-11 min-w-12 overflow-hidden rounded-lg border px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-600',
-                    isSelected && available && 'border-ocean-700 bg-ocean-700 text-white',
-                    !isSelected && available && 'border-gray-300 text-charcoal hover:border-ocean-600',
+                    'relative h-10 min-w-[52px] overflow-hidden rounded-[2px] border px-3 text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black',
+                    isSelected && available && 'border-black bg-black text-white',
+                    !isSelected && available && 'border-black text-black hover:bg-black/[0.04]',
                     !available &&
-                      'cursor-not-allowed border-gray-200 bg-[linear-gradient(to_top_right,transparent_calc(50%-0.5px),#d1d5db_50%,transparent_calc(50%+0.5px))] text-gray-400 line-through',
+                      'cursor-not-allowed border-black/15 bg-[linear-gradient(to_top_right,transparent_calc(50%-0.5px),rgba(0,0,0,0.18)_50%,transparent_calc(50%+0.5px))] text-black/30',
                   )}
                 >
                   <span dir="ltr">{v.size}</span>
@@ -58,7 +58,7 @@ export function SizePicker({ options, selected, onSelect, lowStock, guide, backS
           );
         })}
       </div>
-      <p className="mt-2 min-h-5 text-[13px] font-medium text-amber-700" aria-live="polite">
+      <p className="mt-2 min-h-5 text-[12px] font-medium text-amber-700" aria-live="polite">
         {lowStock !== null ? t('lowStock', { count: lowStock }) : ''}
       </p>
     </fieldset>

@@ -8,7 +8,7 @@ type Props = { checked: boolean; onChange: (value: boolean) => void };
 export function InStockToggle({ checked, onChange }: Props) {
   const t = useTranslations('filters');
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2.5 text-sm text-charcoal">
+    <label className="inline-flex cursor-pointer items-center gap-2.5 text-[12px] uppercase ltr:tracking-[0.12em] text-black">
       <span className="relative inline-flex">
         <input
           type="checkbox"
@@ -19,7 +19,7 @@ export function InStockToggle({ checked, onChange }: Props) {
         />
         <span
           aria-hidden="true"
-          className="h-6 w-10 rounded-full bg-gray-300 transition-colors peer-checked:bg-ocean-700 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ocean-600"
+          className="h-6 w-10 rounded-full bg-gray-300 transition-colors peer-checked:bg-black peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-neutral-700"
         />
         <span
           aria-hidden="true"

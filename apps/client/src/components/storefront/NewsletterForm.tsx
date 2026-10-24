@@ -2,7 +2,7 @@
 
 import { useId, useState, type FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { newsletterSubscribeSchema } from '@baia/shared';
 import { subscribeToNewsletter } from '@/lib/newsletter';
 import { validateForm } from '@/lib/form-errors';
@@ -41,18 +41,18 @@ export function NewsletterForm() {
   if (status === 'done') {
     return (
       <div role="status" className="mt-4 flex items-start gap-3">
-        <CheckCircle2 size={20} strokeWidth={1.6} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-200" />
+        <CheckCircle2 size={20} strokeWidth={1.6} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
         <div>
           <p className="text-sm font-semibold">{t('newsletterSuccessTitle')}</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-white/65">{t('newsletterSuccess')}</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-black/65">{t('newsletterSuccess')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-4 space-y-3" aria-describedby={error ? `${id}-error` : undefined}>
-      <div className="flex gap-2">
+    <form onSubmit={onSubmit} noValidate className="mt-8 space-y-4" aria-describedby={error ? `${id}-error` : undefined}>
+      <div className="flex items-center border-b border-black">
         <label htmlFor={`${id}-email`} className="sr-only">
           {t('newsletterEmailLabel')}
         </label>
@@ -67,15 +67,22 @@ export function NewsletterForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder={t('newsletterEmailPlaceholder')}
           aria-invalid={error === t('newsletterInvalidEmail') || undefined}
-          className="min-w-0 flex-1 rounded-lg border border-white/20 bg-white/10 px-3.5 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none rtl:text-right"
+          className="min-w-0 flex-1 bg-transparent py-3 text-[14px] text-black placeholder:text-black/45 focus:outline-none rtl:text-right"
         />
         <button
           type="submit"
           disabled={status === 'sending'}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-[12px] font-bold uppercase tracking-[0.1em] text-ocean-800 transition-colors hover:bg-ocean-100 disabled:opacity-70"
+          aria-label={t('newsletterSubmit')}
+          className="inline-flex h-12 w-12 shrink-0 items-center justify-center text-black transition-opacity hover:opacity-60 disabled:opacity-40"
         >
-          {status === 'sending' && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
-          {status === 'sending' ? t('newsletterSubmitting') : t('newsletterSubmit')}
+          {status === 'sending' ? (
+            <Loader2 size={18} className="animate-spin" aria-hidden="true" />
+          ) : (
+            <>
+              <ArrowLeft size={20} strokeWidth={1.4} className="ltr:hidden" aria-hidden="true" />
+              <ArrowRight size={20} strokeWidth={1.4} className="rtl:hidden" aria-hidden="true" />
+            </>
+          )}
         </button>
       </div>
       <div className="flex items-start gap-2.5">
@@ -85,14 +92,14 @@ export function NewsletterForm() {
           checked={consent}
           onChange={(e) => setConsent(e.target.checked)}
           aria-invalid={error === t('newsletterConsentRequired') || undefined}
-          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-white/30 accent-ocean-300"
+          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-black"
         />
-        <label htmlFor={`${id}-consent`} className="cursor-pointer text-xs leading-relaxed text-white/70">
+        <label htmlFor={`${id}-consent`} className="cursor-pointer text-xs leading-relaxed text-black/65">
           {t('newsletterConsent')}
         </label>
       </div>
       {error && (
-        <p id={`${id}-error`} role="alert" className="text-xs font-medium text-amber-200">
+        <p id={`${id}-error`} role="alert" className="text-xs font-medium text-red-700">
           {error}
         </p>
       )}

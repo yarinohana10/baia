@@ -62,6 +62,8 @@ export type OrderItem = {
   size: string;
   quantity: number;
   unitPrice: string;
+  /** Photo of the product in the ordered colour (null when it has none). */
+  imageUrl?: string | null;
 };
 
 export type CustomerOrder = OrderPaymentFields & {

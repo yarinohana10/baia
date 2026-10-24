@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ProductsService } from '../src/products/products.service';
+import { ProductImagesService } from '../src/products/product-images.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { STORAGE_SERVICE } from '../src/storage/storage.interface';
 import { CreateProductDto } from '../src/products/dto/product.dto';
@@ -33,6 +34,7 @@ async function fieldErrors(promise: Promise<unknown>) {
 
 describe('ProductsService (writes)', () => {
   let service: ProductsService;
+  let images: ProductImagesService;
   let prisma: ProductsPrismaMock;
   let storage: ReturnType<typeof createMockStorageService>;
 
@@ -56,11 +58,13 @@ describe('ProductsService (writes)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProductsService,
+        ProductImagesService,
         { provide: PrismaService, useValue: prisma },
         { provide: STORAGE_SERVICE, useValue: storage },
       ],
     }).compile();
     service = module.get(ProductsService);
+    images = module.get(ProductImagesService);
   });
 
   describe('create', () => {
@@ -272,7 +276,7 @@ describe('ProductsService (writes)', () => {
 
   describe('images', () => {
     it('rejects an upload without a file with 400', async () => {
-      const { err, errors } = await fieldErrors(service.uploadImage('prod-1', undefined));
+      const { err, errors } = await fieldErrors(images.upload('prod-1', undefined));
       expect(err).toBeInstanceOf(BadRequestException);
       expect(errors[0]).toMatchObject({ field: 'file', code: 'required' });
       expect(storage.upload).not.toHaveBeenCalled();
@@ -287,7 +291,7 @@ describe('ProductsService (writes)', () => {
         upload: { s3Key: data.upload.create.s3Key },
       }));
 
-      const image: any = await service.uploadImage('prod-1', fakeFile(), { color: 'Blue', altTextHe: 'כחול' });
+      const image: any = await images.upload('prod-1', fakeFile(), { color: 'Blue', altTextHe: 'כחול' });
       expect(image.sortOrder).toBe(3);
       expect(image).toMatchObject({ color: 'Blue', altTextHe: 'כחול', altTextEn: null });
     });
@@ -296,27 +300,27 @@ describe('ProductsService (writes)', () => {
       prisma.product.findUnique.mockResolvedValue({ id: 'prod-1' });
       prisma.productImage.aggregate.mockResolvedValue({ _max: { sortOrder: null } });
       prisma.productImage.create.mockImplementation(async ({ data }: any) => ({ ...data, upload: null }));
-      const image: any = await service.uploadImage('prod-1', fakeFile());
+      const image: any = await images.upload('prod-1', fakeFile());
       expect(image.sortOrder).toBe(0);
     });
 
     it('deletes the storage object if saving the image row fails', async () => {
       prisma.product.findUnique.mockResolvedValue({ id: 'prod-1' });
       prisma.$transaction.mockRejectedValueOnce(new Error('db'));
-      await expect(service.uploadImage('prod-1', fakeFile())).rejects.toThrow('db');
+      await expect(images.upload('prod-1', fakeFile())).rejects.toThrow('db');
       expect(storage.delete).toHaveBeenCalledWith(storage.upload.mock.calls[0][1]);
     });
 
     it('404s when uploading to a missing product', async () => {
       prisma.product.findUnique.mockResolvedValue(null);
-      await expect(service.uploadImage('nope', fakeFile())).rejects.toBeInstanceOf(NotFoundException);
+      await expect(images.upload('nope', fakeFile())).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('reorders images by writing sortOrder = position', async () => {
       prisma.productImage.findMany
         .mockResolvedValueOnce([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
         .mockResolvedValueOnce([]);
-      await service.reorderImages('prod-1', ['c', 'a', 'b']);
+      await images.reorder('prod-1', ['c', 'a', 'b']);
       expect(prisma.productImage.update.mock.calls.map((c: any[]) => [c[0].where.id, c[0].data.sortOrder])).toEqual([
         ['c', 0],
         ['a', 1],
@@ -326,7 +330,7 @@ describe('ProductsService (writes)', () => {
 
     it('rejects a reorder that does not list every image exactly once', async () => {
       prisma.productImage.findMany.mockResolvedValueOnce([{ id: 'a' }, { id: 'b' }]);
-      const { errors } = await fieldErrors(service.reorderImages('prod-1', ['a', 'x']));
+      const { errors } = await fieldErrors(images.reorder('prod-1', ['a', 'x']));
       expect(errors[0]).toMatchObject({ field: 'imageIds', code: 'mismatch' });
       expect(prisma.productImage.update).not.toHaveBeenCalled();
     });
@@ -334,13 +338,13 @@ describe('ProductsService (writes)', () => {
     it('updates image color and alt text', async () => {
       prisma.productImage.findUnique.mockResolvedValue({ id: 'img-1' });
       prisma.productImage.update.mockResolvedValue({ id: 'img-1', url: 'u', upload: MOCK_UPLOAD });
-      await service.updateImage('img-1', { color: null, altTextEn: 'Back view' });
+      await images.update('img-1', { color: null, altTextEn: 'Back view' });
       expect(prisma.productImage.update.mock.calls[0][0].data).toEqual({ color: null, altTextEn: 'Back view' });
     });
 
     it('deletes the image row, its upload and the storage object', async () => {
       prisma.productImage.findUnique.mockResolvedValue({ id: 'img-1', upload: MOCK_UPLOAD });
-      await service.deleteImage('img-1');
+      await images.delete('img-1');
       expect(prisma.productImage.delete).toHaveBeenCalledWith({ where: { id: 'img-1' } });
       expect(prisma.upload.delete).toHaveBeenCalledWith({ where: { id: MOCK_UPLOAD.id } });
       expect(storage.delete).toHaveBeenCalledWith(MOCK_UPLOAD.s3Key);

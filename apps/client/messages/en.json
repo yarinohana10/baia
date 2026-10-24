@@ -137,11 +137,11 @@
     "newArrivals": "New Arrivals"
   },
   "home": {
-    "heroTitle": "SUMMER ESCAPE",
-    "heroSubtitle": "Discover the new collection for your perfect getaway",
+    "heroTitle": "New Arrivals",
+    "heroSubtitle": "Just landed. Swimwear designed with care for the whole family: clean cuts, fresh colourways and soft fabrics that feel right from a morning at the beach to sunset by the pool. Every piece is chosen to look good now, and stay a favourite next summer.",
     "heroCta": "EXPLORE COLLECTION",
     "shopByCategory": "Shop by Category",
-    "newArrivalsTitle": "New Arrivals",
+    "newArrivalsTitle": "Now in store",
     "featuredTitle": "Featured Products",
     "saleTitle": "On Sale",
     "categoriesTitle": "Categories",
@@ -150,7 +150,13 @@
     "kidsCategory": "KIDS",
     "freeShippingBanner": "Free shipping on orders over ₪249",
     "viewAll": "View All",
-    "comingSoon": "More products coming soon."
+    "comingSoon": "More products coming soon.",
+    "heroEyebrow": "Summer collection",
+    "heroSecondaryCta": "Shop by category",
+    "shopByCategorySubtitle": "Premium swimwear for everyone in the family",
+    "newArrivalsSubtitle": "The latest styles, just landed",
+    "featuredSubtitle": "Our customers' favourite picks",
+    "shopNow": "Shop now"
   },
   "product": {
     "addToCart": "Add to Cart",
@@ -233,6 +239,8 @@
     "categoryDescription": "Shop {name} swimwear at BAIA — premium pieces designed for Mediterranean summers. Free shipping over ₪249.",
     "newArrivalsTitle": "New Arrivals",
     "newArrivalsDescription": "The latest BAIA swimwear for women, men and kids — fresh from the summer collection.",
+    "featuredTitle": "Featured Products",
+    "featuredDescription": "Hand-picked favourites from across the BAIA collection — for women, men and kids.",
     "productFallbackDescription": "{name} by BAIA Swimwear. Premium swimwear designed for Mediterranean summers.",
     "notFoundTitle": "Page not found",
     "searchTitle": "Search",
@@ -765,7 +773,11 @@
       "loading": "Loading settings...",
       "invalidCtaUrl": "The link must start with / (e.g. /category/men) or be a full http(s) address",
       "invalidAmount": "Shipping amounts must be numbers of 0 or more",
-      "textTooLong": "One of the texts is too long"
+      "textTooLong": "One of the texts is too long",
+      "removeHeroImage": "Remove image",
+      "removeHeroConfirm": "Remove the banner image? It is deleted from storage and the home page shows the default photo.",
+      "heroRemoved": "Banner image removed",
+      "heroRemoveFailed": "Could not remove the image"
     },
     "productForm": {
       "newProduct": "New Product",
@@ -871,6 +883,7 @@
         "zeroStockWarning": "{count, plural, one {1 ticked size has} other {# ticked sizes have}} 0 units and will show as sold out.",
         "removeColor": "Remove color",
         "addColor": "Add another color",
+        "nameColorFirst": "Name the current color first, then you can add another one.",
         "selectAll": "Tick all sizes",
         "clearAll": "Clear",
         "setAllQuantity": "Units for every ticked size",
@@ -1026,5 +1039,22 @@
     "tracking": "Tracking number",
     "completePayment": "Complete payment",
     "paying": "Processing…"
+  },
+  "accessibilityMenu": {
+    "open": "Accessibility menu",
+    "title": "Accessibility",
+    "close": "Close the accessibility menu",
+    "textSize": "Text size",
+    "smaller": "Smaller text",
+    "larger": "Larger text",
+    "contrast": "High contrast",
+    "grayscale": "Grayscale",
+    "links": "Highlight links",
+    "readable": "Readable font",
+    "noMotion": "Stop animations",
+    "on": "On",
+    "off": "Off",
+    "reset": "Reset",
+    "statement": "Accessibility statement"
   }
 }

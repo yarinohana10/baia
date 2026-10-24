@@ -49,7 +49,7 @@ export function ActiveChips({ filters, onApply, onClearAll, locale }: Props) {
             type="button"
             onClick={() => onApply(chip.remove)}
             aria-label={t('remove', { label })}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-ocean-50 px-3 text-[13px] text-ocean-800 hover:bg-ocean-100 focus-visible:outline-2 focus-visible:outline-ocean-600"
+            className="inline-flex h-8 items-center gap-1.5 rounded-none bg-[#F7F7F7] px-3 text-[13px] text-black hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-neutral-700"
           >
             {label}
             <X size={13} aria-hidden="true" />
@@ -59,7 +59,7 @@ export function ActiveChips({ filters, onApply, onClearAll, locale }: Props) {
       <button
         type="button"
         onClick={onClearAll}
-        className="ms-1 text-[13px] text-gray-600 underline underline-offset-4 hover:text-ocean-700"
+        className="ms-1 text-[13px] text-gray-600 underline underline-offset-4 hover:text-black"
       >
         {t('clearAll')}
       </button>

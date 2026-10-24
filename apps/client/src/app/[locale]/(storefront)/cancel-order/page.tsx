@@ -30,27 +30,27 @@ export default async function CancelOrderPage({ params }: { params: Promise<{ lo
       title={t('title')}
       intro={t('intro')}
       aside={
-        <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 text-sm">
+        <div className="space-y-6 rounded-none border border-gray-200 bg-white p-6 text-sm">
           <div className="flex gap-3">
-            <Clock size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+            <Clock size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
             <div>
               <p className="font-semibold text-gray-900">{t('policyFreeTitle')}</p>
               <p className="mt-1 text-gray-500">{t('policyFreeBody')}</p>
             </div>
           </div>
           <div className="flex gap-3">
-            <PackageX size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+            <PackageX size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
             <div>
               <p className="font-semibold text-gray-900">{t('policyShippedTitle')}</p>
               <p className="mt-1 text-gray-500">{t('policyShippedBody')}</p>
             </div>
           </div>
           <div className="flex gap-3">
-            <Scale size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+            <Scale size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
             <div>
               <p className="font-semibold text-gray-900">{t('policyLawTitle')}</p>
               <p className="mt-1 text-gray-500">{t('policyLawBody')}</p>
-              <Link href="/returns" className="mt-2 inline-block text-ocean-700 underline underline-offset-2 hover:text-ocean-800">
+              <Link href="/returns" className="mt-2 inline-block text-black underline underline-offset-2 hover:text-black">
                 {t('returnsLink')}
               </Link>
             </div>

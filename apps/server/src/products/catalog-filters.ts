@@ -108,13 +108,13 @@ export const EFFECTIVE_PRICE_JOIN = Prisma.sql`
 
 export const EFFECTIVE_PRICE_SQL = Prisma.sql`COALESCE(ep.min_price, p."basePrice")`;
 
-export type ListingScope = { categoryIds: string[] | null; search?: string };
+export type ListingScope = { categoryIds: string[] | null; search?: string; featured?: boolean };
 
 export function escapeLike(search: string) {
   return `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
 
-/** SQL conditions on `products p` for the listing scope (active, category, search). */
+/** SQL conditions on `products p` for the listing scope (active, category, search, featured). */
 export function scopeConditions(scope: ListingScope): Prisma.Sql[] {
   const conditions = [Prisma.sql`p."isActive" = true`];
   if (scope.categoryIds) {
@@ -124,6 +124,7 @@ export function scopeConditions(scope: ListingScope): Prisma.Sql[] {
     const pattern = escapeLike(scope.search);
     conditions.push(Prisma.sql`(p."nameEn" ILIKE ${pattern} OR p."nameHe" ILIKE ${pattern})`);
   }
+  if (scope.featured) conditions.push(Prisma.sql`p."isFeatured" = true`);
   return conditions;
 }
 

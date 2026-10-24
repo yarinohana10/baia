@@ -103,7 +103,9 @@
   "productCard": {
     "backSoon": "חוזר בקרוב",
     "sale": "מבצע",
-    "salePercent": "-{pct}%"
+    "salePercent": "-{pct}%",
+    "prevImage": "התמונה הקודמת",
+    "nextImage": "התמונה הבאה"
   },
   "filters": {
     "title": "סינון",

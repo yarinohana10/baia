@@ -10,7 +10,10 @@ import { canAccessOrder, orderTokenTtlMs, signOrderToken, type OrderRequester } 
 import { isPurchasable } from '../common/stock';
 import { shopBadRequest, shopNotFound } from '../common/error-codes';
 import { withTxRetry } from '../common/tx-retry';
-import { allowedTransitions, canTransition, PAID_STATUSES, RESTOCK_STATUSES } from './order-status';
+import { allowedTransitions, canTransition, PAID_STATUSES, RESTOCK_STATUSES, stampsFor } from './order-status';
+import { ordersCsv } from './order-csv';
+import { variantUnitPrice, variantUnitPriceDecimal } from './order-pricing';
+import { CUSTOMER_ORDER_INCLUDE, ORDER_PRIVATE_FIELDS, withItemImages } from './order-views';
 import { deliveryConfig, deliveryQuote, shippingCostFor } from './delivery';
 import { cancellationEligibility } from './cancellation-eligibility';
 import { OrderMailer } from './order-mailer';
@@ -26,13 +29,6 @@ function generateOrderNumber(): string {
 
 /** Indirection so tests can force a collision; production code always uses generateOrderNumber. */
 export const orderNumbers = { next: generateOrderNumber };
-
-/** Internal fields that must never be serialized to any client (incl. admin). */
-export const ORDER_PRIVATE_FIELDS = {
-  accessTokenHash: true,
-  accessTokenExpiresAt: true,
-  paymentClaimedAt: true,
-} as const;
 
 const ACCESS_SELECT = {
   id: true,
@@ -60,44 +56,6 @@ export type CreateOrderInput = {
   shippingZip?: string;
 };
 
-/** Fields of a cancellation request that the order's owner may see. */
-const CUSTOMER_REQUEST_SELECT = {
-  id: true,
-  status: true,
-  reason: true,
-  feeAmount: true,
-  refundAmount: true,
-  createdAt: true,
-  resolvedAt: true,
-} as const;
-
-/** What the order's owner may see of its refunds and status history (no admin identities or provider refs). */
-const CUSTOMER_REFUND_SELECT = { id: true, status: true, amount: true, requestedAt: true, completedAt: true } as const;
-const CUSTOMER_EVENT_SELECT = { toStatus: true, createdAt: true } as const;
-
-type PricedVariant = {
-  priceOverride: Prisma.Decimal | null;
-  salePrice: Prisma.Decimal | null;
-  saleStart: Date | null;
-  saleEnd: Date | null;
-  product: { basePrice: Prisma.Decimal };
-};
-
-/** Current unit price of a variant: active sale price, else override, else the product base price. */
-export function variantUnitPriceDecimal(variant: PricedVariant, now = new Date()): Prisma.Decimal {
-  let unitPrice = new Prisma.Decimal((variant.priceOverride || variant.product.basePrice).toString());
-  if (variant.salePrice) {
-    const start = variant.saleStart ? new Date(variant.saleStart) : null;
-    const end = variant.saleEnd ? new Date(variant.saleEnd) : null;
-    if ((!start || now >= start) && (!end || now <= end)) unitPrice = new Prisma.Decimal(variant.salePrice.toString());
-  }
-  return unitPrice;
-}
-
-export function variantUnitPrice(variant: PricedVariant, now = new Date()): number {
-  return variantUnitPriceDecimal(variant, now).toNumber();
-}
-
 /** Two checkouts drew the same order number (P2002 on the unique index): pick another and retry. */
 function isOrderNumberCollision(err: unknown): boolean {
   const e = err as { code?: string; meta?: { target?: string | string[] } } | null;
@@ -107,31 +65,6 @@ function isOrderNumberCollision(err: unknown): boolean {
 }
 
 const byVariantId = <T extends { variantId: string }>(a: T, b: T) => (a.variantId < b.variantId ? -1 : a.variantId > b.variantId ? 1 : 0);
-
-/** Fulfilment timestamps that follow the status (cleared when an admin steps back to correct a mistake). */
-function stampsFor(order: { paidAt: Date | null; shippedAt: Date | null; deliveredAt: Date | null; cancelledAt: Date | null }, status: OrderStatus, now: Date) {
-  const data: Prisma.OrderUpdateInput = {};
-  if (PAID_STATUSES.includes(status) && !order.paidAt) data.paidAt = now;
-  if (status === OrderStatus.SHIPPED || status === OrderStatus.DELIVERED) {
-    if (!order.shippedAt) data.shippedAt = now;
-  } else if (order.shippedAt && !RESTOCK_STATUSES.includes(status)) {
-    data.shippedAt = null;
-  }
-  if (status === OrderStatus.DELIVERED) {
-    if (!order.deliveredAt) data.deliveredAt = now;
-  } else if (order.deliveredAt && !RESTOCK_STATUSES.includes(status)) {
-    data.deliveredAt = null;
-  }
-  if (RESTOCK_STATUSES.includes(status) && !order.cancelledAt) data.cancelledAt = now;
-  return data;
-}
-
-const csvCell = (value: unknown) => {
-  const text = value === null || value === undefined ? '' : String(value);
-  // Quote everything; neutralise spreadsheet formulas (CSV injection).
-  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return `"${safe.replace(/"/g, '""')}"`;
-};
 
 @Injectable()
 export class OrdersService {
@@ -432,17 +365,6 @@ export class OrdersService {
     return { orderId: order.id, accessToken: signOrderToken(order.id) };
   }
 
-  /** Relations every customer-facing order view carries. */
-  private customerInclude() {
-    return {
-      items: { include: { variant: true } },
-      coupon: true,
-      cancellationRequests: { select: CUSTOMER_REQUEST_SELECT, orderBy: { createdAt: 'desc' } },
-      refunds: { select: CUSTOMER_REFUND_SELECT, orderBy: { requestedAt: 'desc' } },
-      statusEvents: { select: CUSTOMER_EVENT_SELECT, orderBy: { createdAt: 'asc' } },
-    } satisfies Prisma.OrderInclude;
-  }
-
   /** A page of the user's own orders, newest first, each with its cancellation options. */
   async findByUser(userId: string, params: { page?: number; limit?: number } = {}) {
     const { page = 1, limit = 20 } = params;
@@ -450,7 +372,7 @@ export class OrdersService {
     const [orders, total] = await Promise.all([
       this.prisma.order.findMany({
         where,
-        include: this.customerInclude(),
+        include: CUSTOMER_ORDER_INCLUDE,
         omit: ORDER_PRIVATE_FIELDS,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * limit,
@@ -459,7 +381,7 @@ export class OrdersService {
       this.prisma.order.count({ where }),
     ]);
     return {
-      orders: orders.map((o) => this.withCancellation(o)),
+      orders: orders.map((o) => withItemImages(this.withCancellation(o))),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -487,11 +409,11 @@ export class OrdersService {
   async findForCustomer(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
-      include: this.customerInclude(),
+      include: CUSTOMER_ORDER_INCLUDE,
       omit: ORDER_PRIVATE_FIELDS,
     });
     if (!order) throw new NotFoundException('Order not found');
-    return this.withCancellation(order);
+    return withItemImages(this.withCancellation(order));
   }
 
   /**
@@ -598,7 +520,7 @@ export class OrdersService {
     };
   }
 
-  /** Orders created in [from, to) matching the list filters, as CSV (UTF-8 with BOM so Excel shows Hebrew). */
+  /** Orders created in [from, to) matching the list filters, as CSV. */
   async exportCsv(params: { from?: Date; to?: Date; status?: OrderStatus; search?: string }) {
     const orders = await this.prisma.order.findMany({
       where: this.adminWhere(params),
@@ -607,49 +529,7 @@ export class OrdersService {
       orderBy: { createdAt: 'asc' },
       take: 10_000,
     });
-    const header = [
-      'orderNumber',
-      'createdAt',
-      'paidAt',
-      'status',
-      'customerEmail',
-      'recipientName',
-      'phone',
-      'deliveryMethod',
-      'pickupPoint',
-      'city',
-      'address',
-      'items',
-      'subtotal',
-      'shipping',
-      'discount',
-      'coupon',
-      'total',
-      'trackingNumber',
-      'marketingConsent',
-    ];
-    const rows = orders.map((o) => [
-      o.orderNumber,
-      o.createdAt.toISOString(),
-      o.paidAt?.toISOString() ?? '',
-      o.status,
-      o.customerEmail,
-      o.recipientName ?? '',
-      o.phone ?? '',
-      o.deliveryMethod,
-      o.pickupPointName ?? '',
-      o.shippingCity,
-      [o.shippingStreet, o.shippingNumber, o.shippingApartment].filter(Boolean).join(' '),
-      o.items.map((i) => `${i.quantity}x ${i.productNameHe ?? i.productName} (${i.color}/${i.size})`).join('; '),
-      o.subtotal.toString(),
-      o.shippingCost.toString(),
-      o.discountAmount.toString(),
-      o.coupon?.code ?? '',
-      o.total.toString(),
-      o.trackingNumber ?? '',
-      o.marketingConsent ? 'yes' : 'no',
-    ]);
-    return '\uFEFF' + [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+    return ordersCsv(orders);
   }
 
   /**

@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 function Row({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <span className="mt-0.5 shrink-0 text-ocean-700">{icon}</span>
+      <span className="mt-0.5 shrink-0 text-black">{icon}</span>
       <div className="min-w-0">
         <dt className="text-xs font-medium uppercase tracking-widest text-gray-500">{label}</dt>
         <dd className="mt-1">{children}</dd>
@@ -43,7 +43,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
   ]);
   const info = businessInfo(config);
   const whatsapp = whatsappHref(info.whatsappNumber, tWhatsapp('prefill'));
-  const link = 'font-semibold text-gray-900 underline underline-offset-4 hover:text-ocean-700';
+  const link = 'font-semibold text-gray-900 underline underline-offset-4 hover:text-black';
 
   return (
     <StaticPage
@@ -52,7 +52,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
       title={t('title')}
       intro={t('intro')}
       aside={
-        <dl className="space-y-6 rounded-xl border border-gray-200 bg-white p-6">
+        <dl className="space-y-6 rounded-none border border-gray-200 bg-white p-6">
           {whatsapp && (
             <Row icon={<WhatsAppGlyph size={20} />} label={t('whatsappLabel')}>
               <a href={whatsapp} target="_blank" rel="noopener noreferrer" className={link}>

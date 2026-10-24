@@ -93,15 +93,36 @@ export default function ProductGallery({ images, productName }: Props) {
   };
 
   if (images.length === 0) {
-    return <div className="aspect-[4/5] rounded-xl bg-gray-100" aria-hidden />;
+    return <div className="aspect-[4/5] bg-[#F3F3F1]" aria-hidden />;
   }
 
   const multiple = images.length > 1;
 
   return (
-    <div className="space-y-3" data-testid="product-gallery">
+    <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4" data-testid="product-gallery">
+      {multiple && (
+        <div className="hidden w-[72px] shrink-0 flex-col gap-2.5 md:flex" role="tablist" aria-label={t('thumbnails')}>
+          {images.map((img, i) => (
+            <button
+              key={img.id}
+              type="button"
+              role="tab"
+              aria-selected={i === selected}
+              aria-label={t('showImage', { n: i + 1 })}
+              onClick={() => scrollTo(i)}
+              className={cn(
+                'relative aspect-[3/4] w-full overflow-hidden bg-[#F3F3F1] transition-opacity',
+                i === selected ? 'ring-1 ring-black' : 'opacity-80 hover:opacity-100',
+              )}
+            >
+              <Image src={img.url} alt="" fill sizes="72px" className={i === 0 ? 'object-contain p-1 mix-blend-multiply' : 'object-cover'} />
+            </button>
+          ))}
+        </div>
+      )}
+
       <section
-        className="group relative overflow-hidden rounded-xl bg-gray-100 outline-none focus-visible:ring-2 focus-visible:ring-ocean-600"
+        className="group relative min-w-0 flex-1 overflow-hidden bg-[#F3F3F1] outline-none focus-visible:ring-2 focus-visible:ring-black"
         aria-roledescription="carousel"
         aria-label={t('label', { name: productName })}
         tabIndex={multiple ? 0 : -1}
@@ -112,7 +133,7 @@ export default function ProductGallery({ images, productName }: Props) {
             {images.map((img, i) => (
               <div
                 key={img.id}
-                className="relative aspect-[4/5] min-w-0 shrink-0 grow-0 basis-full"
+                className="relative aspect-[4/5] min-w-0 shrink-0 grow-0 basis-full bg-[#F3F3F1]"
                 role="group"
                 aria-roledescription="slide"
                 aria-label={t('slideOf', { n: i + 1, total: images.length })}
@@ -125,7 +146,8 @@ export default function ProductGallery({ images, productName }: Props) {
                   sizes="(min-width: 768px) 50vw, 100vw"
                   priority={i === 0}
                   draggable={false}
-                  className="select-none object-cover"
+                  // First photo is the packshot: show it whole on the grey ground.
+                  className={cn('select-none', i === 0 ? 'object-contain p-6 mix-blend-multiply' : 'object-cover')}
                 />
                 {/* Embla swallows the click that ends a swipe, so this only fires on a real tap/click */}
                 <button
@@ -133,7 +155,7 @@ export default function ProductGallery({ images, productName }: Props) {
                   onClick={() => lightbox.openAt(i)}
                   tabIndex={i === selected ? 0 : -1}
                   aria-label={tPdp('open', { n: i + 1 })}
-                  className="absolute inset-0 cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ocean-600"
+                  className="absolute inset-0 cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-black"
                 />
               </div>
             ))}
@@ -163,7 +185,9 @@ export default function ProductGallery({ images, productName }: Props) {
               <ChevronRight size={18} className="rtl:rotate-180" />
             </button>
             <span
-              className="absolute bottom-3 end-3 rounded-full bg-black/55 px-2.5 py-0.5 text-xs text-white tabular-nums"
+              className="absolute bottom-3 end-3 bg-white/90 px-2.5 py-0.5 text-xs text-black tabular-nums md:hidden"
+              // "1 / 3" must read left-to-right in Hebrew too, or it shows as "3 / 1".
+              dir="ltr"
               aria-live="polite"
             >
               {t('counter', { n: selected + 1, total: images.length })}
@@ -190,7 +214,7 @@ export default function ProductGallery({ images, productName }: Props) {
       />
 
       {multiple && (
-        <div ref={thumbsRef} className="overflow-hidden">
+        <div ref={thumbsRef} className="overflow-hidden md:hidden">
           <div className="flex gap-2" role="tablist" aria-label={t('thumbnails')}>
             {images.map((img, i) => (
               <button
@@ -201,11 +225,11 @@ export default function ProductGallery({ images, productName }: Props) {
                 aria-label={t('showImage', { n: i + 1 })}
                 onClick={() => scrollTo(i)}
                 className={cn(
-                  'relative size-16 shrink-0 overflow-hidden rounded-lg border-2 transition-colors sm:size-20',
-                  i === selected ? 'border-ocean-700' : 'border-transparent opacity-70 hover:opacity-100',
+                  'relative h-20 w-16 shrink-0 overflow-hidden bg-[#F3F3F1] transition-opacity',
+                  i === selected ? 'ring-1 ring-black ring-inset' : 'opacity-70 hover:opacity-100',
                 )}
               >
-                <Image src={img.url} alt="" fill sizes="80px" className="object-cover" />
+                <Image src={img.url} alt="" fill sizes="64px" className={i === 0 ? 'object-contain p-1 mix-blend-multiply' : 'object-cover'} />
               </button>
             ))}
           </div>

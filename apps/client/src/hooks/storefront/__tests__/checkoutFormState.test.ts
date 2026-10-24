@@ -115,4 +115,12 @@ describe('invalidTarget', () => {
     expect(invalidTarget({ acceptTerms: { key: 'x' } })).toBeNull();
     expect(invalidTarget({})).toBeNull();
   });
+
+  it('a field check shows only that field\'s problem and clears it once fixed', () => {
+    const issues = { phone: { key: 'validation.phoneInvalid' }, customerEmail: { key: 'validation.required' } };
+    const checked = checkoutFormReducer(initialCheckoutForm, { type: 'fieldChecked', field: 'phone', issues });
+    expect(checked.issues).toEqual({ phone: { key: 'validation.phoneInvalid' } });
+    const fixed = checkoutFormReducer(checked, { type: 'fieldChecked', field: 'phone', issues: {} });
+    expect(fixed.issues.phone).toBeUndefined();
+  });
 });

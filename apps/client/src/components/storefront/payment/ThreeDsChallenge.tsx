@@ -53,10 +53,10 @@ export function ThreeDsChallenge({
       onSubmit={submit}
       noValidate
       aria-labelledby={`${uid}-title`}
-      className="rounded-lg border border-gray-200 bg-gray-50 p-5 space-y-4"
+      className="rounded-none border border-gray-200 bg-gray-50 p-5 space-y-4"
     >
       <div className="flex items-start gap-3">
-        <ShieldCheck size={28} className="text-ocean-700 shrink-0" aria-hidden="true" />
+        <ShieldCheck size={28} className="text-black shrink-0" aria-hidden="true" />
         <div>
           <h3 id={`${uid}-title`} className="font-medium">
             {t('threeDs.title')}
@@ -107,7 +107,7 @@ export function ThreeDsChallenge({
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="px-5 py-3 text-sm border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50"
+          className="px-5 py-3 text-sm border border-gray-300 rounded-none hover:bg-white disabled:opacity-50"
         >
           {t('threeDs.cancel')}
         </button>

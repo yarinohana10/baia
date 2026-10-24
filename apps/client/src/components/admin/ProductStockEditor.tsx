@@ -59,6 +59,8 @@ export default function ProductStockEditor({
   const newBlock = (): ColorBlock => ({ key: `n${(nextBlockKey.current += 1)}`, name: '' });
   // Id of an input to focus once the row it belongs to has rendered.
   const focusAfterRender = useRef<string | null>(null);
+  // Set when "add color" was pressed while a color still has no name.
+  const [nameFirst, setNameFirst] = useState(false);
 
   useEffect(() => {
     if (!focusAfterRender.current) return;
@@ -151,16 +153,34 @@ export default function ProductStockEditor({
         );
       })}
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => setBlocks([...blocks, newBlock()])}
-        disabled={blocks.some((b) => !b.name.trim())}
-        className="text-ocean-600 hover:text-ocean-700"
-      >
-        <Plus size={14} /> {ts('addColor')}
-      </Button>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            // A color without a name can't hold sizes yet: send the admin to name it first.
+            const unnamed = blocks.find((b) => !b.name.trim());
+            if (unnamed) {
+              setNameFirst(true);
+              document.getElementById(`color-input-${unnamed.key}`)?.focus();
+              return;
+            }
+            setNameFirst(false);
+            const block = newBlock();
+            setBlocks([...blocks, block]);
+            focusAfterRender.current = `color-input-${block.key}`;
+          }}
+          className="text-ocean-700 hover:text-ocean-800"
+        >
+          <Plus size={14} /> {ts('addColor')}
+        </Button>
+        {nameFirst && blocks.some((b) => !b.name.trim()) && (
+          <p role="status" className="text-xs text-amber-700">
+            {ts('nameColorFirst')}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

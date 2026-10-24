@@ -86,19 +86,19 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber, low
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-12 lg:gap-14">
+      <div className="mx-auto grid max-w-[1240px] grid-cols-1 gap-8 md:grid-cols-12 lg:gap-14">
         <div className="md:col-span-7">
           <ProductGallery images={galleryImages} productName={name} />
         </div>
 
-        <div className="md:col-span-5">
-          <div className="md:sticky md:top-24">
-            <h1 className="mb-3 text-2xl font-semibold leading-tight tracking-normal text-charcoal md:text-3xl">{name}</h1>
+        <div className="md:col-span-5 lg:ps-4">
+          <div className="md:sticky md:top-28 md:pt-2">
+            <h1 className="mb-2 text-[16px] font-normal uppercase leading-snug ltr:tracking-[0.03em] text-black md:text-[17px]">{name}</h1>
 
             <div className="mb-1">
               <ProductPrice price={price} size="lg" />
             </div>
-            <p className="mb-6 text-xs text-gray-500">{t('vatIncluded')}</p>
+            <p className="mb-6 text-[11px] text-black/45">{t('vatIncluded')}</p>
 
             {colors.length > 0 && (
               <ColorPicker colors={colors} selected={selection.color} variants={variants} onSelect={selection.selectColor} />
@@ -115,21 +115,25 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber, low
               />
             )}
 
-            {/* Quantity + add to bag + wishlist */}
-            <div ref={buyRef} className="mb-3 flex items-stretch gap-3">
+            <div className="mb-5 flex items-center gap-4">
+              <span className="text-[13px] text-black">{t('quantity')}</span>
               <QuantityStepper
                 quantity={selection.quantity}
                 max={maxQuantity}
                 onDecrement={selection.decrement}
                 onIncrement={selection.increment}
               />
+            </div>
+
+            {/* Add to bag + wishlist */}
+            <div ref={buyRef} className="mb-3 flex items-stretch gap-3">
               <AddToBagButton label={buttonLabel} purchasable={purchasable} adding={adding} added={added} onAdd={addToBag} />
               <WishlistButton
                 product={product}
                 iconSize={18}
-                className="flex w-12 items-center justify-center rounded-lg border transition-colors"
-                activeClassName="border-red-300 text-red-500"
-                inactiveClassName="border-gray-300 text-gray-500 hover:text-red-500 hover:border-red-300"
+                className="flex w-12 shrink-0 items-center justify-center border border-black transition-colors"
+                activeClassName="text-black [&_svg]:fill-black"
+                inactiveClassName="text-black hover:bg-black/[0.03]"
               />
             </div>
 
@@ -139,7 +143,7 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber, low
               </p>
             )}
 
-            {variant?.sku && <p className="mb-5 text-xs text-gray-400">{t('sku', { sku: variant.sku })}</p>}
+            {variant?.sku && <p className="mb-5 text-xs text-black/35">{t('sku', { sku: variant.sku })}</p>}
 
             <TrustRow freeShippingThreshold={shipping.freeShippingThreshold} />
 

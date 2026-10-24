@@ -10,7 +10,7 @@ export function CancellationDone({ mode, unpaid }: { mode: CancellationMode; unp
   let text = t('requestDone');
   if (mode === 'cancel') text = unpaid ? t('cancelledUnpaid') : t('cancelledDone');
   return (
-    <div role="status" className="flex items-start gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
+    <div role="status" className="flex items-start gap-2 rounded-none bg-green-50 px-4 py-3 text-sm text-green-800">
       <CheckCircle2 size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
       <span>{text}</span>
     </div>

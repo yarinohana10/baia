@@ -18,9 +18,9 @@ export function ProductPrice({ price, size }: Props) {
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
       <span
         className={cn(
-          'font-semibold tabular-nums',
-          size === 'lg' ? 'text-2xl' : 'text-base',
-          price.original ? 'text-coral' : 'text-charcoal',
+          'tabular-nums',
+          size === 'lg' ? 'text-[15px] md:text-[16px]' : 'text-base font-semibold',
+          price.original ? 'text-coral' : 'text-black/80',
         )}
       >
         <span className="sr-only">{price.original ? t('salePrice', { price: formatPrice(price.current) }) : ''}</span>
@@ -28,12 +28,12 @@ export function ProductPrice({ price, size }: Props) {
       </span>
       {price.original && (
         <>
-          <s className={cn('text-gray-400 tabular-nums', size === 'lg' ? 'text-lg' : 'text-sm')}>
+          <s className={cn('text-black/40 tabular-nums', size === 'lg' ? 'text-base' : 'text-sm')}>
             <span className="sr-only">{t('originalPrice', { price: formatPrice(price.original) })}</span>
             <span aria-hidden="true">{formatPrice(price.original)}</span>
           </s>
           {size === 'lg' && pct > 0 && (
-            <span className="rounded-full bg-coral/10 px-2 py-0.5 text-xs font-semibold text-coral" dir="ltr">
+            <span className="rounded-none bg-coral/10 px-2 py-0.5 text-xs font-semibold text-coral" dir="ltr">
               {t('savePercent', { pct })}
             </span>
           )}

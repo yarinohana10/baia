@@ -14,16 +14,16 @@ type Props = {
   allLabel: string;
 };
 
-const PILL = 'px-4 py-1.5 text-sm border rounded-lg transition-colors';
+const TAB = 'inline-flex min-h-11 items-center text-[12px] uppercase ltr:tracking-[0.14em] underline-offset-[6px] transition-colors';
 const pillClass = (active: boolean) =>
-  `${PILL} inline-block ${active ? 'border-ocean-700 bg-ocean-700 text-white' : 'border-gray-300 hover:border-ocean-500'}`;
+  `${TAB} ${active ? 'text-black underline decoration-1' : 'text-black/50 hover:text-black'}`;
 
 /** Sub-category pills for a category listing; picking one keeps the sort but clears filters. */
 export function SubcategoryNav({ basePath, query, items, activeId, locale, label, allLabel }: Props) {
   const base = clearFilters(query);
   return (
-    <nav aria-label={label} className="mb-8">
-      <ul className="flex flex-wrap gap-2">
+    <nav aria-label={label} className="mb-6">
+      <ul className="flex flex-wrap justify-center gap-x-6 gap-y-1">
         <li>
           <Link
             href={listingHref(basePath, { ...base, type: undefined })}

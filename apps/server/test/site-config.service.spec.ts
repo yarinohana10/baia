@@ -240,4 +240,27 @@ describe('SiteConfigService', () => {
       expect(storage.delete).not.toHaveBeenCalled();
     });
   });
+
+  describe('removeHeroImage', () => {
+    it('unlinks the hero image, then deletes its upload row and its file', async () => {
+      prisma.siteConfig.findUnique.mockResolvedValue({ ...MOCK_CONFIG, heroImageUploadId: MOCK_UPLOAD.id, heroImageUrl: 'u' });
+      prisma.upload.findUnique.mockResolvedValue(MOCK_UPLOAD);
+      prisma.upload.delete.mockResolvedValue(MOCK_UPLOAD);
+
+      await service.removeHeroImage();
+
+      expect(prisma.siteConfig.update).toHaveBeenCalledWith({
+        where: { id: 'default' },
+        data: { heroImageUploadId: null, heroImageUrl: null },
+      });
+      expect(prisma.upload.delete).toHaveBeenCalledWith({ where: { id: MOCK_UPLOAD.id } });
+      expect(storage.delete).toHaveBeenCalledWith(MOCK_UPLOAD.s3Key);
+    });
+
+    it('touches no storage when there is no uploaded hero image', async () => {
+      prisma.siteConfig.findUnique.mockResolvedValue(MOCK_CONFIG);
+      await service.removeHeroImage();
+      expect(storage.delete).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -46,13 +46,13 @@ export function CouponSection({
           onChange={(e) => onEdit(e.target.value)}
           onKeyDown={onKeyDown}
           disabled={locked}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-ocean-500 focus:outline-none uppercase"
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-none text-sm focus:border-neutral-600 focus:outline-none uppercase"
         />
         <button
           type="button"
           onClick={onApply}
           disabled={checking || !input.trim() || locked}
-          className="px-4 py-2 text-sm bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-4 py-2 text-sm bg-black text-white rounded-none hover:bg-neutral-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {t('apply')}
         </button>

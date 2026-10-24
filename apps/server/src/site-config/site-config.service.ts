@@ -128,6 +128,18 @@ export class SiteConfigService {
     }
   }
 
+  /** Unlinks the hero image, then deletes its Upload row and storage object. */
+  async removeHeroImage() {
+    const config = await this.prisma.siteConfig.findUnique({ where: { id: 'default' } });
+    if (!config) return this.get();
+    await this.prisma.siteConfig.update({
+      where: { id: 'default' },
+      data: { heroImageUploadId: null, heroImageUrl: null },
+    });
+    if (config.heroImageUploadId) await this.removeUpload(config.heroImageUploadId);
+    return this.get();
+  }
+
   private async removeUpload(uploadId: string) {
     const oldUpload = await this.prisma.upload.findUnique({ where: { id: uploadId } });
     if (!oldUpload) return;

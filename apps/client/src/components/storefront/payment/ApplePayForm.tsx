@@ -24,7 +24,7 @@ export function ApplePayForm({
         onClick={() => onPay({ method: 'apple_pay', ...(testMode ? { simulation: 'success' as const } : {}) })}
         disabled={busy}
         aria-busy={busy}
-        className="w-full bg-black text-white py-3 text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full bg-black text-white py-3 text-sm font-medium rounded-none hover:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
       >
         <BusyIcon busy={busy} icon={<Wallet size={16} aria-hidden="true" />} />
         {busy ? t('processing') : t('applePay.button')}

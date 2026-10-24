@@ -32,12 +32,12 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
     <Dialog.Root>
       <Dialog.Trigger
         className={cn(
-          'inline-flex items-center gap-1.5 text-[13px] text-gray-600 underline underline-offset-4 decoration-gray-300 hover:text-ocean-700 hover:decoration-ocean-600 transition-colors rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-600',
+          'inline-flex items-center gap-1.5 text-[12px] text-black hover:opacity-60 transition-opacity rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black',
           variant === 'text' && 'text-sm',
           className,
         )}
       >
-        <Ruler size={14} aria-hidden="true" />
+        <Ruler size={14} strokeWidth={1.4} aria-hidden="true" />
         {t('open')}
       </Dialog.Trigger>
       <Dialog.Portal>
@@ -46,7 +46,7 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
           className={cn(
             'fixed z-50 flex flex-col bg-white shadow-2xl outline-none transition-transform duration-300 ease-out',
             // phones: bottom sheet
-            'inset-x-0 bottom-0 max-h-[88dvh] rounded-t-2xl data-starting-style:translate-y-full data-ending-style:translate-y-full',
+            'inset-x-0 bottom-0 max-h-[88dvh] rounded-none data-starting-style:translate-y-full data-ending-style:translate-y-full',
             // desktop: side panel on the reading-end side
             'md:inset-y-0 md:bottom-auto md:end-0 md:start-auto md:h-full md:max-h-none md:w-[30rem] md:rounded-none md:data-starting-style:translate-y-0 md:data-ending-style:translate-y-0 md:data-starting-style:ltr:translate-x-full md:data-ending-style:ltr:translate-x-full md:data-starting-style:rtl:-translate-x-full md:data-ending-style:rtl:-translate-x-full',
           )}
@@ -55,7 +55,7 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
             <Dialog.Title className="text-lg font-semibold text-charcoal">{t('title')}</Dialog.Title>
             <Dialog.Close
               aria-label={t('close')}
-              className="flex size-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-charcoal focus-visible:outline-2 focus-visible:outline-ocean-600"
+              className="flex size-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-charcoal focus-visible:outline-2 focus-visible:outline-neutral-700"
             >
               <X size={18} aria-hidden="true" />
             </Dialog.Close>
@@ -69,9 +69,9 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
                 <h3 id="size-chart-title" className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
                   {t('chartTitle', { chart: t(`charts.${chart.id}`) })}
                 </h3>
-                <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <div className="overflow-x-auto rounded-none border border-gray-200">
                   <table className="w-full text-center text-[13px] tabular-nums">
-                    <thead className="bg-warm-100 text-gray-600">
+                    <thead className="bg-neutral-100 text-gray-600">
                       <tr>
                         <th scope="col" className="px-3 py-2.5 font-medium">
                           {t('sizeColumn')}
@@ -87,7 +87,7 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
                       {chart.rows.map((row) => (
                         <tr
                           key={row.size}
-                          className={cn('border-t border-gray-100', offered.has(row.size) && 'bg-ocean-50/50')}
+                          className={cn('border-t border-gray-100', offered.has(row.size) && 'bg-[#F7F7F7]/50')}
                         >
                           <th scope="row" className="px-3 py-2.5 font-semibold text-charcoal" dir="ltr">
                             {row.size}
@@ -104,7 +104,7 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
                 </div>
               </section>
             ) : (
-              <p className="rounded-xl bg-warm-100 px-4 py-3 leading-relaxed">{t('noChart')}</p>
+              <p className="rounded-none bg-neutral-100 px-4 py-3 leading-relaxed">{t('noChart')}</p>
             )}
 
             <section aria-labelledby="how-to-measure-title">
@@ -116,7 +116,7 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
                   <li key={m} className="flex gap-3">
                     <span
                       aria-hidden="true"
-                      className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ocean-700 text-xs font-semibold text-white"
+                      className="flex size-6 shrink-0 items-center justify-center rounded-full bg-black text-xs font-semibold text-white"
                     >
                       {i + 1}
                     </span>
@@ -129,26 +129,26 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
               </ol>
             </section>
 
-            <section className="rounded-xl border border-sand-200 bg-sand-50 px-4 py-3">
+            <section className="rounded-none border border-neutral-200 bg-[#F7F7F7] px-4 py-3">
               <h3 className="mb-1 font-semibold text-charcoal">{t('fitTipTitle')}</h3>
               <p className="leading-relaxed">{t('fitTip')}</p>
             </section>
           </div>
 
-          <div className="border-t border-gray-100 bg-warm-50 px-5 py-4">
+          <div className="border-t border-gray-100 bg-[#F7F7F7] px-5 py-4">
             <p className="mb-2 font-medium text-charcoal">{t('notSure')}</p>
             {whatsappLink ? (
               <a
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#1f8f4e] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#187a41] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-600"
+                className="inline-flex items-center gap-2 rounded-none bg-[#1f8f4e] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#187a41] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-700"
               >
                 <MessageCircle size={16} aria-hidden="true" />
                 {t('whatsapp')}
               </a>
             ) : (
-              <Link href="/contact" className="text-sm text-ocean-700 underline underline-offset-4">
+              <Link href="/contact" className="text-sm text-black underline underline-offset-4">
                 {t('contact')}
               </Link>
             )}

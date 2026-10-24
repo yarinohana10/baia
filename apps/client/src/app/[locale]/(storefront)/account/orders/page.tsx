@@ -11,6 +11,8 @@ import { OrderTimeline } from '@/components/storefront/orders/OrderTimeline';
 import { OrderCancellation } from '@/components/storefront/orders/OrderCancellation';
 import { PaymentMethodLine } from '@/components/storefront/orders/PaymentMethodLine';
 import { formatOrderDate, ORDER_DATE } from '@/components/storefront/orders/order-dates';
+import { orderItemName } from '@/components/storefront/orders/order-items';
+import { OrderItemThumb } from '@/components/storefront/orders/OrderItemThumb';
 
 const statusColors: Record<string, string> = {
   PENDING_PAYMENT: 'bg-yellow-50 text-yellow-600',
@@ -76,7 +78,7 @@ export default function MyOrdersPage() {
       <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 animate-pulse">
         <div className="h-8 bg-gray-200 w-1/4 mb-8" />
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 bg-gray-100 rounded-xl mb-3" />
+          <div key={i} className="h-20 bg-gray-100 rounded-none mb-3" />
         ))}
       </div>
     );
@@ -84,7 +86,7 @@ export default function MyOrdersPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6">
-      <h1 className="text-2xl font-bold tracking-normal mb-8">{t('title')}</h1>
+      <h1 className="mb-8 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">{t('title')}</h1>
 
       {error && orders.length === 0 ? (
         <div className="text-center py-20">
@@ -93,7 +95,7 @@ export default function MyOrdersPage() {
           <button
             type="button"
             onClick={loadFirst}
-            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider rounded-lg hover:bg-ocean-800 transition-colors"
+            className="inline-block bg-black text-white px-8 py-3 text-sm tracking-wider rounded-none hover:bg-neutral-800 transition-colors"
           >
             {t('retry')}
           </button>
@@ -104,7 +106,7 @@ export default function MyOrdersPage() {
           <p className="text-gray-400 mb-6">{t('empty')}</p>
           <Link
             href="/"
-            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider rounded-lg hover:bg-ocean-800 transition-colors"
+            className="inline-block bg-black text-white px-8 py-3 text-sm tracking-wider rounded-none hover:bg-neutral-800 transition-colors"
           >
             {t('startShopping')}
           </Link>
@@ -114,18 +116,24 @@ export default function MyOrdersPage() {
           <div className="space-y-3">
             {orders.map((order) => {
               const count = order.items.reduce((sum, item) => sum + item.quantity, 0);
-              const names = order.items
-                .map((item) => (locale === 'he' && item.productNameHe) || item.productName)
-                .join(', ');
+              const names = order.items.map((item) => orderItemName(item, locale)).join(', ');
+              const photos = order.items.filter((item) => item.imageUrl).slice(0, 3);
               const trackLink = trackingUrl(order.trackingNumber);
               return (
-                <div key={order.id} className="bg-white border border-gray-200 rounded-xl">
+                <div key={order.id} className="bg-white border border-gray-200 rounded-none">
                   <Link
                     href={`/order-confirmation/${order.id}`}
                     aria-label={t('viewOrder', { number: order.orderNumber })}
-                    className="flex items-center justify-between gap-3 p-4 rounded-t-xl hover:bg-gray-50/60 transition-colors"
+                    className="flex items-center justify-between gap-3 p-4 rounded-none hover:bg-gray-50/60 transition-colors"
                   >
-                    <div className="min-w-0">
+                    {photos.length > 0 && (
+                      <div className="flex shrink-0 -space-x-3 rtl:space-x-reverse" aria-hidden="true">
+                        {photos.map((item) => (
+                          <OrderItemThumb key={item.id} src={item.imageUrl} alt="" size={44} />
+                        ))}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
                       <p className="font-mono text-sm font-medium" dir="ltr">{order.orderNumber}</p>
                       <p className="text-xs text-gray-400">
                         {formatOrderDate(ORDER_DATE, order.createdAt, locale)} &middot; {t('itemCount', { count })}
@@ -135,7 +143,7 @@ export default function MyOrdersPage() {
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="font-medium text-sm">{formatPrice(parseFloat(order.total))}</span>
                       <span
-                        className={`text-xs px-2 py-0.5 uppercase tracking-wider rounded-full ${
+                        className={`text-xs px-2 py-0.5 uppercase tracking-wider rounded-none ${
                           statusColors[order.status] || 'bg-gray-100 text-gray-500'
                         }`}
                       >
@@ -167,7 +175,7 @@ export default function MyOrdersPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                               aria-label={tPage('trackParcel')}
-                              className="text-ocean-700 hover:text-ocean-800"
+                              className="text-black hover:text-black"
                             >
                               <ExternalLink size={11} />
                             </a>
@@ -195,7 +203,7 @@ export default function MyOrdersPage() {
                 onClick={loadMore}
                 disabled={loadingMore}
                 aria-busy={loadingMore}
-                className="px-6 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40"
+                className="px-6 py-2.5 text-sm border border-gray-300 rounded-none hover:bg-gray-50 transition-colors disabled:opacity-40"
               >
                 {loadingMore ? t('loadingMore') : t('loadMore')}
               </button>

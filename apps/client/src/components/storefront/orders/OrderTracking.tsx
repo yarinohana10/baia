@@ -19,7 +19,7 @@ export function OrderTracking({ trackingNumber }: { trackingNumber: string }) {
             href={trackLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-ocean-700 underline underline-offset-2 hover:text-ocean-800"
+            className="inline-flex items-center gap-1 text-xs text-black underline underline-offset-2 hover:text-black"
           >
             {tPage('trackParcel')} <ExternalLink size={11} aria-hidden="true" />
           </a>

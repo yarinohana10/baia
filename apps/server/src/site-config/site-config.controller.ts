@@ -4,6 +4,7 @@ import {
   Get,
   Put,
   Post,
+  Delete,
   Body,
   Req,
   UseGuards,
@@ -57,5 +58,13 @@ export class SiteConfigController {
       file.mimetype,
       userId,
     );
+  }
+
+  /** Removes the uploaded hero image (row + file); the store shows its built-in photo again. */
+  @Delete('admin/site-config/hero-image')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  removeHeroImage() {
+    return this.siteConfigService.removeHeroImage();
   }
 }

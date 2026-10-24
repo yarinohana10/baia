@@ -16,7 +16,7 @@ export function GoogleSignInButton({ onError, className }: { onError: () => void
       onClick={start}
       disabled={pending}
       className={cn(
-        'w-full flex items-center justify-center gap-3 border border-[#bec8cd] bg-white text-[#1a1c1c] font-body text-sm font-medium py-3.5 hover:bg-[#f9f9f9] hover:border-[#3f484c] transition-colors duration-300 disabled:opacity-70',
+        'w-full flex items-center justify-center gap-3 border border-neutral-300 bg-white text-black text-sm font-medium py-3.5 hover:bg-[#f9f9f9] hover:border-neutral-600 transition-colors duration-300 disabled:opacity-70',
         className,
       )}
     >

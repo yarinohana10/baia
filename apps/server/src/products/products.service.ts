@@ -1,22 +1,11 @@
-import { Injectable, NotFoundException, Inject, Logger, Optional } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { StorageService, STORAGE_SERVICE } from '../storage/storage.interface';
 import { Prisma } from '../generated/prisma';
 import { randomUUID } from 'crypto';
-import {
-  FieldError,
-  fieldConflictException,
-  fieldValidationException,
-} from '../common/validation';
-import {
-  CreateProductDto,
-  ImageMetaDto,
-  UpdateProductDto,
-  UpdateVariantDto,
-  VariantDto,
-} from './dto/product.dto';
+import { fieldConflictException, fieldValidationException, type FieldError } from '../common/validation';
+import { CreateProductDto, ImageMetaDto, UpdateProductDto, UpdateVariantDto, VariantDto } from './dto/product.dto';
 import { compareSizes } from './size-sets';
-import { availableStock, variantAvailability, type Availability } from '../common/stock';
+import { availableStock } from '../common/stock';
 import { StockAlertsService } from '../inventory/stock-alerts.service';
 import {
   CatalogFilters,
@@ -29,62 +18,29 @@ import {
   scopeConditions,
   variantWhere,
 } from './catalog-filters';
-
-type ImageWithUpload = {
-  id: string;
-  url: string;
-  upload: { s3Key: string } | null;
-  [key: string]: unknown;
-};
-
-type ProductWithImages = {
-  images?: ImageWithUpload[];
-  [key: string]: unknown;
-};
-
-/** Minimal file shape (subset of Express.Multer.File) the service needs. */
-export type IncomingFile = {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-  size?: number;
-};
-
-type PricingFields = {
-  priceOverride?: number | null;
-  salePrice?: number | null;
-  saleStart?: string | Date | null;
-  saleEnd?: string | Date | null;
-};
-
-type DecimalLike = { toNumber(): number } | number | string | null | undefined;
-
-function toNumber(value: DecimalLike): number | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') return parseFloat(value);
-  return value.toNumber();
-}
-
-function decimalOrNull(value: number | null | undefined) {
-  return value === null || value === undefined ? null : new Prisma.Decimal(value);
-}
-
-function dateOrNull(value: string | null | undefined) {
-  return value ? new Date(value) : null;
-}
+import {
+  IMAGE_INCLUDE,
+  newVariantData,
+  sortVariantsBySize,
+  toNumber,
+  variantData,
+  withAvailability,
+  type DecimalLike,
+} from './product-data';
+import { NO_ACTIVE_SIZES_ERROR, pricingErrors, variantRuleErrors, type PricingFields } from './product-rules';
+import { ProductImagesService, type IncomingFile } from './product-images.service';
 
 const DEFAULT_LOW_STOCK_THRESHOLD = 5;
 
-const IMAGE_INCLUDE = { orderBy: { sortOrder: 'asc' }, include: { upload: true } } as const;
-
+/**
+ * Catalog and product writes. Image files are handled by ProductImagesService;
+ * pure rules and mapping live in product-rules.ts / product-data.ts.
+ */
 @Injectable()
 export class ProductsService {
-  private readonly logger = new Logger(ProductsService.name);
-
   constructor(
     private prisma: PrismaService,
-    @Inject(STORAGE_SERVICE) private storage: StorageService,
+    private images: ProductImagesService,
     @Optional() private stockAlerts?: StockAlertsService,
   ) {}
 
@@ -101,50 +57,6 @@ export class ProductsService {
     }
   }
 
-  /**
-   * Adds the computed `availability` to a product and each of its variants
-   * (in_stock | low_stock | sold_out | back_soon | hidden). The product is
-   * back_soon when an Admin set it or every purchasable size is sold out
-   * (shown to customers as Back Soon too, but kept apart for the admin).
-   */
-  private withAvailability<
-    T extends {
-      isActive: boolean;
-      backSoon: boolean;
-      variants?: { isActive: boolean; trackInventory: boolean; stockQuantity: number }[];
-    },
-  >(product: T, threshold: number): T & { availability: Availability; variants: (NonNullable<T['variants']>[number] & { availability: Availability })[] } {
-    const variants = (product.variants ?? []).map((v) => ({
-      ...v,
-      availability: variantAvailability(v, product, threshold),
-    }));
-    const live = variants.filter((v) => v.isActive);
-    let availability: Availability;
-    if (!product.isActive) availability = 'hidden';
-    else if (product.backSoon) availability = 'back_soon';
-    else if (live.length === 0 || live.every((v) => v.availability === 'sold_out')) availability = 'sold_out';
-    else if (live.some((v) => v.availability === 'in_stock')) availability = 'in_stock';
-    else availability = 'low_stock';
-    return { ...product, availability, variants } as never;
-  }
-
-  private resolveImageUrl(image: ImageWithUpload): ImageWithUpload {
-    if (image.upload) {
-      return { ...image, url: this.storage.getUrl(image.upload.s3Key) };
-    }
-    return image;
-  }
-
-  private resolveProductImages<T extends ProductWithImages>(product: T): T {
-    if (product.images) {
-      return { ...product, images: product.images.map((img) => this.resolveImageUrl(img)) };
-    }
-    return product;
-  }
-
-  private get bucket() {
-    return process.env.S3_BUCKET || 'baia-assets';
-  }
 
   // ─── Size sets ───────────────────────────────────
 
@@ -167,16 +79,19 @@ export class ProductsService {
   async findAll(params?: {
     categoryId?: string;
     search?: string;
+    /** Only products the Admin marked as featured (home page "Featured" section). */
+    featured?: boolean;
     page?: number;
     limit?: number;
     sort?: string;
     filters?: CatalogFilters;
   }) {
-    const { categoryId, search, sort = 'newest', filters = {} } = params || {};
+    const { categoryId, search, featured, sort = 'newest', filters = {} } = params || {};
     const page = Math.max(1, Math.trunc(params?.page ?? 1) || 1);
     const limit = Math.min(100, Math.max(1, Math.trunc(params?.limit ?? 20) || 20));
 
     const where: Prisma.ProductWhereInput = { isActive: true };
+    if (featured) where.isFeatured = true;
     const categoryIds = await this.categoryScope(categoryId);
     if (categoryIds) {
       where.categoryId = categoryIds.length > 1 ? { in: categoryIds } : categoryId;
@@ -206,7 +121,7 @@ export class ProductsService {
       // Effective prices (live sale price, else override, else base) are only
       // known in SQL, so ids, order and count come from a raw query and the
       // rows are then loaded with Prisma in that order.
-      const scope = { categoryIds, search };
+      const scope = { categoryIds, search, featured };
       const ids = await this.filteredIds({
         scope,
         filters,
@@ -233,7 +148,7 @@ export class ProductsService {
 
     const threshold = await this.lowStockThreshold();
     return {
-      products: products.map((p) => this.withAvailability(this.resolveProductImages(p), threshold)),
+      products: products.map((p) => withAvailability(this.images.resolveProduct(p), threshold)),
       total,
       page,
       limit,
@@ -285,8 +200,12 @@ export class ProductsService {
    * Facets ignore the shopper's current filters, so options never disappear
    * while filtering.
    */
-  async facets(params: { categoryId?: string; search?: string }) {
-    const scope: ListingScope = { categoryIds: await this.categoryScope(params.categoryId), search: params.search };
+  async facets(params: { categoryId?: string; search?: string; featured?: boolean }) {
+    const scope: ListingScope = {
+      categoryIds: await this.categoryScope(params.categoryId),
+      search: params.search,
+      featured: params.featured,
+    };
     const where = Prisma.join(scopeConditions(scope), ' AND ');
 
     const [sizeRows, colorRows, priceRows, sizeSets] = await Promise.all([
@@ -361,7 +280,7 @@ export class ProductsService {
       .map((p, index) => ({ p, index, r: rank(p) }))
       .sort((a, b) => a.r.sameCategory - b.r.sameCategory || a.r.soldOut - b.r.soldOut || a.index - b.index)
       .slice(0, limit)
-      .map(({ p }) => this.withAvailability(this.resolveProductImages(p), threshold));
+      .map(({ p }) => withAvailability(this.images.resolveProduct(p), threshold));
   }
 
   private adminWhere(params?: { search?: string; categoryId?: string }) {
@@ -393,7 +312,7 @@ export class ProductsService {
     });
 
     const threshold = await this.lowStockThreshold();
-    return products.map((p) => this.withAvailability(this.resolveProductImages(p), threshold));
+    return products.map((p) => withAvailability(this.images.resolveProduct(p), threshold));
   }
 
   /** Paginated admin list: `{ products, total, page, limit, totalPages }`. */
@@ -412,7 +331,7 @@ export class ProductsService {
 
     const threshold = await this.lowStockThreshold();
     return {
-      products: products.map((p) => this.withAvailability(this.resolveProductImages(p), threshold)),
+      products: products.map((p) => withAvailability(this.images.resolveProduct(p), threshold)),
       total,
       page: params.page,
       limit: params.limit,
@@ -432,7 +351,7 @@ export class ProductsService {
       },
     });
     if (!product || product.isActive === false) throw new NotFoundException('Product not found');
-    return this.withAvailability(this.resolveProductImages(this.sortVariantsBySize(product)), await this.lowStockThreshold());
+    return withAvailability(this.images.resolveProduct(sortVariantsBySize(product)), await this.lowStockThreshold());
   }
 
   async findById(id: string) {
@@ -446,82 +365,10 @@ export class ProductsService {
       },
     });
     if (!product) throw new NotFoundException('Product not found');
-    return this.withAvailability(this.resolveProductImages(this.sortVariantsBySize(product)), await this.lowStockThreshold());
-  }
-
-  private sortVariantsBySize<
-    T extends { variants?: { color: string; size: string }[]; sizeSet?: { sizes: string[] } | null },
-  >(product: T): T {
-    if (!product.variants) return product;
-    const order = product.sizeSet?.sizes ?? [];
-    const variants = [...product.variants].sort(
-      (a, b) => a.color.localeCompare(b.color) || compareSizes(a.size, b.size, order),
-    );
-    return { ...product, variants };
+    return withAvailability(this.images.resolveProduct(sortVariantsBySize(product)), await this.lowStockThreshold());
   }
 
   // ─── Validation helpers ──────────────────────────
-
-  /**
-   * Business rules that span fields/objects (DTOs cover per-field rules):
-   * - sale price must be below the variant's effective price
-   * - SKUs and color+size combinations must be unique within the payload
-   */
-  private variantRuleErrors(
-    variants: (PricingFields & { sku?: string; color?: string; size?: string })[],
-    basePrice: number,
-    pathPrefix = 'variants',
-  ): FieldError[] {
-    const errors: FieldError[] = [];
-    const skus = new Map<string, number>();
-    const combos = new Map<string, number>();
-
-    variants.forEach((v, i) => {
-      const path = pathPrefix ? `${pathPrefix}.${i}` : '';
-      const at = (field: string) => (path ? `${path}.${field}` : field);
-
-      errors.push(...this.pricingErrors(v, basePrice, path));
-
-      if (v.sku) {
-        const key = v.sku.toLowerCase();
-        if (skus.has(key)) {
-          errors.push({ field: at('sku'), code: 'duplicate', message: `SKU "${v.sku}" is used more than once` });
-        } else {
-          skus.set(key, i);
-        }
-      }
-      if (v.color && v.size) {
-        const key = `${v.color.toLowerCase()}|${v.size.toLowerCase()}`;
-        if (combos.has(key)) {
-          errors.push({
-            field: at('size'),
-            code: 'duplicateCombination',
-            message: `Color "${v.color}" / size "${v.size}" is used more than once`,
-          });
-        } else {
-          combos.set(key, i);
-        }
-      }
-    });
-    return errors;
-  }
-
-  private pricingErrors(v: PricingFields, basePrice: number, path: string): FieldError[] {
-    const at = (field: string) => (path ? `${path}.${field}` : field);
-    const errors: FieldError[] = [];
-    const effective = v.priceOverride ?? basePrice;
-    if (v.salePrice !== null && v.salePrice !== undefined && v.salePrice >= effective) {
-      errors.push({
-        field: at('salePrice'),
-        code: 'saleBelowPrice',
-        message: `salePrice must be lower than the price (${effective})`,
-      });
-    }
-    if (v.saleStart && v.saleEnd && new Date(v.saleEnd).getTime() <= new Date(v.saleStart).getTime()) {
-      errors.push({ field: at('saleEnd'), code: 'saleDateRange', message: 'saleEnd must be after saleStart' });
-    }
-    return errors;
-  }
 
   private async relationErrors(data: { categoryId?: string; sizeSetId?: string | null }) {
     const errors: FieldError[] = [];
@@ -587,22 +434,6 @@ export class ProductsService {
     return errors;
   }
 
-  private variantData(v: VariantDto | UpdateVariantDto) {
-    const data: Prisma.ProductVariantUncheckedUpdateInput = {};
-    if (v.color !== undefined) data.color = v.color;
-    if (v.size !== undefined) data.size = v.size;
-    if (v.sku !== undefined) data.sku = v.sku;
-    // With expectedStockQuantity the edit is applied as a delta (see editStock).
-    if (v.stockQuantity !== undefined && v.expectedStockQuantity === undefined) data.stockQuantity = v.stockQuantity;
-    if (v.trackInventory !== undefined) data.trackInventory = v.trackInventory;
-    if (v.priceOverride !== undefined) data.priceOverride = decimalOrNull(v.priceOverride);
-    if (v.salePrice !== undefined) data.salePrice = decimalOrNull(v.salePrice);
-    if (v.saleStart !== undefined) data.saleStart = dateOrNull(v.saleStart);
-    if (v.saleEnd !== undefined) data.saleEnd = dateOrNull(v.saleEnd);
-    if (v.isActive !== undefined) data.isActive = v.isActive;
-    return data;
-  }
-
   /**
    * Applies an admin stock edit made against the quantity the form loaded:
    * stock moves by (new - expected) in one atomic UPDATE, so units sold or
@@ -634,37 +465,6 @@ export class ProductsService {
     return true;
   }
 
-  // ─── Image storage helpers ───────────────────────
-
-  private imageKey(productId: string, originalName: string) {
-    const ext = (originalName.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-    return `products/${productId}/${randomUUID()}.${ext}`;
-  }
-
-  /** Uploads files to storage; if any upload fails, already-uploaded ones are removed. */
-  private async putFiles(productId: string, files: IncomingFile[]) {
-    const keys = files.map((f) => this.imageKey(productId, f.originalname));
-    const results = await Promise.allSettled(
-      files.map((f, i) => this.storage.upload(f.buffer, keys[i], f.mimetype)),
-    );
-    const failed = results.find((r) => r.status === 'rejected');
-    if (failed) {
-      await this.removeKeys(keys.filter((_, i) => results[i].status === 'fulfilled'));
-      throw (failed as PromiseRejectedResult).reason;
-    }
-    return keys.map((key, i) => ({ key, url: (results[i] as PromiseFulfilledResult<string>).value }));
-  }
-
-  private async removeKeys(keys: string[]) {
-    await Promise.all(
-      keys.map((key) =>
-        this.storage.delete(key).catch((err) => {
-          this.logger.warn(`Failed to clean up storage object ${key}: ${err}`);
-        }),
-      ),
-    );
-  }
-
   // ─── Products: create / update / delete ──────────
 
   /**
@@ -678,12 +478,11 @@ export class ProductsService {
     const imageMeta: ImageMetaDto[] = files.map((_, i) => dto.images?.[i] ?? {});
 
     const errors = [
-      ...this.variantRuleErrors(variants, dto.basePrice),
+      ...variantRuleErrors(variants, dto.basePrice),
       ...(await this.relationErrors({ categoryId: dto.categoryId, sizeSetId: dto.sizeSetId })),
     ];
     if ((dto.isActive ?? true) && variants.filter((v) => v.isActive ?? true).length === 0) {
-      // A visible product with no sizes would show as "out of stock" in the store.
-      errors.push({ field: 'variants', code: 'required', message: 'Add at least one size with stock, or save the product as hidden' });
+      errors.push(NO_ACTIVE_SIZES_ERROR);
     }
     if (dto.images && dto.images.length > files.length) {
       errors.push({
@@ -698,7 +497,7 @@ export class ProductsService {
     if (conflicts.length) throw fieldConflictException(conflicts);
 
     const productId = randomUUID();
-    const stored = await this.putFiles(productId, files);
+    const stored = await this.images.putFiles(productId, files);
 
     try {
       const created = await this.prisma.$transaction(async (tx) => {
@@ -722,38 +521,9 @@ export class ProductsService {
             isFeatured: dto.isFeatured ?? false,
             isActive: dto.isActive ?? true,
             backSoon: dto.backSoon ?? false,
-            variants: {
-              create: variants.map((v) => ({
-                color: v.color,
-                size: v.size,
-                sku: v.sku,
-                stockQuantity: v.stockQuantity,
-                trackInventory: v.trackInventory ?? true,
-                priceOverride: decimalOrNull(v.priceOverride),
-                salePrice: decimalOrNull(v.salePrice),
-                saleStart: dateOrNull(v.saleStart),
-                saleEnd: dateOrNull(v.saleEnd),
-                isActive: v.isActive ?? true,
-              })),
-            },
+            variants: { create: variants.map(newVariantData) },
             images: {
-              create: stored.map((s, i) => ({
-                url: s.url,
-                sortOrder: i,
-                color: imageMeta[i].color ?? null,
-                altTextHe: imageMeta[i].altTextHe ?? null,
-                altTextEn: imageMeta[i].altTextEn ?? null,
-                upload: {
-                  create: {
-                    s3Key: s.key,
-                    s3Bucket: this.bucket,
-                    mimeType: files[i].mimetype,
-                    sizeBytes: files[i].size ?? files[i].buffer.length,
-                    fileName: files[i].originalname,
-                    uploadedBy,
-                  },
-                },
-              })),
+              create: stored.map((file, i) => this.images.imageData(file, files[i], imageMeta[i], i, uploadedBy)),
             },
           },
           include: {
@@ -764,9 +534,9 @@ export class ProductsService {
           },
         });
       });
-      return this.resolveProductImages(created);
+      return this.images.resolveProduct(created);
     } catch (err) {
-      await this.removeKeys(stored.map((s) => s.key));
+      await this.images.removeKeys(stored.map((s) => s.key));
       throw err;
     }
   }
@@ -783,7 +553,7 @@ export class ProductsService {
     const ownIds = new Set(existing.variants.map((v) => v.id));
 
     const errors = [
-      ...this.variantRuleErrors(variants, basePrice),
+      ...variantRuleErrors(variants, basePrice),
       ...(await this.relationErrors({ categoryId: dto.categoryId, sizeSetId: dto.sizeSetId })),
     ];
     variants.forEach((v, i) => {
@@ -800,7 +570,7 @@ export class ProductsService {
         else active.set(`new-${i}`, v.isActive ?? true);
       });
       if (![...active.values()].some(Boolean)) {
-        errors.push({ field: 'variants', code: 'required', message: 'Add at least one size with stock, or save the product as hidden' });
+        errors.push(NO_ACTIVE_SIZES_ERROR);
       }
     }
     if (errors.length) throw fieldValidationException(errors);
@@ -825,13 +595,13 @@ export class ProductsService {
       for (const [i, v] of variants.entries()) {
         if (v.id) {
           const tracked = v.trackInventory ?? existing.variants.find((e) => e.id === v.id)?.trackInventory ?? true;
-          await tx.productVariant.update({ where: { id: v.id }, data: this.variantData(v) });
+          await tx.productVariant.update({ where: { id: v.id }, data: variantData(v) });
           // Unlimited variants ignore quantity edits.
           if (tracked) await this.editStock(tx, v.id, v, `variants.${i}.stockQuantity`);
           if (v.stockQuantity !== undefined || v.trackInventory !== undefined) stockTouched.push(v.id);
         } else {
           await tx.productVariant.create({
-            data: { ...(this.variantData(v) as Prisma.ProductVariantUncheckedCreateInput), productId: id },
+            data: { ...(variantData(v) as Prisma.ProductVariantUncheckedCreateInput), productId: id },
           });
         }
       }
@@ -873,7 +643,7 @@ export class ProductsService {
     ]);
 
     // Storage last: a failure here only leaves an orphaned object, never a broken product.
-    await this.removeKeys(uploads.map((u) => u.s3Key));
+    await this.images.removeKeys(uploads.map((u) => u.s3Key));
     return { deleted: true };
   }
 
@@ -884,7 +654,7 @@ export class ProductsService {
     if (!product) throw new NotFoundException('Product not found');
 
     const basePrice = toNumber(product.basePrice as DecimalLike) ?? 0;
-    const errors = this.pricingErrors(dto, basePrice, '');
+    const errors = pricingErrors(dto, basePrice, '');
     if (errors.length) throw fieldValidationException(errors);
 
     const conflicts = await this.uniquenessErrors({ variants: [dto], pathPrefix: '' });
@@ -892,7 +662,7 @@ export class ProductsService {
 
     const { id: _ignored, ...rest } = dto;
     return this.prisma.productVariant.create({
-      data: { ...(this.variantData(rest) as Prisma.ProductVariantUncheckedCreateInput), productId },
+      data: { ...(variantData(rest) as Prisma.ProductVariantUncheckedCreateInput), productId },
     });
   }
 
@@ -911,7 +681,7 @@ export class ProductsService {
       saleEnd: dto.saleEnd !== undefined ? dto.saleEnd : variant.saleEnd,
     };
     const basePrice = toNumber(variant.product.basePrice as DecimalLike) ?? 0;
-    const errors = this.pricingErrors(merged, basePrice, '');
+    const errors = pricingErrors(merged, basePrice, '');
     if (errors.length) throw fieldValidationException(errors);
 
     if (dto.sku !== undefined) {
@@ -921,7 +691,7 @@ export class ProductsService {
 
     const tracked = dto.trackInventory ?? variant.trackInventory;
     const updated = await this.prisma.$transaction(async (tx) => {
-      const row = await tx.productVariant.update({ where: { id: variantId }, data: this.variantData(dto) });
+      const row = await tx.productVariant.update({ where: { id: variantId }, data: variantData(dto) });
       if (!tracked || !(await this.editStock(tx, variantId, dto, 'stockQuantity'))) return row;
       return tx.productVariant.findUniqueOrThrow({ where: { id: variantId } });
     });
@@ -951,128 +721,4 @@ export class ProductsService {
     return { deleted: true };
   }
 
-  // ─── Images ──────────────────────────────────────
-
-  async uploadImage(
-    productId: string,
-    file: IncomingFile | undefined,
-    meta: ImageMetaDto = {},
-    uploadedBy?: string,
-  ) {
-    if (!file || !file.buffer) {
-      throw fieldValidationException([{ field: 'file', code: 'required', message: 'An image file is required' }]);
-    }
-
-    const product = await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
-    if (!product) throw new NotFoundException('Product not found');
-
-    const [stored] = await this.putFiles(productId, [file]);
-
-    try {
-      const image = await this.prisma.$transaction(async (tx) => {
-        const maxSort = await tx.productImage.aggregate({
-          where: { productId },
-          _max: { sortOrder: true },
-        });
-        const current = maxSort._max.sortOrder;
-        return tx.productImage.create({
-          data: {
-            product: { connect: { id: productId } },
-            url: stored.url,
-            color: meta.color ?? null,
-            altTextHe: meta.altTextHe ?? null,
-            altTextEn: meta.altTextEn ?? null,
-            sortOrder: current === null || current === undefined ? 0 : current + 1,
-            upload: {
-              create: {
-                s3Key: stored.key,
-                s3Bucket: this.bucket,
-                mimeType: file.mimetype,
-                sizeBytes: file.size ?? file.buffer.length,
-                fileName: file.originalname,
-                uploadedBy,
-              },
-            },
-          },
-          include: { upload: true },
-        });
-      });
-      return this.resolveImageUrl(image);
-    } catch (err) {
-      // DB write failed — clean up the storage object to prevent orphans
-      await this.removeKeys([stored.key]);
-      throw err;
-    }
-  }
-
-  async updateImage(imageId: string, meta: ImageMetaDto) {
-    const image = await this.prisma.productImage.findUnique({ where: { id: imageId } });
-    if (!image) throw new NotFoundException('Image not found');
-
-    const data: Prisma.ProductImageUpdateInput = {};
-    if (meta.color !== undefined) data.color = meta.color;
-    if (meta.altTextHe !== undefined) data.altTextHe = meta.altTextHe;
-    if (meta.altTextEn !== undefined) data.altTextEn = meta.altTextEn;
-
-    const updated = await this.prisma.productImage.update({
-      where: { id: imageId },
-      data,
-      include: { upload: true },
-    });
-    return this.resolveImageUrl(updated);
-  }
-
-  /** Sets the gallery order; `imageIds` must list every image of the product exactly once. */
-  async reorderImages(productId: string, imageIds: string[]) {
-    const images = await this.prisma.productImage.findMany({
-      where: { productId },
-      select: { id: true },
-    });
-    if (images.length === 0) {
-      const product = await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
-      if (!product) throw new NotFoundException('Product not found');
-    }
-
-    const current = new Set(images.map((i) => i.id));
-    const sameSet = imageIds.length === current.size && imageIds.every((id) => current.has(id));
-    if (!sameSet) {
-      throw fieldValidationException([
-        {
-          field: 'imageIds',
-          code: 'mismatch',
-          message: 'imageIds must contain every image of the product exactly once',
-        },
-      ]);
-    }
-
-    await this.prisma.$transaction(
-      imageIds.map((id, index) =>
-        this.prisma.productImage.update({ where: { id }, data: { sortOrder: index } }),
-      ),
-    );
-
-    const ordered = await this.prisma.productImage.findMany({
-      where: { productId },
-      ...IMAGE_INCLUDE,
-    });
-    return ordered.map((img) => this.resolveImageUrl(img));
-  }
-
-  async deleteImage(imageId: string) {
-    const image = await this.prisma.productImage.findUnique({
-      where: { id: imageId },
-      include: { upload: true },
-    });
-    if (!image) throw new NotFoundException('Image not found');
-
-    // Remove DB rows first so the product never points at a missing file;
-    // a leftover storage object is harmless and logged.
-    await this.prisma.productImage.delete({ where: { id: imageId } });
-    if (image.upload) {
-      await this.prisma.upload.delete({ where: { id: image.upload.id } });
-      await this.removeKeys([image.upload.s3Key]);
-    }
-
-    return { deleted: true };
-  }
 }

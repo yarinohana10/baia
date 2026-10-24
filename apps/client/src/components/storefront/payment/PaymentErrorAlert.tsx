@@ -9,7 +9,7 @@ export function PaymentErrorAlert({ error }: { error: PayError }) {
   return (
     <div
       role="alert"
-      className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start gap-2"
+      className="mb-5 rounded-none border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start gap-2"
     >
       <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
       <div>

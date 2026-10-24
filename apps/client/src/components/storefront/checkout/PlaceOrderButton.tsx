@@ -22,7 +22,7 @@ export function PlaceOrderButton({
       type="submit"
       disabled={disabled}
       aria-busy={submitting}
-      className="w-full bg-ocean-700 text-white py-3 text-sm tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      className="w-full bg-black text-white py-3 text-sm tracking-wider uppercase rounded-none hover:bg-neutral-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
     >
       <ShieldCheck size={16} />
       {label}

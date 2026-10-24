@@ -15,7 +15,7 @@ export function PriceInput({ label, ariaLabel, value, placeholder, onChange }: P
   return (
     <label className="flex-1 text-xs text-gray-600">
       {label}
-      <span className="mt-1 flex h-10 items-center rounded-lg border border-gray-300 px-2.5 focus-within:border-ocean-600">
+      <span className="mt-1 flex h-10 items-center rounded-none border border-gray-300 px-2.5 focus-within:border-neutral-700">
         <span aria-hidden="true" className="text-gray-400">₪</span>
         <input
           type="number"

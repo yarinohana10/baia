@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes } from 'react';
 import { invalidProps, type FieldIssues } from '@/lib/form-errors';
 import { FieldError } from '@/components/forms/FieldError';
+import { RequiredMark } from '@/components/forms/RequiredMark';
 import { FIELD_INPUTS, type CheckoutInputField } from '@/hooks/storefront/checkoutFormState';
 import { checkoutInputClass, checkoutLabelClass } from './styles';
 
@@ -21,7 +22,10 @@ export function CheckoutField({
   const errorId = `${id}-error`;
   return (
     <div>
-      <label htmlFor={id} className={checkoutLabelClass}>{label}</label>
+      <label htmlFor={id} className={checkoutLabelClass}>
+        {label}
+        {input.required && <RequiredMark />}
+      </label>
       <input
         id={id}
         onChange={(e) => onValueChange(e.target.value)}

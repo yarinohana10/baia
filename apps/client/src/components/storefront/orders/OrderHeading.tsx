@@ -31,7 +31,7 @@ export function OrderHeading({
   return (
     <div className="text-center">
       {icon}
-      <h1 className="text-3xl font-bold tracking-normal mb-2">{justPlaced ? t('thankYou') : tPage('title')}</h1>
+      <h1 className="mb-2 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">{justPlaced ? t('thankYou') : tPage('title')}</h1>
       <p className="text-gray-500 mb-2">{statusLine}</p>
       {!closed && <p className="text-sm text-gray-400 mb-8">{tPage('emailSentTo', { email: order.customerEmail })}</p>}
     </div>

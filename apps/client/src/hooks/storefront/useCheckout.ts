@@ -20,6 +20,7 @@ import {
   checkoutValues,
   initialCheckoutForm,
   invalidTarget,
+  type CheckoutFields,
   type PendingOrder,
 } from './checkoutFormState';
 
@@ -93,6 +94,12 @@ export function useCheckout() {
     dispatch(saved ? { type: 'applyAddress', address: saved } : { type: 'clearAddress' });
   };
 
+  /** On leaving a field: tell the shopper about that field's problem right away. */
+  const checkField = (field: keyof CheckoutFields) => {
+    const check = validateForm(checkoutSchema, checkoutValues(form, locale, coupon.state.applied?.code));
+    dispatch({ type: 'fieldChecked', field, issues: check.errors });
+  };
+
   /** Validates the form; the order payload, or null (and the first problem revealed). */
   const validatedPayload = (): CreateOrderPayload | null => {
     const check = validateForm(checkoutSchema, checkoutValues(form, locale, coupon.state.applied?.code));
@@ -149,6 +156,7 @@ export function useCheckout() {
   return {
     form,
     dispatch,
+    checkField,
     coupon,
     items,
     loaded,

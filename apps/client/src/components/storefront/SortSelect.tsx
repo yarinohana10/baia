@@ -27,7 +27,7 @@ export function SortSelect({ basePath, query }: { basePath: string; query: Listi
               }),
             )
           }
-          className="appearance-none text-sm text-gray-600 bg-transparent pe-6 cursor-pointer focus:outline-none rounded-lg"
+          className="appearance-none text-[12px] uppercase ltr:tracking-[0.12em] text-black bg-transparent pe-6 cursor-pointer focus:outline-none rounded-none"
         >
           {SORT_OPTIONS.map((o) => (
             <option key={o} value={o}>
@@ -35,7 +35,7 @@ export function SortSelect({ basePath, query }: { basePath: string; query: Listi
             </option>
           ))}
         </select>
-        <ChevronDown size={12} aria-hidden="true" className="pointer-events-none absolute end-0 top-1/2 -translate-y-1/2 text-gray-400" />
+        <ChevronDown size={12} aria-hidden="true" className="pointer-events-none absolute end-0 top-1/2 -translate-y-1/2 text-black" />
       </span>
     </label>
   );

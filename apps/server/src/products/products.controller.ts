@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
+import { ProductImagesService } from './product-images.service';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { Request } from 'express';
 import { JsonBody, JsonBodyValidationPipe } from '../common/json-body.decorator';
@@ -47,14 +48,18 @@ function userIdOf(req?: Request): string | undefined {
 
 @Controller()
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly images: ProductImagesService,
+  ) {}
 
   // ─── Public ──────────────────────────────────────
 
   /**
    * Storefront listing. Filters: `sizes` and `colors` (comma lists; sizes only
    * match variants in stock), `minPrice` / `maxPrice` (effective price incl.
-   * live sales), `inStock=true`. Invalid values are ignored.
+   * live sales), `inStock=true`, `featured=true` (Admin-picked products only).
+   * Invalid values are ignored.
    */
   @Get('products')
   findAll(
@@ -63,11 +68,13 @@ export class ProductsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('sort') sort?: string,
+    @Query('featured') featured?: string,
     @Query() filterQuery: FilterQuery = {},
   ) {
     return this.productsService.findAll({
       categoryId: categoryId || undefined,
       search: search?.trim().slice(0, 100) || undefined,
+      featured: featured === 'true',
       page: clampInt(page, 1, 1, MAX_PAGE),
       limit: clampInt(limit, PUBLIC_PAGE_LIMIT.default, 1, PUBLIC_PAGE_LIMIT.max),
       sort: sort && SORTS.includes(sort) ? sort : 'newest',
@@ -77,10 +84,15 @@ export class ProductsController {
 
   /** Filter options (sizes in stock, colors, price range) for a listing scope. */
   @Get('products/facets')
-  facets(@Query('categoryId') categoryId?: string, @Query('search') search?: string) {
+  facets(
+    @Query('categoryId') categoryId?: string,
+    @Query('search') search?: string,
+    @Query('featured') featured?: string,
+  ) {
     return this.productsService.facets({
       categoryId: categoryId || undefined,
       search: search?.trim().slice(0, 100) || undefined,
+      featured: featured === 'true',
     });
   }
 
@@ -205,27 +217,27 @@ export class ProductsController {
     @Body() meta: ImageMetaDto,
     @Req() req: Request,
   ) {
-    return this.productsService.uploadImage(productId, file, meta, userIdOf(req));
+    return this.images.upload(productId, file, meta, userIdOf(req));
   }
 
   @Put('admin/products/:id/images/order')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
   reorderImages(@Param('id') productId: string, @Body() body: ReorderImagesDto) {
-    return this.productsService.reorderImages(productId, body.imageIds);
+    return this.images.reorder(productId, body.imageIds);
   }
 
   @Patch('admin/images/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
   updateImage(@Param('id') id: string, @Body() body: ImageMetaDto) {
-    return this.productsService.updateImage(id, body);
+    return this.images.update(id, body);
   }
 
   @Delete('admin/images/:id')
   @UseGuards(AuthGuard)
   @Roles('ADMIN')
   deleteImage(@Param('id') id: string) {
-    return this.productsService.deleteImage(id);
+    return this.images.delete(id);
   }
 }

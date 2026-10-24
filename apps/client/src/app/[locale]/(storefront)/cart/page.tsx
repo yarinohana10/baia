@@ -40,10 +40,10 @@ export default function CartPage() {
   if (loading && !loaded) {
     return (
       <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
-        <h1 className="text-2xl font-bold tracking-normal mb-8">{t('title')}</h1>
+        <h1 className="mb-8 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">{t('title')}</h1>
         <div className="animate-pulse space-y-4">
           {[1, 2].map((i) => (
-            <div key={i} className="h-28 bg-gray-100 rounded-xl" />
+            <div key={i} className="h-28 bg-gray-100 rounded-none" />
           ))}
         </div>
       </div>
@@ -52,7 +52,7 @@ export default function CartPage() {
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
-      <h1 className="text-2xl font-bold tracking-normal mb-8">{t('title')}</h1>
+      <h1 className="mb-8 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">{t('title')}</h1>
 
       {items.length === 0 ? (
         <div className="text-center py-20">
@@ -60,7 +60,7 @@ export default function CartPage() {
           <p className="text-gray-400 mb-6">{t('empty')}</p>
           <Link
             href="/"
-            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider rounded-lg hover:bg-ocean-800 transition-colors"
+            className="inline-block bg-black text-white px-8 py-3 text-sm tracking-wider rounded-none hover:bg-neutral-800 transition-colors"
           >
             {t('continueShopping')}
           </Link>
@@ -83,23 +83,23 @@ export default function CartPage() {
                 <div
                   key={item.id}
                   aria-busy={busy}
-                  className={`flex gap-4 p-4 bg-white border rounded-xl ${issue ? 'border-red-200' : 'border-gray-200'} ${busy ? 'opacity-60' : ''}`}
+                  className={`flex gap-4 p-4 bg-white border rounded-none ${issue ? 'border-red-200' : 'border-gray-200'} ${busy ? 'opacity-60' : ''}`}
                 >
                   <Link
                     href={`/product/${product.slug}`}
-                    className="w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden rounded-lg"
+                    className="w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden rounded-none"
                   >
                     {imageUrl ? (
                       <Image src={imageUrl} alt={name} width={96} height={96} className="w-full h-full object-contain" />
                     ) : (
-                      <div className="w-full h-full bg-gray-100 rounded-lg" />
+                      <div className="w-full h-full bg-gray-100 rounded-none" />
                     )}
                   </Link>
 
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/product/${product.slug}`}
-                      className="text-sm font-medium text-charcoal hover:text-ocean-600 transition-colors line-clamp-1"
+                      className="text-sm font-medium text-charcoal hover:text-neutral-700 transition-colors line-clamp-1"
                     >
                       {name}
                     </Link>
@@ -108,13 +108,13 @@ export default function CartPage() {
                     </p>
 
                     <div className="flex items-center justify-between mt-3">
-                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                      <div className="flex items-center border border-gray-300 rounded-none overflow-hidden">
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.id, decreasedQuantity(item))}
                           disabled={busy || !canDecrease(item)}
                           aria-label={t('decreaseQuantity')}
-                          className="px-2 py-1 text-gray-500 hover:text-ocean-600 disabled:text-gray-300"
+                          className="px-2 py-1 text-gray-500 hover:text-neutral-700 disabled:text-gray-300"
                         >
                           <Minus size={12} />
                         </button>
@@ -124,7 +124,7 @@ export default function CartPage() {
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
                           disabled={busy || !canIncrease(item)}
                           aria-label={t('increaseQuantity')}
-                          className="px-2 py-1 text-gray-500 hover:text-ocean-600 disabled:text-gray-300"
+                          className="px-2 py-1 text-gray-500 hover:text-neutral-700 disabled:text-gray-300"
                         >
                           <Plus size={12} />
                         </button>
@@ -173,7 +173,7 @@ export default function CartPage() {
           </div>
 
           {/* Summary */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 h-fit space-y-4">
+          <div className="bg-white border border-gray-200 rounded-none p-6 h-fit space-y-4">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{t('subtotal')}</span>
               <span>{formatPrice(subtotal)}</span>
@@ -198,7 +198,7 @@ export default function CartPage() {
                 </p>
                 <span
                   aria-disabled="true"
-                  className="block w-full bg-ocean-700 text-white text-center py-3 text-sm tracking-wider uppercase rounded-lg opacity-40 cursor-not-allowed"
+                  className="block w-full bg-black text-white text-center py-3 text-sm tracking-wider uppercase rounded-none opacity-40 cursor-not-allowed"
                 >
                   {t('checkout')}
                 </span>
@@ -206,14 +206,14 @@ export default function CartPage() {
             ) : (
               <Link
                 href="/checkout"
-                className="block w-full bg-ocean-700 text-white text-center py-3 text-sm tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors"
+                className="block w-full bg-black text-white text-center py-3 text-sm tracking-wider uppercase rounded-none hover:bg-neutral-800 transition-colors"
               >
                 {t('checkout')}
               </Link>
             )}
             <Link
               href="/"
-              className="block text-center text-sm text-gray-400 hover:text-ocean-600 transition-colors"
+              className="block text-center text-sm text-gray-400 hover:text-neutral-700 transition-colors"
             >
               {t('continueShopping')}
             </Link>

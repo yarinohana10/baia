@@ -23,7 +23,7 @@ export function OrderTimeline({
 
   if (isClosed(order.status)) {
     return (
-      <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+      <div className="flex items-center gap-2 rounded-none bg-gray-50 px-4 py-3 text-sm text-gray-600">
         <XCircle size={16} aria-hidden="true" className="shrink-0 text-gray-400" />
         <span>
           {order.status === 'REFUNDED' ? t('refunded') : t('cancelled')}
@@ -52,15 +52,15 @@ export function OrderTimeline({
                 aria-hidden="true"
                 className={cn(
                   'absolute top-3 h-0.5 w-full -translate-y-1/2 ltr:right-1/2 rtl:left-1/2',
-                  i <= current ? 'bg-ocean-600' : 'bg-gray-200',
+                  i <= current ? 'bg-neutral-800' : 'bg-gray-200',
                 )}
               />
             )}
             <span
               className={cn(
                 'relative z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 text-[10px] font-semibold',
-                done ? 'border-ocean-600 bg-ocean-600 text-white' : 'border-gray-200 bg-white text-gray-400',
-                i === current && 'ring-4 ring-ocean-100',
+                done ? 'border-neutral-700 bg-neutral-800 text-white' : 'border-gray-200 bg-white text-gray-400',
+                i === current && 'ring-4 ring-neutral-200',
               )}
             >
               {done ? <Check size={12} aria-hidden="true" /> : i + 1}

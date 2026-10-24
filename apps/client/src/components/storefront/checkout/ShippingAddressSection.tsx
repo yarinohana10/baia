@@ -19,6 +19,7 @@ export function ShippingAddressSection({
   offerSave,
   save,
   onEdit,
+  onCheck,
   onChooseSaved,
   onSaveChange,
 }: {
@@ -31,6 +32,8 @@ export function ShippingAddressSection({
   offerSave: boolean;
   save: boolean;
   onEdit: (field: keyof CheckoutFields, value: string) => void;
+  /** Field lost focus: validate it. */
+  onCheck: (field: keyof CheckoutFields) => void;
   onChooseSaved: (id: string) => void;
   onSaveChange: (save: boolean) => void;
 }) {
@@ -59,6 +62,7 @@ export function ShippingAddressSection({
           maxLength={100}
           value={fields.city}
           onValueChange={(value) => onEdit('city', value)}
+          onBlur={() => onCheck('city')}
           required
         />
         <CheckoutField
@@ -70,6 +74,7 @@ export function ShippingAddressSection({
           maxLength={150}
           value={fields.street}
           onValueChange={(value) => onEdit('street', value)}
+          onBlur={() => onCheck('street')}
           required
         />
       </div>
@@ -83,6 +88,7 @@ export function ShippingAddressSection({
           maxLength={20}
           value={fields.number}
           onValueChange={(value) => onEdit('number', value)}
+          onBlur={() => onCheck('number')}
           required
         />
         <CheckoutField
@@ -94,6 +100,7 @@ export function ShippingAddressSection({
           placeholder={tDelivery('apartmentPlaceholder')}
           value={fields.apartment}
           onValueChange={(value) => onEdit('apartment', value)}
+          onBlur={() => onCheck('apartment')}
         />
         <CheckoutField
           field="shippingZip"
@@ -104,6 +111,7 @@ export function ShippingAddressSection({
           maxLength={20}
           value={fields.zip}
           onValueChange={(value) => onEdit('zip', value)}
+          onBlur={() => onCheck('zip')}
         />
       </div>
       {offerSave && !locked && (
@@ -112,7 +120,7 @@ export function ShippingAddressSection({
             type="checkbox"
             checked={save}
             onChange={(e) => onSaveChange(e.target.checked)}
-            className="accent-ocean-700"
+            className="accent-black"
           />
           {t('saveAddress')}
         </label>

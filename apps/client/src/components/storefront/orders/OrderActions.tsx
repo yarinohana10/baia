@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { paymentPageHref } from '@/components/storefront/payment/links';
 
 const primaryClass =
-  'flex items-center gap-2 px-6 py-2.5 text-sm bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 transition-colors';
+  'flex items-center gap-2 px-6 py-2.5 text-sm bg-black text-white rounded-none hover:bg-neutral-800 transition-colors';
 
 /** Complete payment (when payable), continue shopping, and my orders / track another order. */
 export function OrderActions({
@@ -31,7 +31,7 @@ export function OrderActions({
           <CreditCard size={14} /> {tOrders('completePayment')}
         </Link>
       )}
-      <Link href="/" className="px-6 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+      <Link href="/" className="px-6 py-2.5 text-sm border border-gray-300 rounded-none hover:bg-gray-50 transition-colors">
         {t('continueShopping')}
       </Link>
       {signedIn ? (
@@ -39,7 +39,7 @@ export function OrderActions({
           <Package size={14} /> {t('myOrders')}
         </Link>
       ) : (
-        <Link href="/order-status" className="text-sm text-ocean-700 underline underline-offset-2 hover:text-ocean-800">
+        <Link href="/order-status" className="text-sm text-black underline underline-offset-2 hover:text-black">
           {tPage('trackAnother')}
         </Link>
       )}

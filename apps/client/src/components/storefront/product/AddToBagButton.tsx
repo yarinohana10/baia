@@ -21,8 +21,8 @@ export function AddToBagButton({ label, purchasable, adding, added, onAdd }: Pro
       disabled={!purchasable || adding}
       aria-busy={adding}
       className={cn(
-        'flex h-12 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-semibold tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-600',
-        purchasable ? 'bg-ocean-700 text-white hover:bg-ocean-800 disabled:opacity-70' : 'cursor-not-allowed bg-gray-200 text-gray-500',
+        'flex h-12 flex-1 items-center justify-center gap-2 text-[12px] font-medium uppercase ltr:tracking-[0.16em] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black',
+        purchasable ? 'bg-black text-white hover:bg-black/85 disabled:opacity-70' : 'cursor-not-allowed bg-neutral-200 text-black/45',
       )}
     >
       {added ? <Check size={16} aria-hidden="true" /> : null}

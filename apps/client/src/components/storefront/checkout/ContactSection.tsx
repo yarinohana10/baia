@@ -14,11 +14,14 @@ export function ContactSection({
   issues,
   locked,
   onEdit,
+  onCheck,
 }: {
   fields: CheckoutFields;
   issues: FieldIssues;
   locked: boolean;
   onEdit: (field: keyof CheckoutFields, value: string) => void;
+  /** Field lost focus: validate it. */
+  onCheck: (field: keyof CheckoutFields) => void;
 }) {
   const t = useTranslations('checkout');
   return (
@@ -35,6 +38,7 @@ export function ContactSection({
         maxLength={100}
         value={fields.recipientName}
         onValueChange={(value) => onEdit('recipientName', value)}
+        onBlur={() => onCheck('recipientName')}
         required
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -48,6 +52,7 @@ export function ContactSection({
           maxLength={254}
           value={fields.email}
           onValueChange={(value) => onEdit('email', value)}
+          onBlur={() => onCheck('email')}
           aria-describedby="checkout-email-hint"
           disabled={locked}
           required
@@ -63,6 +68,7 @@ export function ContactSection({
           title={t('phoneHint')}
           value={fields.phone}
           onValueChange={(value) => onEdit('phone', value)}
+          onBlur={() => onCheck('phone')}
           required
         />
       </div>

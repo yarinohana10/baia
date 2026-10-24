@@ -61,7 +61,7 @@ export function CartDrawer() {
           <DrawerTitle className="flex items-center justify-between">
             <span className="text-lg font-bold">{t('title')}</span>
             {count > 0 && (
-              <span className="bg-ocean-600 text-white text-xs font-bold min-w-[22px] h-[22px] rounded-full flex items-center justify-center px-1.5">
+              <span className="bg-neutral-800 text-white text-xs font-bold min-w-[22px] h-[22px] rounded-none flex items-center justify-center px-1.5">
                 {count}
               </span>
             )}
@@ -73,7 +73,7 @@ export function CartDrawer() {
             <ShoppingBag size={48} className="text-gray-200 mb-4" />
             <p className="text-gray-400 text-sm mb-6">{t('empty')}</p>
             <DrawerClose
-              render={<Button variant="outline" className="rounded-lg" />}
+              render={<Button variant="outline" className="rounded-none" />}
               onClick={closeDrawer}
             >
               {t('continueShopping')}
@@ -95,12 +95,12 @@ export function CartDrawer() {
                   <div
                     key={item.id}
                     aria-busy={busy}
-                    className={`flex gap-3 p-3 bg-gray-50 rounded-xl ${issue ? 'ring-1 ring-red-200' : ''} ${busy ? 'opacity-60' : ''}`}
+                    className={`flex gap-3 p-3 bg-gray-50 rounded-none ${issue ? 'ring-1 ring-red-200' : ''} ${busy ? 'opacity-60' : ''}`}
                   >
                     <Link
                       href={`/product/${product.slug}`}
                       onClick={closeDrawer}
-                      className="w-[72px] h-[72px] flex-shrink-0 bg-white rounded-lg overflow-hidden border border-gray-100"
+                      className="w-[72px] h-[72px] flex-shrink-0 bg-white rounded-none overflow-hidden border border-gray-100"
                     >
                       {imageUrl ? (
                         <Image
@@ -121,7 +121,7 @@ export function CartDrawer() {
                       <Link
                         href={`/product/${product.slug}`}
                         onClick={closeDrawer}
-                        className="text-sm font-medium text-gray-900 line-clamp-1 hover:text-ocean-600 transition-colors"
+                        className="text-sm font-medium text-gray-900 line-clamp-1 hover:text-neutral-700 transition-colors"
                       >
                         {name}
                       </Link>
@@ -129,7 +129,7 @@ export function CartDrawer() {
                         {item.variant.color} / {item.variant.size}
                       </p>
                       <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="flex items-center border border-gray-200 rounded-none overflow-hidden">
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.id, decreasedQuantity(item))}
@@ -195,7 +195,7 @@ export function CartDrawer() {
                   </p>
                   <span
                     aria-disabled="true"
-                    className="w-full bg-ocean-700 text-white text-center py-3 text-sm font-medium tracking-wider uppercase rounded-lg opacity-40 cursor-not-allowed block"
+                    className="w-full bg-black text-white text-center py-3 text-sm font-medium tracking-wider uppercase rounded-none opacity-40 cursor-not-allowed block"
                   >
                     {t('checkout')}
                   </span>
@@ -204,7 +204,7 @@ export function CartDrawer() {
                 <Link
                   href="/checkout"
                   onClick={closeDrawer}
-                  className="w-full bg-ocean-700 text-white text-center py-3 text-sm font-medium tracking-wider uppercase rounded-lg hover:bg-ocean-800 transition-colors block"
+                  className="w-full bg-black text-white text-center py-3 text-sm font-medium tracking-wider uppercase rounded-none hover:bg-neutral-800 transition-colors block"
                 >
                   {t('checkout')}
                 </Link>
@@ -212,13 +212,13 @@ export function CartDrawer() {
               <Link
                 href="/cart"
                 onClick={closeDrawer}
-                className="w-full text-center text-sm text-ocean-700 hover:text-ocean-800 transition-colors py-1 block"
+                className="w-full text-center text-sm text-black hover:text-black transition-colors py-1 block"
               >
                 {t('viewCart')}
               </Link>
               <DrawerClose
                 render={
-                  <button className="w-full text-center text-sm text-gray-400 hover:text-ocean-600 transition-colors py-1" />
+                  <button className="w-full text-center text-sm text-gray-400 hover:text-neutral-700 transition-colors py-1" />
                 }
                 onClick={closeDrawer}
               >

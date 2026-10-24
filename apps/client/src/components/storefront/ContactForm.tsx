@@ -33,7 +33,7 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
   });
 
   const field =
-    'mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-100';
+    'mt-1.5 block w-full rounded-none border border-gray-300 bg-white px-3.5 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-neutral-200';
   const label = 'block text-sm font-semibold text-gray-900';
   const req = (
     <span aria-hidden="true" className="text-red-500">
@@ -81,14 +81,14 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
 
   if (sentName !== null) {
     return (
-      <div role="status" className="rounded-xl border border-ocean-100 bg-ocean-50/60 p-6 sm:p-8">
-        <CheckCircle2 size={28} strokeWidth={1.5} aria-hidden="true" className="text-ocean-700" />
+      <div role="status" className="rounded-none border border-neutral-200 bg-[#F7F7F7]/60 p-6 sm:p-8">
+        <CheckCircle2 size={28} strokeWidth={1.5} aria-hidden="true" className="text-black" />
         <h3 className="mt-3 text-lg font-semibold text-gray-900">{t('successTitle')}</h3>
         <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{t('successBody', { name: sentName })}</p>
         <button
           type="button"
           onClick={() => setSentName(null)}
-          className="mt-5 text-sm font-semibold text-ocean-700 underline-offset-4 hover:underline"
+          className="mt-5 text-sm font-semibold text-black underline-offset-4 hover:underline"
         >
           {t('sendAnother')}
         </button>
@@ -193,7 +193,7 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className="rounded-none border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {t(ERROR_KEY[error])}
           {error === 'failed' && (
             <>
@@ -210,7 +210,7 @@ export function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
         <button
           type="submit"
           disabled={sending}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-ocean-700 px-7 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-ocean-600 disabled:opacity-70"
+          className="inline-flex items-center justify-center gap-2 rounded-none bg-black px-7 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-neutral-800 disabled:opacity-70"
         >
           {sending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
           {sending ? t('sending') : t('submit')}
