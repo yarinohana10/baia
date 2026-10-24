@@ -164,6 +164,12 @@ describe('server env validation', () => {
       expect(errors).toMatch(/GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET/);
       expect(errors).toMatch(/\{tracking\}/);
     });
+    it('enables Google sign-in only when both the client id and secret are set', () => {
+      const both = parseEnv(prodEnv({ GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'GOCSPX-x' }));
+      expect(both.success && both.config.auth.google).toEqual({ clientId: 'id.apps.googleusercontent.com', clientSecret: 'GOCSPX-x' });
+      const none = parseEnv(prodEnv());
+      expect(none.success && none.config.auth.google).toBeNull();
+    });
   });
 
   describe('parseTrustProxy', () => {
