@@ -42,7 +42,7 @@ export function businessInfo(config: SiteConfig | null | undefined): BusinessInf
     businessName: config?.businessName || 'BAIA Swimwear',
     companyId: companyId === COMPANY_ID_PLACEHOLDER ? null : companyId,
     businessAddress: config?.businessAddress || 'מושב גילת',
-    businessPhone: config?.businessPhone || '050-0000000',
+    businessPhone: config?.businessPhone || '054-4446739',
     contactEmail: config?.contactEmail || CONTACT_EMAIL,
     whatsappNumber: config ? config.whatsappNumber : null,
     accessibilityCoordinatorName: config?.accessibilityCoordinatorName || '',

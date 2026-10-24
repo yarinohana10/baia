@@ -9,7 +9,7 @@ export default function LoginPage() {
   return (
     <AuthSplitLayout
       hero={
-        <p className="font-body text-lg leading-7 text-white/90 max-w-sm font-light drop-shadow-sm">
+        <p className="text-lg leading-7 text-white/90 max-w-sm font-light drop-">
           {t('heroLoginSubtitle')}
         </p>
       }

@@ -24,11 +24,11 @@ export default function WishlistPage() {
   if (!ready) {
     return (
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6">
-        <h1 className="text-2xl font-bold tracking-normal mb-8">{t('wishlist')}</h1>
+        <h1 className="mb-8 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">{t('wishlist')}</h1>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 animate-pulse">
           {[1, 2, 3, 4].map((i) => (
             <div key={i}>
-              <div className="aspect-[3/4] bg-gray-200 rounded-xl mb-3" />
+              <div className="aspect-[3/4] bg-gray-200 rounded-none mb-3" />
               <div className="h-4 bg-gray-200 rounded w-3/4" />
             </div>
           ))}
@@ -39,13 +39,13 @@ export default function WishlistPage() {
 
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6">
-      <h1 className="text-2xl font-bold tracking-normal mb-2">
+      <h1 className="mb-2 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">
         {t('wishlist')} ({items.length})
       </h1>
       {mode === 'guest' && (
         <p className="text-sm text-gray-500 mb-8">
           {tWishlist('guestNote')}{' '}
-          <Link href="/login" className="text-ocean-700 underline underline-offset-2">
+          <Link href="/login" className="text-black underline underline-offset-2">
             {t('login')}
           </Link>
         </p>
@@ -57,7 +57,7 @@ export default function WishlistPage() {
           <p className="text-gray-400 mb-6">{tWishlist('empty')}</p>
           <Link
             href="/"
-            className="inline-block bg-ocean-700 text-white px-8 py-3 text-sm tracking-wider rounded-lg hover:bg-ocean-800 transition-colors"
+            className="inline-block bg-black text-white px-8 py-3 text-sm tracking-wider rounded-none hover:bg-neutral-800 transition-colors"
           >
             {tWishlist('browse')}
           </Link>

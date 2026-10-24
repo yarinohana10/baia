@@ -42,7 +42,7 @@ export function BackSoonTip({ label, active, className, children }: Props) {
         id={id}
         role="tooltip"
         className={cn(
-          'pointer-events-none absolute -top-9 start-1/2 z-30 w-max -translate-x-1/2 rounded-md bg-charcoal px-2.5 py-1 text-xs font-medium text-white shadow-md rtl:translate-x-1/2',
+          'pointer-events-none absolute -top-9 start-1/2 z-30 w-max -translate-x-1/2 rounded-none bg-charcoal px-2.5 py-1 text-xs font-medium text-white shadow-md rtl:translate-x-1/2',
           'hidden group-hover:block group-focus-within:block',
           tapped && 'block',
         )}

@@ -44,14 +44,14 @@ export function PriceRange({ facets, min, max, onApply }: Props) {
         </p>
       )}
       <div className="mt-4 flex gap-2">
-        <button type="submit" className="h-9 flex-1 rounded-lg bg-ocean-700 text-sm font-medium text-white hover:bg-ocean-800">
+        <button type="submit" className="h-9 flex-1 rounded-none bg-black text-sm font-medium text-white hover:bg-neutral-800">
           {t('apply')}
         </button>
         {(min !== undefined || max !== undefined) && (
           <button
             type="button"
             onClick={() => onApply(undefined, undefined)}
-            className="h-9 rounded-lg border border-gray-300 px-3 text-sm text-charcoal"
+            className="h-9 rounded-none border border-gray-300 px-3 text-sm text-charcoal"
           >
             {t('clear')}
           </button>

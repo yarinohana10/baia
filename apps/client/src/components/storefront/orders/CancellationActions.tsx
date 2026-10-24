@@ -28,7 +28,7 @@ export function CancellationActions({
   const { canSelfCancel, canRequest } = info;
 
   return (
-    <div className={cn('space-y-3', !compact && 'rounded-xl border border-gray-200 bg-white p-5 text-start')}>
+    <div className={cn('space-y-3', !compact && 'rounded-none border border-gray-200 bg-white p-5 text-start')}>
       {!compact && <h2 className="text-sm font-medium text-gray-900">{t('title')}</h2>}
 
       {canSelfCancel ? (
@@ -45,7 +45,7 @@ export function CancellationActions({
           <button
             type="button"
             onClick={() => setMode('cancel')}
-            className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+            className="rounded-none border border-red-200 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
           >
             {t('cancelButton')}
           </button>
@@ -54,7 +54,7 @@ export function CancellationActions({
           <button
             type="button"
             onClick={() => setMode('request')}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+            className="rounded-none border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
           >
             {t('requestButton')}
           </button>

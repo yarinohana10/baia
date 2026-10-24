@@ -34,7 +34,7 @@ export function StickyAddToBag({ visible, name, image, selectionLabel, price, bu
     >
       <div className="flex items-center gap-3" role="region" aria-label={t('sticky.label')}>
         {image && (
-          <div className="relative size-12 shrink-0 overflow-hidden rounded-md bg-gray-100">
+          <div className="relative size-12 shrink-0 overflow-hidden rounded-none bg-gray-100">
             <Image src={image.url} alt="" fill sizes="48px" className="object-cover" />
           </div>
         )}
@@ -48,8 +48,8 @@ export function StickyAddToBag({ visible, name, image, selectionLabel, price, bu
           onClick={onAdd}
           disabled={!purchasable || adding}
           className={cn(
-            'h-11 shrink-0 rounded-lg px-5 text-sm font-semibold',
-            purchasable ? 'bg-ocean-700 text-white disabled:opacity-70' : 'bg-gray-200 text-gray-500',
+            'h-11 shrink-0 rounded-none px-5 text-sm font-semibold',
+            purchasable ? 'bg-black text-white disabled:opacity-70' : 'bg-gray-200 text-gray-500',
           )}
         >
           {buttonLabel}

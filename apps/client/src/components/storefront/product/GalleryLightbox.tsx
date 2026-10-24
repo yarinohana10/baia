@@ -147,7 +147,7 @@ export function GalleryLightbox({ images, lightbox, onClose, altFor, productName
                   aria-label={tGallery('showImage', { n: i + 1 })}
                   onClick={() => lightbox.show(i)}
                   className={cn(
-                    'relative size-14 shrink-0 overflow-hidden rounded-md border-2 transition-opacity',
+                    'relative size-14 shrink-0 overflow-hidden rounded-none border-2 transition-opacity',
                     i === index ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100',
                   )}
                 >

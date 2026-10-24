@@ -30,8 +30,8 @@ export function SizeOptions({ facets, selected = [], onToggle }: Props) {
               aria-pressed={on}
               onClick={() => onToggle(size)}
               className={cn(
-                'h-10 min-w-11 rounded-lg border px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-600',
-                on ? 'border-ocean-700 bg-ocean-700 text-white' : 'border-gray-300 text-charcoal hover:border-ocean-600',
+                'h-10 min-w-11 rounded-none border px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-700',
+                on ? 'border-black bg-black text-white' : 'border-gray-300 text-charcoal hover:border-neutral-700',
               )}
             >
               <span dir="ltr">{size}</span>

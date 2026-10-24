@@ -9,6 +9,7 @@ import {
 } from '../src/products/catalog-filters';
 import { ProductsController } from '../src/products/products.controller';
 import { ProductsService } from '../src/products/products.service';
+import { ProductImagesService } from '../src/products/product-images.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { STORAGE_SERVICE } from '../src/storage/storage.interface';
 import { createMockStorageService } from './helpers';
@@ -97,6 +98,7 @@ describe('ProductsService.findAll with filters', () => {
     const module = await Test.createTestingModule({
       providers: [
         ProductsService,
+        ProductImagesService,
         { provide: PrismaService, useValue: prisma },
         { provide: STORAGE_SERVICE, useValue: createMockStorageService() },
       ],
@@ -126,14 +128,25 @@ describe('ProductsService.findAll with filters', () => {
     expect(result.totalPages).toBe(2);
     expect(prisma.product.count).not.toHaveBeenCalled();
   });
+
+  it('featured limits the listing to featured products, in Prisma and in SQL', async () => {
+    prisma.product.findMany.mockResolvedValue([]);
+    prisma.product.count.mockResolvedValue(0);
+    await service.findAll({ featured: true });
+    expect(prisma.product.findMany.mock.calls[0][0].where).toMatchObject({ isActive: true, isFeatured: true });
+
+    queryRaw.mockResolvedValueOnce([]);
+    await service.findAll({ featured: true, sort: 'price-asc' });
+    expect(queryRaw.mock.calls[0][0].sql).toContain('p."isFeatured" = true');
+  });
 });
 
 describe('ProductsController filter wiring', () => {
   const service = { findAll: jest.fn().mockResolvedValue({}) };
-  const controller = new ProductsController(service as unknown as ProductsService);
+  const controller = new ProductsController(service as unknown as ProductsService, {} as ProductImagesService);
 
   it('passes parsed filters and whitelists the sort', () => {
-    controller.findAll('cat', undefined, '1', '12', 'drop table', {
+    controller.findAll('cat', undefined, '1', '12', 'drop table', undefined, {
       sizes: 'M,L',
       colors: 'Black',
       minPrice: 'abc',
@@ -145,7 +158,15 @@ describe('ProductsController filter wiring', () => {
         categoryId: 'cat',
         sort: 'newest',
         filters: { sizes: ['M', 'L'], colors: ['Black'], maxPrice: 200, inStock: true },
+        featured: false,
       }),
     );
+  });
+
+  it('featured=true asks for featured products only; any other value is ignored', () => {
+    controller.findAll(undefined, undefined, '1', '12', 'newest', 'true', {});
+    expect(service.findAll).toHaveBeenLastCalledWith(expect.objectContaining({ featured: true }));
+    controller.findAll(undefined, undefined, '1', '12', 'newest', 'yes', {});
+    expect(service.findAll).toHaveBeenLastCalledWith(expect.objectContaining({ featured: false }));
   });
 });

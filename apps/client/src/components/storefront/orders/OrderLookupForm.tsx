@@ -89,7 +89,7 @@ export function OrderLookupForm() {
         <FieldError id={`${id}-email-error`} issue={issues.email} />
       </label>
       {error && (
-        <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+        <p role="alert" className="rounded-none bg-red-50 px-4 py-3 text-sm text-red-600">
           {tErrors(error.key, error.values)}
         </p>
       )}
@@ -97,7 +97,7 @@ export function OrderLookupForm() {
         type="submit"
         disabled={submitting}
         aria-busy={submitting}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-ocean-700 py-3 text-sm tracking-wider text-white transition-colors hover:bg-ocean-800 disabled:opacity-40 sm:w-auto sm:px-10"
+        className="flex w-full items-center justify-center gap-2 rounded-none bg-black py-3 text-sm tracking-wider text-white transition-colors hover:bg-neutral-800 disabled:opacity-40 sm:w-auto sm:px-10"
       >
         <Search size={15} aria-hidden="true" />
         {submitting ? t('searching') : t('submit')}

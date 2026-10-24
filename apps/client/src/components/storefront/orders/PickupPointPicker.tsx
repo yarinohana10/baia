@@ -67,7 +67,7 @@ export function PickupPointPicker({
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('searchPlaceholder')}
           disabled={disabled}
-          className="w-full rounded-lg border border-gray-300 py-2 ps-9 pe-3 text-sm focus:border-ocean-500 focus:outline-none disabled:bg-gray-50"
+          className="w-full rounded-none border border-gray-300 py-2 ps-9 pe-3 text-sm focus:border-neutral-600 focus:outline-none disabled:bg-gray-50"
         />
       </div>
 
@@ -77,11 +77,11 @@ export function PickupPointPicker({
         <div className="space-y-2 animate-pulse" aria-busy="true">
           <span className="sr-only">{t('loading')}</span>
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-lg bg-gray-100" />
+            <div key={i} className="h-16 rounded-none bg-gray-100" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <p className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-500">
+        <p className="rounded-none bg-gray-50 px-4 py-3 text-sm text-gray-500">
           {points.length === 0 ? t('noneAvailable') : t('noResults')}
         </p>
       ) : (
@@ -89,7 +89,7 @@ export function PickupPointPicker({
           role="radiogroup"
           aria-label={t('listLabel')}
           aria-invalid={invalid || undefined}
-          className={cn('max-h-72 space-y-2 overflow-y-auto pe-1', invalid && 'rounded-lg ring-1 ring-red-300')}
+          className={cn('max-h-72 space-y-2 overflow-y-auto pe-1', invalid && 'rounded-none ring-1 ring-red-300')}
         >
           {filtered.map((point) => {
             const selected = value?.id === point.id;
@@ -102,11 +102,11 @@ export function PickupPointPicker({
                 disabled={disabled}
                 onClick={() => onChange(point)}
                 className={cn(
-                  'flex w-full items-start gap-3 rounded-lg border p-3 text-start transition-colors disabled:cursor-not-allowed',
-                  selected ? 'border-ocean-600 bg-ocean-50/60' : 'border-gray-200 hover:border-ocean-300',
+                  'flex w-full items-start gap-3 rounded-none border p-3 text-start transition-colors disabled:cursor-not-allowed',
+                  selected ? 'border-neutral-700 bg-[#F7F7F7]/60' : 'border-gray-200 hover:border-neutral-400',
                 )}
               >
-                <MapPin size={16} aria-hidden="true" className={cn('mt-0.5 shrink-0', selected ? 'text-ocean-700' : 'text-gray-400')} />
+                <MapPin size={16} aria-hidden="true" className={cn('mt-0.5 shrink-0', selected ? 'text-black' : 'text-gray-400')} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium text-gray-900">{point.name}</span>
                   <span className="block text-xs text-gray-500">
@@ -118,7 +118,7 @@ export function PickupPointPicker({
                     </span>
                   )}
                 </span>
-                {selected && <Check size={16} aria-hidden="true" className="shrink-0 text-ocean-700" />}
+                {selected && <Check size={16} aria-hidden="true" className="shrink-0 text-black" />}
               </button>
             );
           })}

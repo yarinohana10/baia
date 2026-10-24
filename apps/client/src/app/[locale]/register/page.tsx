@@ -10,8 +10,8 @@ export default function RegisterPage() {
     <AuthSplitLayout
       hero={
         <div>
-          <p className="font-serif text-[24px] leading-[32px] text-white drop-shadow-sm mb-3">{t('heroRegisterTitle')}</p>
-          <p className="font-body text-lg leading-7 text-white/90 max-w-sm font-light drop-shadow-sm">
+          <p className="text-[24px] leading-[32px] text-white drop- mb-3">{t('heroRegisterTitle')}</p>
+          <p className="text-lg leading-7 text-white/90 max-w-sm font-light drop-">
             {t('heroRegisterSubtitle')}
           </p>
         </div>

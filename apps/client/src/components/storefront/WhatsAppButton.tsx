@@ -29,7 +29,7 @@ export function WhatsAppButton({ number }: { number: string | null }) {
       rel="noopener noreferrer"
       aria-label={t('label')}
       title={t('label')}
-      className={`fixed start-4 z-40 flex h-12 w-12 items-center sm:h-14 sm:w-14 justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/20 transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-700 print:hidden sm:start-6 ${
+      className={`fixed start-4 z-40 flex h-12 w-12 items-center sm:h-14 sm:w-14 justify-center rounded-full bg-white text-black shadow-[0_6px_24px_rgba(0,0,0,0.15)] ring-1 ring-black/5 transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black print:hidden sm:start-6 ${
         onProduct ? 'bottom-24 sm:bottom-6' : 'bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-6'
       }`}
     >

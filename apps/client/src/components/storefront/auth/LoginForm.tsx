@@ -9,17 +9,11 @@ import { AuthErrorBanner } from './AuthErrorBanner';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { OrDivider } from './OrDivider';
 import { PasswordVisibilityToggle } from './PasswordVisibilityToggle';
+import { redirectTarget, useLeaveIfSignedIn } from '@/hooks/useLeaveIfSignedIn';
 
-const labelClass = 'font-body text-xs font-bold uppercase tracking-[0.1em] text-[#1a1c1c]';
+const labelClass = 'text-xs font-bold uppercase tracking-[0.1em] text-black';
 const underlineClass =
-  'absolute bottom-0 start-0 h-px bg-[#005d72] w-0 group-focus-within:w-full transition-all duration-500 ease-out';
-
-/** `?redirect=` target: same-origin paths only, never `//host` or absolute URLs (open redirect). */
-function redirectTarget(locale: string): string {
-  const redirect = new URLSearchParams(window.location.search).get('redirect');
-  const safe = redirect && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.startsWith('/\\');
-  return safe ? redirect : `/${locale}`;
-}
+  'absolute bottom-0 start-0 h-px bg-black w-0 group-focus-within:w-full transition-all duration-500 ease-out';
 
 /** Email + password sign-in, then Google; errors show above the form. */
 export function LoginForm() {
@@ -31,6 +25,7 @@ export function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const onGoogleError = useCallback(() => setError(t('genericError')), [t]);
+  useLeaveIfSignedIn();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -68,7 +63,7 @@ export function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
             required
-            className="w-full bg-transparent border-b border-[#bec8cd] py-3 font-body text-base text-[#1a1c1c] focus:outline-none focus:border-[#005d72] transition-colors duration-300 placeholder:text-[#3f484c]/50"
+            className="w-full bg-transparent border-b border-neutral-300 py-3 text-base text-black focus:outline-none focus:border-black transition-colors duration-300 placeholder:text-neutral-600/50"
           />
           <div className={underlineClass} />
         </div>
@@ -81,7 +76,7 @@ export function LoginForm() {
             </label>
             <Link
               href="/forgot-password"
-              className="font-body text-xs font-medium tracking-[0.05em] text-[#005d72] hover:text-[#007791] transition-colors"
+              className="text-xs font-medium tracking-[0.05em] text-black hover:text-neutral-600 transition-colors"
             >
               {t('forgotPassword')}
             </Link>
@@ -94,12 +89,12 @@ export function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full bg-transparent border-b border-[#bec8cd] py-3 pe-10 font-body text-base text-[#1a1c1c] focus:outline-none focus:border-[#005d72] transition-colors duration-300 placeholder:text-[#3f484c]/50"
+              className="w-full bg-transparent border-b border-neutral-300 py-3 pe-10 text-base text-black focus:outline-none focus:border-black transition-colors duration-300 placeholder:text-neutral-600/50"
             />
             <PasswordVisibilityToggle
               visible={showPassword}
               onToggle={() => setShowPassword((v) => !v)}
-              className="absolute end-2 top-1/2 -translate-y-1/2 text-[#3f484c] hover:text-[#1a1c1c] transition-colors"
+              className="absolute end-2 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-black transition-colors"
             />
           </div>
           <div className={underlineClass} />
@@ -110,7 +105,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#565555] text-white font-body text-sm font-bold uppercase tracking-[0.1em] py-4 rounded-sm hover:bg-[#1a1c1c] transition-colors duration-300 shadow-sm hover:shadow-md disabled:opacity-70 relative overflow-hidden group"
+            className="w-full bg-black text-white text-[12px] font-medium uppercase ltr:tracking-[0.16em] h-12 rounded-none hover:bg-neutral-800 transition-colors duration-300 disabled:opacity-70 relative overflow-hidden group"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
               {loading ? (
@@ -129,11 +124,11 @@ export function LoginForm() {
           <GoogleSignInButton onError={onGoogleError} className="rounded-sm" />
 
           <div className="text-center pt-6">
-            <p className="font-body text-base text-[#3f484c]">
+            <p className="text-base text-neutral-600">
               {t('newToBaia')}{' '}
               <Link
                 href="/register"
-                className="font-body text-sm font-bold uppercase tracking-[0.1em] text-[#1a1c1c] underline underline-offset-4 decoration-[#bec8cd] hover:decoration-[#005d72] transition-colors ms-1"
+                className="text-sm font-bold uppercase tracking-[0.1em] text-black underline underline-offset-4 decoration-neutral-300 hover:decoration-black transition-colors ms-1"
               >
                 {t('createAnAccount')}
               </Link>

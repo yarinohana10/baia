@@ -3,6 +3,7 @@ jest.mock('better-auth/node', () => ({ fromNodeHeaders: jest.fn() }));
 
 import { ProductsController } from '../src/products/products.controller';
 import { ProductsService } from '../src/products/products.service';
+import { ProductImagesService } from '../src/products/product-images.service';
 import { clampInt } from '../src/products/pagination';
 
 describe('clampInt', () => {
@@ -26,7 +27,7 @@ describe('ProductsController paging', () => {
     findAllAdmin: jest.fn().mockResolvedValue([]),
     findAllAdminPage: jest.fn().mockResolvedValue({}),
   };
-  const controller = new ProductsController(service as unknown as ProductsService);
+  const controller = new ProductsController(service as unknown as ProductsService, {} as ProductImagesService);
 
   beforeEach(() => jest.clearAllMocks());
 

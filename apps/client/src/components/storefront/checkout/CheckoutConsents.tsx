@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import type { FieldIssue } from '@/lib/form-errors';
 import { FieldError } from '@/components/forms/FieldError';
 
-const legalLinkClass = 'underline text-ocean-700 hover:text-ocean-800';
+const legalLinkClass = 'underline text-black hover:text-black';
 
 /** Marketing opt-in and the required terms & privacy checkbox (shown ticked once the order exists). */
 export function CheckoutConsents({
@@ -32,7 +32,7 @@ export function CheckoutConsents({
           checked={marketingConsent}
           onChange={(e) => onMarketingChange(e.target.checked)}
           disabled={locked}
-          className="mt-0.5 accent-ocean-700"
+          className="mt-0.5 accent-black"
         />
         <span>{t('marketingConsent')}</span>
       </label>
@@ -43,7 +43,7 @@ export function CheckoutConsents({
           onChange={(e) => onTermsChange(e.target.checked)}
           disabled={locked}
           required
-          className="mt-0.5 accent-ocean-700"
+          className="mt-0.5 accent-black"
         />
         <span>
           {t.rich('termsConsent', {

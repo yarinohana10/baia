@@ -47,8 +47,8 @@ export function PaymentStep({
       {config.testMode && <TestModeBanner />}
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-normal flex items-center gap-2">
-          <Lock size={20} className="text-ocean-700" aria-hidden="true" /> {t('title')}
+        <h1 className="flex items-center gap-2 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">
+          <Lock size={20} className="text-black" aria-hidden="true" /> {t('title')}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           {t('orderLabel')}{' '}
@@ -59,7 +59,7 @@ export function PaymentStep({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-        <section className="lg:col-span-3 bg-white border border-gray-200 rounded-xl p-5 sm:p-6" aria-labelledby="pay-methods">
+        <section className="lg:col-span-3 bg-white border border-gray-200 rounded-none p-5 sm:p-6" aria-labelledby="pay-methods">
           <h2 id="pay-methods" className="sr-only">
             {t('methodsLabel')}
           </h2>
@@ -74,7 +74,7 @@ export function PaymentStep({
           {state.error && <PaymentErrorAlert error={state.error} />}
 
           {state.succeeded && (
-            <p role="status" className="mb-5 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700 flex items-center gap-2">
+            <p role="status" className="mb-5 rounded-none bg-green-50 px-4 py-3 text-sm text-green-700 flex items-center gap-2">
               <CheckCircle2 size={16} aria-hidden="true" /> {t('success')}
             </p>
           )}

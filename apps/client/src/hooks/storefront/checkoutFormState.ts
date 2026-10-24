@@ -71,6 +71,8 @@ export type CheckoutFormAction =
   | { type: 'setTermsAccepted'; value: boolean }
   | { type: 'setSaveAddress'; value: boolean }
   | { type: 'validated'; issues: FieldIssues }
+  /** A field lost focus: show (or clear) just its own problem from a full-form check. */
+  | { type: 'fieldChecked'; field: keyof CheckoutFields; issues: FieldIssues }
   | { type: 'submitting' }
   | { type: 'orderCreated'; order: PendingOrder }
   /** POST /orders failed; `pickupUnavailable` drops the chosen point. */
@@ -126,6 +128,11 @@ export function checkoutFormReducer(state: CheckoutFormState, action: CheckoutFo
         issues: action.issues,
         pickupMissing: action.issues.pickupPointId ? true : state.pickupMissing,
       };
+    case 'fieldChecked': {
+      const key = SCHEMA_FIELD[action.field];
+      const issue = action.issues[key];
+      return { ...state, issues: issue ? { ...state.issues, [key]: issue } : clearIssue(state.issues, key) };
+    }
     case 'submitting':
       return { ...state, error: null };
     case 'orderCreated':

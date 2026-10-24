@@ -32,11 +32,11 @@ export async function StaticPage({
 
   return (
     <article>
-      <header className="border-b border-gray-200 bg-warm-50">
+      <header className="border-b border-gray-200 bg-[#F7F7F7]">
         <div className="container-page pb-12 pt-8 sm:pb-16">
           <Breadcrumbs items={[{ label: t('home'), href: '/' }, { label: title }]} label={t('breadcrumb')} locale={locale} />
-          <p className="text-xs font-medium tracking-widest uppercase mt-8 text-ocean-700">{eyebrow}</p>
-          <h1 className="mt-3 text-2xl font-bold tracking-normal text-gray-900">{title}</h1>
+          <p className="text-xs font-medium tracking-widest uppercase mt-8 text-black">{eyebrow}</p>
+          <h1 className="mt-3 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">{title}</h1>
           <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-gray-500">{intro}</p>
         </div>
       </header>

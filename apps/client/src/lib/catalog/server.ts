@@ -45,6 +45,8 @@ export async function getCategory(slug: string): Promise<Category | null> {
 export function getProducts(params: {
   categoryId?: string;
   search?: string;
+  /** Only Admin-featured products. */
+  featured?: boolean;
   page?: number;
   limit?: number;
   sort?: SortOption;
@@ -53,6 +55,7 @@ export function getProducts(params: {
   const qs = new URLSearchParams();
   if (params.categoryId) qs.set('categoryId', params.categoryId);
   if (params.search) qs.set('search', params.search);
+  if (params.featured) qs.set('featured', 'true');
   for (const [key, value] of Object.entries(filterApiParams(params.filters ?? {}))) qs.set(key, value);
   qs.set('page', String(params.page ?? 1));
   qs.set('limit', String(params.limit ?? 12));
@@ -64,10 +67,11 @@ export function getProducts(params: {
 const EMPTY_FACETS: Facets = { sizes: [], colors: [], price: { min: null, max: null } };
 
 /** Filter options (in-stock sizes, colors, price range) for a listing scope. */
-export function getFacets(params: { categoryId?: string; search?: string } = {}): Promise<Facets> {
+export function getFacets(params: { categoryId?: string; search?: string; featured?: boolean } = {}): Promise<Facets> {
   const qs = new URLSearchParams();
   if (params.categoryId) qs.set('categoryId', params.categoryId);
   if (params.search) qs.set('search', params.search);
+  if (params.featured) qs.set('featured', 'true');
   return get<Facets>(`/products/facets?${qs}`, ['products'], EMPTY_FACETS);
 }
 
@@ -88,6 +92,9 @@ export function getSiteConfig(): Promise<SiteConfig | null> {
   return get<SiteConfig | null>('/site-config', ['site-config'], null);
 }
 
+/** Photos a product card can show (arrows / swipe); the card only loads them as they come up. */
+const CARD_IMAGE_LIMIT = 6;
+
 export function toCardProduct(p: Product): CardProduct {
   return {
     id: p.id,
@@ -97,7 +104,7 @@ export function toCardProduct(p: Product): CardProduct {
     basePrice: p.basePrice,
     createdAt: p.createdAt,
     backSoon: p.backSoon,
-    images: p.images.slice(0, 2).map((i) => ({ url: i.url, color: i.color ?? null })),
+    images: p.images.slice(0, CARD_IMAGE_LIMIT).map((i) => ({ url: i.url, color: i.color ?? null })),
     variants: p.variants.map((v) => ({
       id: v.id,
       color: v.color,

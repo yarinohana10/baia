@@ -8,9 +8,9 @@ export function EmptyCategory({ name, suggestions }: { name?: string; suggestion
   return (
     <section
       aria-labelledby="empty-title"
-      className="mx-auto max-w-2xl rounded-2xl border border-gray-100 bg-warm-50 px-6 py-12 text-center shadow-sm sm:px-12 sm:py-16"
+      className="mx-auto max-w-2xl rounded-none border border-gray-100 bg-[#F7F7F7] px-6 py-12 text-center sm:px-12 sm:py-16"
     >
-      <svg aria-hidden="true" viewBox="0 0 120 24" className="mx-auto mb-6 h-6 w-28 text-ocean-300">
+      <svg aria-hidden="true" viewBox="0 0 120 24" className="mx-auto mb-6 h-6 w-28 text-neutral-400">
         <path
           d="M0 12c10 0 10-8 20-8s10 8 20 8 10-8 20-8 10 8 20 8 10-8 20-8 10 8 20 8"
           fill="none"
@@ -25,7 +25,7 @@ export function EmptyCategory({ name, suggestions }: { name?: string; suggestion
           opacity=".5"
         />
       </svg>
-      <p className="mb-3 text-xs font-medium tracking-widest uppercase text-ocean-600">{t('eyebrow')}</p>
+      <p className="mb-3 text-xs font-medium tracking-widest uppercase text-neutral-700">{t('eyebrow')}</p>
       <h2 id="empty-title" className="text-[22px] sm:text-2xl font-semibold text-gray-900 tracking-tight">
         {t('title')}
       </h2>
@@ -41,7 +41,7 @@ export function EmptyCategory({ name, suggestions }: { name?: string; suggestion
               <li key={s.href}>
                 <Link
                   href={s.href}
-                  className="inline-flex px-4 py-1.5 text-sm border border-gray-300 rounded-lg transition-colors hover:border-ocean-500"
+                  className="inline-flex px-4 py-1.5 text-sm border border-gray-300 rounded-none transition-colors hover:border-neutral-600"
                 >
                   {s.label}
                 </Link>
@@ -56,7 +56,7 @@ export function EmptyCategory({ name, suggestions }: { name?: string; suggestion
         <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">{t('notifyBody')}</p>
         <Link
           href="/register"
-          className="mt-5 inline-block bg-ocean-700 text-white px-8 py-3 text-[13px] font-bold tracking-[0.1em] uppercase rounded-lg hover:bg-ocean-600 transition-colors"
+          className="mt-5 inline-block bg-black text-white px-8 py-3 text-[13px] font-bold tracking-[0.1em] uppercase rounded-none hover:bg-neutral-800 transition-colors"
         >
           {t('notify')}
         </Link>

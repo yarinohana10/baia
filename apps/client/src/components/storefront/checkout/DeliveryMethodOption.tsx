@@ -41,15 +41,15 @@ export function DeliveryMethodOption({
       disabled={locked}
       onClick={onSelect}
       className={cn(
-        'flex items-start gap-3 rounded-xl border p-4 text-start transition-colors disabled:cursor-not-allowed',
-        selected ? 'border-ocean-600 bg-ocean-50/60 ring-1 ring-ocean-600' : 'border-gray-200 hover:border-ocean-300',
+        'flex items-start gap-3 rounded-none border p-4 text-start transition-colors disabled:cursor-not-allowed',
+        selected ? 'border-neutral-700 bg-[#F7F7F7]/60 ring-1 ring-neutral-700' : 'border-gray-200 hover:border-neutral-400',
         locked && !selected && 'opacity-50',
       )}
     >
       <span
         className={cn(
           'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-          selected ? 'bg-ocean-700 text-white' : 'bg-gray-100 text-gray-500',
+          selected ? 'bg-black text-white' : 'bg-gray-100 text-gray-500',
         )}
       >
         <Icon size={16} aria-hidden="true" />

@@ -13,7 +13,7 @@ export function CancelOrderResult({ result }: { result: CancellationResult }) {
   let body = t('doneRequestedBody');
   if (cancelled) body = result.order.paidAt ? t('doneCancelledBody') : t('doneCancelledUnpaidBody');
   return (
-    <div role="status" className="space-y-4 rounded-xl border border-green-200 bg-green-50 p-6">
+    <div role="status" className="space-y-4 rounded-none border border-green-200 bg-green-50 p-6">
       <p className="flex items-center gap-2 text-lg font-semibold text-green-800">
         <CheckCircle2 size={22} aria-hidden="true" />
         {cancelled ? t('doneCancelledTitle') : t('doneRequestedTitle')}
@@ -21,7 +21,7 @@ export function CancelOrderResult({ result }: { result: CancellationResult }) {
       <p className="text-sm text-green-900">{body}</p>
       <Link
         href={orderPageHref(result.order.id, result.accessToken)}
-        className="inline-block rounded-lg bg-ocean-700 px-6 py-2.5 text-sm text-white hover:bg-ocean-800"
+        className="inline-block rounded-none bg-black px-6 py-2.5 text-sm text-white hover:bg-neutral-800"
       >
         {t('viewOrder')}
       </Link>

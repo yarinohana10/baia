@@ -20,11 +20,11 @@ export function ColorPicker({ colors, selected, variants, onSelect }: Props) {
     if (isInStock(v)) inStock.add(v.color);
   }
   return (
-    <fieldset className="mb-6">
-      <legend className="mb-2.5 text-sm text-gray-600">
-        <span className="font-medium text-charcoal">{t('color')}:</span> {selected}
+    <fieldset className="mb-5">
+      <legend className="mb-3 text-[13px] text-black">
+        {t('color')} <span className="text-black/50">· {selected}</span>
       </legend>
-      <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-wrap gap-3">
         {colors.map((color) => {
           const swatch = swatchColor(color);
           const isSelected = selected === color;
@@ -38,12 +38,12 @@ export function ColorPicker({ colors, selected, variants, onSelect }: Props) {
               aria-label={soldOut ? `${t('colorOption', { color })} – ${t('backSoon')}` : t('colorOption', { color })}
               title={color}
               className={cn(
-                'relative rounded-full transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-600',
+                'relative rounded-full transition-shadow focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black',
                 swatch
-                  ? 'size-9 ring-1 ring-gray-300 ring-offset-2'
+                  ? 'size-6 ring-1 ring-black/10 ring-offset-[3px]'
                   : 'border px-3.5 py-1.5 text-sm',
-                swatch && isSelected && 'ring-2 ring-ocean-700',
-                !swatch && (isSelected ? 'border-ocean-700 bg-ocean-700 text-white' : 'border-gray-300 hover:border-ocean-500'),
+                swatch && isSelected && 'ring-[1.5px] ring-black',
+                !swatch && (isSelected ? 'border-black bg-black text-white' : 'border-black/25 hover:border-black'),
                 soldOut && 'opacity-50',
               )}
               style={swatch ? { backgroundColor: swatch } : undefined}

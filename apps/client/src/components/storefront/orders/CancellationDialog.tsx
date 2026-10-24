@@ -58,12 +58,12 @@ export function CancellationDialog({
       aria-labelledby={titleId}
       className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none items-center justify-center bg-black/30 p-4 text-inherit backdrop:bg-transparent open:flex"
     >
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 text-start shadow-xl">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-none bg-white p-6 text-start shadow-xl">
         <div className="mb-4 flex items-start justify-between gap-4">
           <h2 id={titleId} className="text-lg font-semibold text-gray-900">
             {t(copy.title)}
           </h2>
-          <button type="button" onClick={onClose} aria-label={t('close')} className="rounded-full p-1 text-gray-400 hover:text-gray-700">
+          <button type="button" onClick={onClose} aria-label={t('close')} className="rounded-none p-1 text-gray-400 hover:text-gray-700">
             <X size={18} />
           </button>
         </div>
@@ -72,7 +72,7 @@ export function CancellationDialog({
           <p className="text-sm text-gray-600">{t(copy.body, { number: order.orderNumber })}</p>
 
           {isRequest && order.cancellation?.requiresReturn && (
-            <p className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <p className="flex items-start gap-2 rounded-none bg-amber-50 px-3 py-2 text-xs text-amber-800">
               <AlertTriangle size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
               {t('returnNotice')}
             </p>
@@ -127,7 +127,7 @@ export function CancellationDialog({
           )}
 
           {error && (
-            <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            <p role="alert" className="rounded-none bg-red-50 px-3 py-2 text-sm text-red-600">
               {tErrors(error.key, error.values)}
             </p>
           )}
@@ -136,7 +136,7 @@ export function CancellationDialog({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              className="rounded-none border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             >
               {t('keepOrder')}
             </button>
@@ -145,8 +145,8 @@ export function CancellationDialog({
               disabled={!reason || submitting}
               aria-busy={submitting}
               className={cn(
-                'rounded-lg px-4 py-2 text-sm text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40',
-                isRequest ? 'bg-ocean-700 hover:bg-ocean-800' : 'bg-red-600 hover:bg-red-700',
+                'rounded-none px-4 py-2 text-sm text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+                isRequest ? 'bg-black hover:bg-neutral-800' : 'bg-red-600 hover:bg-red-700',
               )}
             >
               {submitting ? t('sending') : t(copy.submit)}

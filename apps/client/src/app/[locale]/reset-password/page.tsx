@@ -94,7 +94,7 @@ function ResetPasswordForm() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? t('hidePassword') : t('showPassword')}
-              className="absolute end-2 top-1/2 -translate-y-1/2 text-[#3f484c] hover:text-[#1a1c1c] transition-colors"
+              className="absolute end-2 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-black transition-colors"
             >
               {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>

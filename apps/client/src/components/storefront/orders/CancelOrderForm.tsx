@@ -121,7 +121,7 @@ export function CancelOrderForm() {
       </label>
 
       {found && (
-        <div className="rounded-xl border border-ocean-200 bg-ocean-50/50 p-4">
+        <div className="rounded-none border border-neutral-300 bg-[#F7F7F7]/50 p-4">
           <SelfCancelNotice unpaid={found.order.status === 'PENDING_PAYMENT'} className="text-gray-700" />
         </div>
       )}
@@ -134,7 +134,7 @@ export function CancelOrderForm() {
       )}
 
       {error && (
-        <p role="alert" className="flex items-start gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+        <p role="alert" className="flex items-start gap-2 rounded-none bg-red-50 px-4 py-3 text-sm text-red-600">
           <AlertTriangle size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
           {tErrors(error.key, error.values)}
         </p>
@@ -146,8 +146,8 @@ export function CancelOrderForm() {
           disabled={submitting || !fields.reason}
           aria-busy={submitting}
           className={cn(
-            'rounded-lg px-8 py-3 text-sm tracking-wider text-white transition-colors disabled:opacity-40',
-            instant ? 'bg-red-600 hover:bg-red-700' : 'bg-ocean-700 hover:bg-ocean-800',
+            'rounded-none px-8 py-3 text-sm tracking-wider text-white transition-colors disabled:opacity-40',
+            instant ? 'bg-red-600 hover:bg-red-700' : 'bg-black hover:bg-neutral-800',
           )}
         >
           {submitting ? tCancel('sending') : submitLabel}

@@ -21,7 +21,7 @@ export function AuthSplitLayout({
 }) {
   const t = useTranslations('auth');
   return (
-    <div className="flex min-h-screen bg-[#f9f9f9]">
+    <div className="flex min-h-screen bg-white [--radius:0px]">
       {/* Left: Hero Image (Desktop only) */}
       <div className="hidden lg:block lg:w-1/2 relative">
         <Image
@@ -36,7 +36,7 @@ export function AuthSplitLayout({
         <div className="absolute inset-0 flex flex-col justify-between p-16">
           <h2
             dir="ltr"
-            className="font-serif text-[64px] leading-[72px] tracking-[-0.02em] text-white max-w-md drop-shadow-md"
+            className="font-display text-[56px] leading-[64px] tracking-[0.12em] text-white max-w-md drop-shadow-md"
           >
             BAIA SWIMWEAR
           </h2>
@@ -50,7 +50,7 @@ export function AuthSplitLayout({
         <div className="p-5 sm:p-8 lg:p-12 lg:pb-0">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 font-body text-sm text-[#3f484c] hover:text-[#1a1c1c] transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-black transition-colors"
           >
             <ArrowLeft size={16} className="rtl:rotate-180" />
             {t('backToHome')}
@@ -61,15 +61,15 @@ export function AuthSplitLayout({
           <div className="w-full max-w-md flex flex-col space-y-12">
             {/* Mobile Brand (hidden on desktop) */}
             <div className="lg:hidden flex flex-col items-center">
-              <h2 dir="ltr" className="font-serif text-[40px] leading-[48px] text-[#1a1c1c] text-center">
+              <h2 dir="ltr" className="font-display text-[40px] leading-[48px] tracking-[0.2em] text-black text-center">
                 BAIA
               </h2>
             </div>
 
             {/* Heading */}
             <div className="flex flex-col space-y-4">
-              <h1 className="font-serif text-[32px] leading-[40px] text-[#1a1c1c]">{title}</h1>
-              <p className="font-body text-base leading-6 text-[#3f484c]">{subtitle}</p>
+              <h1 className="text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">{title}</h1>
+              <p className="text-base leading-6 text-neutral-600">{subtitle}</p>
             </div>
 
             {children}

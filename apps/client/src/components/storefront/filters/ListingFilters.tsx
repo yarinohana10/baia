@@ -59,10 +59,10 @@ export function ListingFilters({ basePath, query, facets, total, countLabel }: P
 
   return (
     <div className="mb-6" aria-busy={pending}>
-      <div className="flex items-center justify-between gap-3 border-b border-gray-200 pb-4">
+      <div className="flex items-center justify-between gap-3 border-y border-black/10 py-2.5">
         <FilterSheetButton activeCount={active} onClick={() => setSheetOpen(true)} />
         <FilterToolbar filters={query} controls={controls} available={available} />
-        <div className="flex items-center gap-4 text-sm text-gray-500">
+        <div className="flex items-center gap-4 text-[12px] text-black/55">
           <span aria-live="polite" className="hidden sm:inline">
             {pending ? t('updating') : countLabel}
           </span>

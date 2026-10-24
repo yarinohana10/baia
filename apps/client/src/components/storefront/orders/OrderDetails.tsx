@@ -38,7 +38,7 @@ export function OrderDetails({
     <div className="max-w-2xl mx-auto py-16 px-4">
       <OrderHeading order={order} phase={phase} statusLabel={statusLabel} />
 
-      <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5 mb-6 mt-6">
+      <div className="bg-white border border-gray-200 rounded-none p-6 space-y-5 mb-6 mt-6">
         <OrderNumberHeader order={order} phase={phase} statusLabel={statusLabel} />
 
         <div className="border-t border-gray-100 pt-5">

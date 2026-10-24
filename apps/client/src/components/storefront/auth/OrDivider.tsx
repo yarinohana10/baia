@@ -6,10 +6,10 @@ export function OrDivider() {
   return (
     <div className="relative py-2">
       <div className="absolute inset-0 flex items-center">
-        <div className="w-full border-t border-[#bec8cd]" />
+        <div className="w-full border-t border-neutral-300" />
       </div>
       <div className="relative flex justify-center">
-        <span className="bg-white px-4 font-body text-xs uppercase tracking-[0.1em] text-[#3f484c]">
+        <span className="bg-white px-4 text-xs uppercase tracking-[0.1em] text-neutral-600">
           {t('orContinueWith')}
         </span>
       </div>

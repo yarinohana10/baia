@@ -84,7 +84,7 @@ export async function LegalPage({
         <li key={s.id}>
           <a
             href={`#${s.id}`}
-            className="block rounded-md px-3 py-1.5 text-gray-600 transition-colors hover:bg-ocean-50 hover:text-ocean-700"
+            className="block rounded-none px-3 py-1.5 text-gray-600 transition-colors hover:bg-[#F7F7F7] hover:text-black"
           >
             {s.title}
           </a>
@@ -95,11 +95,11 @@ export async function LegalPage({
 
   return (
     <article>
-      <header className="border-b border-gray-200 bg-warm-50">
+      <header className="border-b border-gray-200 bg-[#F7F7F7]">
         <div className="container-page pb-12 pt-8 sm:pb-16">
           <Breadcrumbs items={[{ label: t('home'), href: '/' }, { label: title }]} label={t('breadcrumb')} locale={locale} />
-          <p className="mt-8 text-xs font-medium uppercase tracking-widest text-ocean-700">{eyebrow}</p>
-          <h1 className="mt-3 text-2xl font-bold tracking-normal text-gray-900">{title}</h1>
+          <p className="mt-8 text-xs font-medium uppercase tracking-widest text-black">{eyebrow}</p>
+          <h1 className="mt-3 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">{title}</h1>
           <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-gray-500">{intro}</p>
           <p className="mt-4 text-sm text-gray-400">{tLegal('updated', { date: updated })}</p>
         </div>
@@ -108,7 +108,7 @@ export async function LegalPage({
       <div className="container-page grid gap-10 py-12 sm:py-16 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[260px_minmax(0,1fr)_300px]">
         {/* Table of contents */}
         <nav aria-label={tLegal('tocTitle')} className="lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:self-start lg:overflow-y-auto">
-          <details className="group rounded-xl border border-gray-200 bg-white p-2 lg:hidden">
+          <details className="group rounded-none border border-gray-200 bg-white p-2 lg:hidden">
             <summary className="cursor-pointer list-none px-3 py-2 text-sm font-semibold text-gray-900 marker:hidden">
               {tLegal('tocTitle')}
             </summary>
@@ -147,13 +147,13 @@ export async function LegalPage({
 
         <aside className="space-y-6 lg:col-start-2 xl:col-start-auto xl:sticky xl:top-28 xl:self-start">
           {aside}
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <MessageCircle size={22} strokeWidth={1.4} aria-hidden="true" className="text-ocean-700" />
+          <div className="rounded-none border border-gray-200 bg-white p-6">
+            <MessageCircle size={22} strokeWidth={1.4} aria-hidden="true" className="text-black" />
             <h2 className="mt-3 text-base font-semibold text-gray-900">{tLegal('questionsTitle')}</h2>
             <p className="mt-1 text-sm leading-relaxed text-gray-500">{tLegal('questionsBody')}</p>
             <Link
               href="/contact"
-              className="mt-4 inline-flex rounded-lg bg-ocean-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ocean-600"
+              className="mt-4 inline-flex rounded-none bg-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
             >
               {tLegal('contactCta')}
             </Link>

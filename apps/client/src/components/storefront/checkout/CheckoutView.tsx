@@ -43,13 +43,13 @@ export function CheckoutView() {
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
-      <h1 className="text-2xl font-bold tracking-normal mb-8">{t('checkout')}</h1>
+      <h1 className="mb-8 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">{t('checkout')}</h1>
 
       <CheckoutErrorBanner error={form.error} />
 
       <form onSubmit={onSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <ContactSection fields={form.fields} issues={form.issues} locked={locked} onEdit={edit} />
+          <ContactSection fields={form.fields} issues={form.issues} locked={locked} onEdit={edit} onCheck={checkout.checkField} />
 
           <DeliverySection
             method={form.deliveryMethod}
@@ -72,6 +72,7 @@ export function CheckoutView() {
               offerSave={checkout.offerSaveAddress}
               save={form.saveAddress}
               onEdit={edit}
+              onCheck={checkout.checkField}
               onChooseSaved={checkout.chooseSavedAddress}
               onSaveChange={(value) => dispatch({ type: 'setSaveAddress', value })}
             />

@@ -27,7 +27,7 @@ export function OrderNumberHeader({
         <p className="font-mono text-lg font-semibold" dir="ltr">{order.orderNumber}</p>
         <p className="text-xs text-gray-400">{formatOrderDate(ORDER_DATE_TIME, order.createdAt, locale)}</p>
       </div>
-      <span className={`text-xs px-3 py-1 uppercase tracking-wider rounded-full ${badgeClass}`}>{statusLabel}</span>
+      <span className={`text-xs px-3 py-1 uppercase tracking-wider rounded-none ${badgeClass}`}>{statusLabel}</span>
     </div>
   );
 }

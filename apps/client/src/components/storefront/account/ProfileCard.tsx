@@ -50,9 +50,9 @@ export function ProfileCard({ name, email }: Props) {
   };
 
   return (
-    <section aria-labelledby="profile-title" className="bg-white border border-gray-200 rounded-xl p-6 mb-6 space-y-4">
+    <section aria-labelledby="profile-title" className="bg-white border border-gray-200 rounded-none p-6 mb-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h2 id="profile-title" className="font-body text-base font-semibold text-[#1a1c1c]">
+        <h2 id="profile-title" className="text-base font-semibold text-black">
           {t('profileTitle')}
         </h2>
         {!editing && (
@@ -93,24 +93,24 @@ export function ProfileCard({ name, email }: Props) {
       ) : (
         <div>
           <p className={accountSectionLabelClass}>{t('nameLabel')}</p>
-          <p className="font-body text-base text-[#1a1c1c]">{name || '—'}</p>
+          <p className="text-base text-black">{name || '—'}</p>
         </div>
       )}
 
       <div>
         <p className={accountSectionLabelClass}>{t('emailLabel')}</p>
-        <p className="font-body text-base text-[#1a1c1c]">
+        <p className="text-base text-black">
           <bdi dir="ltr">{email}</bdi>
         </p>
       </div>
 
       {status === 'saved' && (
-        <p role="status" className="font-body text-sm text-ocean-700">
+        <p role="status" className="text-sm text-black">
           {t('profileSaved')}
         </p>
       )}
       {status === 'error' && (
-        <p role="alert" className="font-body text-sm text-red-500">
+        <p role="alert" className="text-sm text-red-500">
           {t('profileSaveError')}
         </p>
       )}

@@ -137,11 +137,11 @@
     "newArrivals": "חדש באתר"
   },
   "home": {
-    "heroTitle": "בריחה לקיץ",
-    "heroSubtitle": "גלו את הקולקציה החדשה לחופשה המושלמת שלכם",
+    "heroTitle": "חדשים באתר",
+    "heroSubtitle": "הגיעו עכשיו. בגדי ים שתוכננו בקפידה לכל המשפחה: גזרות נקיות, צבעים רעננים ובדים נעימים שמרגישים נכון מהבוקר בחוף ועד השקיעה ליד הבריכה. כל פריט נבחר כדי להיראות טוב עכשיו, ולהישאר אהוב גם בקיץ הבא.",
     "heroCta": "לגלות את הקולקציה",
     "shopByCategory": "קנו לפי קטגוריה",
-    "newArrivalsTitle": "חדשים באתר",
+    "newArrivalsTitle": "עכשיו בחנות",
     "featuredTitle": "מוצרים מובחרים",
     "saleTitle": "מבצעים",
     "categoriesTitle": "קטגוריות",
@@ -150,7 +150,13 @@
     "kidsCategory": "ילדים",
     "freeShippingBanner": "משלוח חינם בקנייה מעל ₪249",
     "viewAll": "הצג הכל",
-    "comingSoon": "עוד מוצרים בקרוב."
+    "comingSoon": "עוד מוצרים בקרוב.",
+    "heroEyebrow": "קולקציית קיץ",
+    "heroSecondaryCta": "קנו לפי קטגוריה",
+    "shopByCategorySubtitle": "בגדי ים פרימיום לכל אחד במשפחה",
+    "newArrivalsSubtitle": "הדגמים שהגיעו עכשיו לחנות",
+    "featuredSubtitle": "הבחירות האהובות על הלקוחות שלנו",
+    "shopNow": "לקנייה"
   },
   "product": {
     "addToCart": "הוסף לעגלה",
@@ -233,6 +239,8 @@
     "categoryDescription": "בגדי ים {name} ב-BAIA — פריטי פרימיום בהשראת הקיץ הים-תיכוני. משלוח חינם מעל ₪249.",
     "newArrivalsTitle": "חדש באתר",
     "newArrivalsDescription": "בגדי הים החדשים של BAIA לנשים, גברים וילדים — ישר מקולקציית הקיץ.",
+    "featuredTitle": "מוצרים מובחרים",
+    "featuredDescription": "הפריטים שבחרנו במיוחד בשבילכם מכל הקולקציה של BAIA — לנשים, לגברים ולילדים.",
     "productFallbackDescription": "{name} מבית BAIA בגדי ים. בגדי ים פרימיום בהשראת הקיץ הים-תיכוני.",
     "notFoundTitle": "העמוד לא נמצא",
     "searchTitle": "חיפוש",
@@ -765,7 +773,11 @@
       "loading": "טוען הגדרות...",
       "invalidCtaUrl": "הקישור חייב להתחיל ב-/ (למשל /category/men) או להיות כתובת http(s) מלאה",
       "invalidAmount": "סכומי המשלוח חייבים להיות מספרים, 0 ומעלה",
-      "textTooLong": "אחד הטקסטים ארוך מדי"
+      "textTooLong": "אחד הטקסטים ארוך מדי",
+      "removeHeroImage": "הסרת התמונה",
+      "removeHeroConfirm": "להסיר את תמונת הבאנר? היא תימחק מהאחסון, ובעמוד הבית תוצג תמונת ברירת המחדל.",
+      "heroRemoved": "תמונת הבאנר הוסרה",
+      "heroRemoveFailed": "הסרת התמונה נכשלה"
     },
     "productForm": {
       "newProduct": "מוצר חדש",
@@ -871,6 +883,7 @@
         "zeroStockWarning": "{count, plural, one {למידה מסומנת אחת יש} other {ל־# מידות מסומנות יש}} 0 יחידות, והן יוצגו כ'אזל מהמלאי'.",
         "removeColor": "הסרת הצבע",
         "addColor": "הוספת צבע נוסף",
+        "nameColorFirst": "קודם יש לתת שם לצבע הנוכחי, ואז אפשר להוסיף צבע נוסף.",
         "selectAll": "סימון כל המידות",
         "clearAll": "ניקוי",
         "setAllQuantity": "כמות לכל המידות המסומנות",
@@ -1026,5 +1039,22 @@
     "tracking": "מספר מעקב",
     "completePayment": "להשלמת התשלום",
     "paying": "מעבדים…"
+  },
+  "accessibilityMenu": {
+    "open": "תפריט נגישות",
+    "title": "נגישות",
+    "close": "סגירת תפריט הנגישות",
+    "textSize": "גודל טקסט",
+    "smaller": "הקטנת טקסט",
+    "larger": "הגדלת טקסט",
+    "contrast": "ניגודיות גבוהה",
+    "grayscale": "גווני אפור",
+    "links": "הדגשת קישורים",
+    "readable": "גופן קריא",
+    "noMotion": "עצירת אנימציות",
+    "on": "פעיל",
+    "off": "כבוי",
+    "reset": "איפוס הגדרות",
+    "statement": "הצהרת נגישות"
   }
 }

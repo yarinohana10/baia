@@ -34,7 +34,7 @@ export function FreeShippingProgress({
         aria-label={t('freeShippingProgressLabel')}
       >
         <div
-          className={cn('h-full rounded-full transition-all duration-500', reached ? 'bg-green-500' : 'bg-ocean-600')}
+          className={cn('h-full rounded-full transition-all duration-500', reached ? 'bg-green-500' : 'bg-neutral-800')}
           style={{ width: `${percent}%` }}
         />
       </div>

@@ -7,6 +7,7 @@ import { signOrderToken } from './order-access';
 import { deliveryConfig, etaFor } from './delivery';
 import { REASON_LABELS_HE } from './cancellation-eligibility';
 import type { ResendableEmail } from './dto/order.dto';
+import { ITEM_IMAGES_SELECT, itemImage, type ImageRow } from './order-views';
 
 export function clientUrl(): string {
   return (process.env.CLIENT_URL || 'http://localhost:3000').split(',')[0].trim().replace(/\/$/, '');
@@ -35,25 +36,6 @@ export function trackingUrl(trackingNumber: string | null | undefined): string |
   const template = process.env.TRACKING_URL_TEMPLATE?.trim();
   if (!template || !trackingNumber) return null;
   return template.replace('{tracking}', encodeURIComponent(trackingNumber));
-}
-
-/** Product photos must be absolute for email clients; relative paths are resolved against the API origin. */
-export function absoluteImageUrl(url: string | null | undefined): string | null {
-  const u = url?.trim();
-  if (!u) return null;
-  if (/^https?:\/\//i.test(u)) return u;
-  const origin = (process.env.SERVER_URL || process.env.BETTER_AUTH_URL || '').replace(/\/$/, '');
-  return u.startsWith('/') && origin ? `${origin}${u}` : null;
-}
-
-type ImageRow = { url: string; color: string | null };
-
-/** First photo of the item's colour, else the product's first photo. */
-export function itemImage(images: ImageRow[] | undefined, color: string): string | null {
-  if (!images?.length) return null;
-  const c = color.trim().toLowerCase();
-  const match = images.find((i) => i.color?.trim().toLowerCase() === c) ?? images.find((i) => !i.color) ?? images[0];
-  return absoluteImageUrl(match.url);
 }
 
 type ItemWithImages = OrderItem & { variant?: { product?: { images?: ImageRow[] } | null } | null };
@@ -149,13 +131,7 @@ export class OrderMailer {
       include: {
         items: {
           orderBy: { createdAt: 'asc' },
-          include: {
-            variant: {
-              select: {
-                product: { select: { images: { select: { url: true, color: true }, orderBy: { sortOrder: 'asc' } } } },
-              },
-            },
-          },
+          include: { variant: ITEM_IMAGES_SELECT },
         },
       },
     });

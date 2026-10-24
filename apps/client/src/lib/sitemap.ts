@@ -6,6 +6,7 @@ import type { Category, Product } from './catalog/types';
 export const STATIC_PATHS = [
   '/',
   '/new-arrivals',
+  '/featured',
   '/about',
   '/shipping',
   '/returns',

@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { BusinessDetailsCard } from '@/components/admin/BusinessDetailsCard';
 import { InventorySettingsCard } from '@/components/admin/InventorySettingsCard';
-import { Save, Upload, Image as ImageIcon, Truck, Info } from 'lucide-react';
+import { Save, Upload, Image as ImageIcon, Truck, Info, Trash2 } from 'lucide-react';
 
 type ApiFieldError = { field: string; code: string };
 
@@ -106,6 +106,22 @@ export default function SettingsPage() {
     } finally {
       setUploadingHero(false);
       if (heroFileRef.current) heroFileRef.current.value = '';
+    }
+  }
+
+  async function handleHeroRemove() {
+    if (!window.confirm(t('removeHeroConfirm'))) return;
+    setUploadingHero(true);
+    setMessage(null);
+    try {
+      await api.delete('/admin/site-config/hero-image');
+      setConfig((prev) => (prev ? { ...prev, heroImageUrl: null } : prev));
+      setMessage({ type: 'success', text: t('heroRemoved') });
+      await revalidateCatalog();
+    } catch {
+      setMessage({ type: 'error', text: t('heroRemoveFailed') });
+    } finally {
+      setUploadingHero(false);
     }
   }
 
@@ -226,6 +242,18 @@ export default function SettingsPage() {
               <Upload size={16} />
               {uploadingHero ? t('uploading') : t('uploadHeroImage')}
             </Button>
+            {config.heroImageUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleHeroRemove}
+                disabled={uploadingHero}
+                className="mt-2 w-full gap-2 text-destructive hover:bg-red-50 hover:text-destructive"
+              >
+                <Trash2 size={16} />
+                {t('removeHeroImage')}
+              </Button>
+            )}
           </CardContent>
         </Card>
 

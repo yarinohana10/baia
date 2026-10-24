@@ -517,11 +517,11 @@ model SiteConfig {
   businessName          String  @default("BAIA Swimwear")
   companyId             String  @default("000000000")
   businessAddress       String  @default("מושב גילת")
-  businessPhone         String  @default("050-0000000")
+  businessPhone         String  @default("054-4446739")
   contactEmail          String  @default("baiaswimwear0@gmail.com")
-  whatsappNumber        String? @default("972500000000")
+  whatsappNumber        String? @default("972544446739")
   accessibilityCoordinatorName  String @default("יעודכן בקרוב")
-  accessibilityCoordinatorPhone String @default("050-0000000")
+  accessibilityCoordinatorPhone String @default("054-4446739")
   accessibilityCoordinatorEmail String @default("baiaswimwear0@gmail.com")
 
   // Stock alerts: a variant at or below this quantity is "low stock".

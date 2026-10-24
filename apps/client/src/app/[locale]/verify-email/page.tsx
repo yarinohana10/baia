@@ -23,9 +23,9 @@ function VerifyEmail() {
   if (status === 'verifying') {
     return (
       <AuthCardLayout title={t('verifyEmailTitle')}>
-        <div className="flex items-center gap-3 text-[#3f484c]">
+        <div className="flex items-center gap-3 text-neutral-600">
           <Loader2 size={20} className="animate-spin" />
-          <span className="font-body">{t('verifyingEmail')}</span>
+          <span className="">{t('verifyingEmail')}</span>
         </div>
       </AuthCardLayout>
     );
@@ -45,8 +45,8 @@ function VerifyEmail() {
   return (
     <AuthCardLayout title={t('emailVerifiedTitle')}>
       <div className="flex items-start gap-3">
-        <CheckCircle2 size={22} className="text-[#005d72] shrink-0 mt-0.5" />
-        <p className="font-body text-base text-[#3f484c]">{t('emailVerified')}</p>
+        <CheckCircle2 size={22} className="text-black shrink-0 mt-0.5" />
+        <p className="text-base text-neutral-600">{t('emailVerified')}</p>
       </div>
       <Link href={session ? '/account' : '/'} className={authButtonClass}>
         {session ? t('goToAccount') : t('continueShopping')}

@@ -31,13 +31,13 @@ export function ColorOptions({ facets, selected = [], onToggle }: Props) {
               role="checkbox"
               aria-checked={on}
               onClick={() => onToggle(value)}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-start text-sm text-charcoal hover:bg-warm-100 focus-visible:outline-2 focus-visible:outline-ocean-600"
+              className="flex w-full items-center gap-2.5 rounded-none px-2 py-2 text-start text-sm text-charcoal hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-neutral-700"
             >
               <span
                 aria-hidden="true"
                 className={cn(
                   'relative flex size-6 shrink-0 items-center justify-center rounded-full ring-1 ring-gray-300',
-                  on && 'ring-2 ring-ocean-700 ring-offset-1',
+                  on && 'ring-2 ring-black ring-offset-1',
                   !swatch && 'bg-[conic-gradient(#e56b5a,#e8c33f,#3f6e4e,#2b5c9e,#6a4a8c,#e56b5a)]',
                 )}
                 style={swatch ? { backgroundColor: swatch } : undefined}

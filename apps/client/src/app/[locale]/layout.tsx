@@ -3,9 +3,24 @@ import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import type { Metadata, Viewport } from 'next';
-import { Assistant, Frank_Ruhl_Libre, Lato, Libre_Caslon_Text, DM_Sans } from 'next/font/google';
+import { Assistant, Frank_Ruhl_Libre, Heebo, Inter, Lato, Libre_Caslon_Text, DM_Sans } from 'next/font/google';
 import { SITE_NAME, getSiteUrl, ogLocale } from '@/lib/seo';
 import '../globals.css';
+
+// Storefront type: Inter for Latin text, Heebo (same clean grotesque feel) for
+// Hebrew, which Inter does not cover. The browser picks Heebo per glyph.
+const inter = Inter({
+  subsets: ['latin', 'latin-ext'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+
+const heebo = Heebo({
+  subsets: ['hebrew', 'latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-heebo',
+});
 
 const lato = Lato({
   subsets: ['latin', 'latin-ext'],
@@ -97,8 +112,8 @@ export default async function LocaleLayout({
   const dir = locale === 'he' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={locale} dir={dir} className={`${lato.variable} ${libreCaslon.variable} ${dmSans.variable} ${assistant.variable} ${frank.variable}`}>
-      <body className={`min-h-screen bg-white text-charcoal antialiased ${lato.className}`}>
+    <html lang={locale} dir={dir} className={`${inter.variable} ${heebo.variable} ${lato.variable} ${libreCaslon.variable} ${dmSans.variable} ${assistant.variable} ${frank.variable}`}>
+      <body className="min-h-screen bg-white font-sans text-charcoal antialiased">
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>

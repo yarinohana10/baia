@@ -51,12 +51,12 @@ export default async function ShippingPage({ params }: { params: Promise<{ local
       intro={t('intro')}
       sections={sections}
       aside={
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <div className="rounded-none border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-gray-900">{t('costTitle')}</h2>
           <ul className="mt-4 space-y-4">
             {methods.map(({ icon: Icon, title, cost, eta }) => (
               <li key={title} className="flex gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ocean-50 text-ocean-700">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F7F7F7] text-black">
                   <Icon size={18} strokeWidth={1.6} aria-hidden="true" />
                 </span>
                 <span>
@@ -66,7 +66,7 @@ export default async function ShippingPage({ params }: { params: Promise<{ local
               </li>
             ))}
           </ul>
-          <p className="mt-5 rounded-lg bg-warm-100 px-4 py-3 text-sm font-medium text-gray-900">
+          <p className="mt-5 rounded-none bg-neutral-100 px-4 py-3 text-sm font-medium text-gray-900">
             {t('costFree', { threshold: info.freeShippingThreshold })}
           </p>
           <p className="mt-3 text-xs text-gray-500">{t('vatNote')}</p>

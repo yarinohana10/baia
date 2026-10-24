@@ -7,7 +7,7 @@ export function TestModeBanner() {
   return (
     <div
       role="note"
-      className="mb-6 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900"
+      className="mb-6 flex items-start gap-3 rounded-none border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900"
     >
       <FlaskConical size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
       <div>

@@ -9,7 +9,7 @@ export function SearchEmpty({ query, suggestions }: { query?: string; suggestion
   return (
     <section
       aria-labelledby="search-empty-title"
-      className="mx-auto max-w-2xl rounded-2xl border border-gray-100 bg-warm-50 px-6 py-12 text-center shadow-sm sm:px-12 sm:py-16"
+      className="mx-auto max-w-2xl rounded-none border border-gray-100 bg-[#F7F7F7] px-6 py-12 text-center sm:px-12 sm:py-16"
     >
       <h2 id="search-empty-title" className="text-[22px] sm:text-2xl font-semibold text-gray-900 tracking-tight">
         {query ? t('emptyTitle', { query }) : t('promptTitle')}
@@ -20,13 +20,13 @@ export function SearchEmpty({ query, suggestions }: { query?: string; suggestion
 
       {suggestions.length > 0 && (
         <div className="mt-8">
-          <h3 className="mb-4 text-xs font-medium tracking-widest uppercase text-ocean-600">{t('browse')}</h3>
+          <h3 className="mb-4 text-xs font-medium tracking-widest uppercase text-neutral-700">{t('browse')}</h3>
           <ul className="flex flex-wrap justify-center gap-2.5">
             {suggestions.map((s) => (
               <li key={s.href}>
                 <Link
                   href={s.href}
-                  className="inline-flex px-4 py-1.5 text-sm border border-gray-300 rounded-lg transition-colors hover:border-ocean-500"
+                  className="inline-flex px-4 py-1.5 text-sm border border-gray-300 rounded-none transition-colors hover:border-neutral-600"
                 >
                   {s.label}
                 </Link>

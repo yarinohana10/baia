@@ -29,20 +29,20 @@ export default async function OrderStatusPage({ params }: { params: Promise<{ lo
       title={t('title')}
       intro={t('intro')}
       aside={
-        <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 text-sm">
+        <div className="space-y-6 rounded-none border border-gray-200 bg-white p-6 text-sm">
           <div className="flex gap-3">
-            <PackageSearch size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+            <PackageSearch size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
             <div>
               <p className="font-semibold text-gray-900">{t('whereTitle')}</p>
               <p className="mt-1 text-gray-500">{t('whereBody')}</p>
             </div>
           </div>
           <div className="flex gap-3">
-            <Undo2 size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+            <Undo2 size={20} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
             <div>
               <p className="font-semibold text-gray-900">{t('cancelTitle')}</p>
               <p className="mt-1 text-gray-500">{t('cancelBody')}</p>
-              <Link href="/cancel-order" className="mt-2 inline-block text-ocean-700 underline underline-offset-2 hover:text-ocean-800">
+              <Link href="/cancel-order" className="mt-2 inline-block text-black underline underline-offset-2 hover:text-black">
                 {t('cancelLink')}
               </Link>
             </div>

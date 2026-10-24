@@ -11,7 +11,7 @@ export function PaymentNotFound() {
       <p className="text-gray-500 mb-8">{t('notPayable')}</p>
       <Link
         href="/order-status"
-        className="inline-block px-6 py-2.5 text-sm bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 transition-colors"
+        className="inline-block px-6 py-2.5 text-sm bg-black text-white rounded-none hover:bg-neutral-800 transition-colors"
       >
         {t('viewOrder')}
       </Link>

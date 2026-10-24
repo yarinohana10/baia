@@ -60,9 +60,9 @@ export function PaymentMethodTabs({
             onClick={() => onSelect(tab.key)}
             onKeyDown={onKeyDown}
             className={cn(
-              'flex items-center justify-center gap-2 rounded-lg border px-2 py-2.5 text-sm transition-colors disabled:opacity-50',
+              'flex items-center justify-center gap-2 rounded-none border px-2 py-2.5 text-sm transition-colors disabled:opacity-50',
               isSelected
-                ? 'border-ocean-700 bg-ocean-50 text-ocean-800 font-medium'
+                ? 'border-black bg-[#F7F7F7] text-black font-medium'
                 : 'border-gray-200 text-gray-600 hover:bg-gray-50',
             )}
           >

@@ -51,9 +51,9 @@ export default async function ReturnsPage({ params }: { params: Promise<{ locale
 
           <Link
             href="/cancel-order"
-            className="group flex gap-4 rounded-xl border border-ocean-200 bg-ocean-50/60 p-5 transition-colors hover:border-ocean-400"
+            className="group flex gap-4 rounded-none border border-neutral-300 bg-[#F7F7F7]/60 p-5 transition-colors hover:border-neutral-500"
           >
-            <XCircle size={24} strokeWidth={1.4} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+            <XCircle size={24} strokeWidth={1.4} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
             <span className="min-w-0">
               <span className="flex items-center gap-1.5 font-semibold text-gray-900">
                 {t('ctaCancel')}
@@ -63,16 +63,16 @@ export default async function ReturnsPage({ params }: { params: Promise<{ locale
             </span>
           </Link>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="rounded-none border border-gray-200 bg-white p-5">
             <div className="flex gap-4">
-              <MessageSquare size={24} strokeWidth={1.4} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+              <MessageSquare size={24} strokeWidth={1.4} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
               <div className="min-w-0">
                 <p className="font-semibold text-gray-900">{t('ctaExchange')}</p>
                 <p className="mt-1 text-sm text-gray-600">{t('ctaExchangeBody')}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
                     href="/contact"
-                    className="inline-flex rounded-lg bg-ocean-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ocean-600"
+                    className="inline-flex rounded-none bg-black px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
                   >
                     {t('ctaContact')}
                   </Link>
@@ -81,7 +81,7 @@ export default async function ReturnsPage({ params }: { params: Promise<{ locale
                       href={whatsapp}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                      className="inline-flex items-center gap-2 rounded-none border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
                     >
                       <WhatsAppGlyph size={16} className="text-[#25D366]" />
                       {t('ctaWhatsapp')}
@@ -92,7 +92,7 @@ export default async function ReturnsPage({ params }: { params: Promise<{ locale
             </div>
           </div>
 
-          <Link href="/terms#cancellation" className="inline-block text-sm font-semibold text-ocean-700 underline-offset-4 hover:underline">
+          <Link href="/terms#cancellation" className="inline-block text-sm font-semibold text-black underline-offset-4 hover:underline">
             {t('termsLink')}
           </Link>
         </div>

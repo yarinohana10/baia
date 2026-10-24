@@ -49,12 +49,12 @@ export function FilterSheet({ open, onOpenChange, locale, controls, available, a
             <button
               type="button"
               onClick={onClearAll}
-              className="h-11 rounded-lg border border-gray-300 px-4 text-sm font-medium text-charcoal"
+              className="h-11 rounded-none border border-gray-300 px-4 text-sm font-medium text-charcoal"
             >
               {t('clearAll')}
             </button>
           )}
-          <SheetClose className="h-11 flex-1 rounded-lg bg-ocean-700 text-sm font-semibold text-white disabled:opacity-70" disabled={pending}>
+          <SheetClose className="h-11 flex-1 rounded-none bg-black text-sm font-semibold text-white disabled:opacity-70" disabled={pending}>
             {pending ? t('updating') : t('showResults', { count: total })}
           </SheetClose>
         </div>

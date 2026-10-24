@@ -26,8 +26,8 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
   const { info, vars } = await legalVars(config);
 
   const coordinator = (
-    <section aria-labelledby="a11y-coordinator" className="mb-4 rounded-xl border border-ocean-100 bg-ocean-50/60 p-6">
-      <div className="flex items-center gap-2 text-ocean-700">
+    <section aria-labelledby="a11y-coordinator" className="mb-4 rounded-none border border-neutral-200 bg-[#F7F7F7]/60 p-6">
+      <div className="flex items-center gap-2 text-black">
         <Accessibility size={22} strokeWidth={1.5} aria-hidden="true" />
         <h2 id="a11y-coordinator" className="!my-0 text-base font-semibold text-gray-900">
           {t('coordinatorTitle')}
@@ -36,14 +36,14 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
       <dl className="mt-4 space-y-3 text-sm">
         {info.accessibilityCoordinatorName && (
           <div className="flex items-center gap-3">
-            <User size={16} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-ocean-700" />
+            <User size={16} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-black" />
             <dt className="sr-only">{t('coordinatorNameLabel')}</dt>
             <dd className="text-gray-900">{info.accessibilityCoordinatorName}</dd>
           </div>
         )}
         {info.accessibilityCoordinatorPhone && (
           <div className="flex items-center gap-3">
-            <Phone size={16} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-ocean-700" />
+            <Phone size={16} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-black" />
             <dt className="sr-only">{t('coordinatorPhoneLabel')}</dt>
             <dd>
               <a href={telHref(info.accessibilityCoordinatorPhone)} dir="ltr" className="text-gray-900 underline underline-offset-4">
@@ -53,7 +53,7 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
           </div>
         )}
         <div className="flex items-center gap-3">
-          <Mail size={16} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-ocean-700" />
+          <Mail size={16} strokeWidth={1.6} aria-hidden="true" className="shrink-0 text-black" />
           <dt className="sr-only">{t('coordinatorEmailLabel')}</dt>
           <dd className="min-w-0">
             <a

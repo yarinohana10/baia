@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useSession, signOut } from '@/lib/auth-client';
-import { ShoppingBag, User, Menu, X, LogOut, LayoutDashboard, Search } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, LogOut, LayoutDashboard, Search, Globe } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { Wordmark } from './Wordmark';
 import { SearchForm } from './SearchForm';
@@ -21,9 +21,11 @@ type LocaleSwitcherProps = {
   pathname: string;
   className?: string;
   onAfterSwitch?: () => void;
+  /** icon: globe only (header, tooltip names the language); label: globe + language name (mobile menu). */
+  variant?: 'icon' | 'label';
 };
 
-function LocaleSwitcher({ pathname, className, onAfterSwitch }: LocaleSwitcherProps) {
+function LocaleSwitcher({ pathname, className, onAfterSwitch, variant = 'icon' }: LocaleSwitcherProps) {
   const locale = useLocale();
   const router = useRouter();
   const t = useTranslations('common');
@@ -37,16 +39,21 @@ function LocaleSwitcher({ pathname, className, onAfterSwitch }: LocaleSwitcherPr
         onAfterSwitch?.();
       }}
       className={className}
-      aria-label={t('switchLang')} data-tip={t('switchLang')}
-      lang={target}
+      aria-label={t('switchLang')}
+      data-tip={variant === 'icon' ? t('switchLang') : undefined}
     >
-      {target === 'en' ? 'EN' : 'עב'}
+      <Globe size={variant === 'icon' ? 20 : 16} strokeWidth={1.5} aria-hidden="true" />
+      {variant === 'label' && (
+        <span lang={target} className="ms-2">
+          {target === 'en' ? 'English' : 'עברית'}
+        </span>
+      )}
     </button>
   );
 }
 
 const iconButton =
-  'tip relative inline-flex size-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-ink/5';
+  'tip relative inline-flex size-10 items-center justify-center rounded-full text-black transition-colors hover:bg-black/5';
 
 export function Header({ nav }: { nav: NavItem[] }) {
   const t = useTranslations('common');
@@ -79,7 +86,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-50 font-brand">
+    <header className="sticky top-0 z-50">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-2 focus:z-[60] focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold"
@@ -87,11 +94,13 @@ export function Header({ nav }: { nav: NavItem[] }) {
         {ts('skipToContent')}
       </a>
 
-      <p className="bg-ink px-4 py-2 text-center text-[12px] font-semibold tracking-wide text-white/90">
+      <p className="bg-black px-4 py-2 text-center text-[12px] font-semibold tracking-wide text-white/90">
         {ts('announcement')}
       </p>
 
-      <div className="border-b border-header-line bg-shell/95 backdrop-blur supports-[backdrop-filter]:bg-shell/85">
+      {/* z-10: the blur makes this bar its own stacking layer, so lift it above the search
+          panel and mobile menu or they would cover the icon tooltips that hang below it. */}
+      <div className="relative z-10 border-b border-header-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div className="container-header grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4 lg:h-20">
           {/* Start: menu (mobile) / nav (desktop) */}
           <div className="flex items-center">
@@ -117,7 +126,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
                     <Link
                       href={item.href}
                       aria-current={isActive(item.href) ? 'page' : undefined}
-                      className="relative py-2 text-[15px] font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-center after:scale-x-[0.01] after:bg-ink after:opacity-0 after:transition-[transform,opacity] after:duration-300 hover:after:scale-x-100 hover:after:opacity-100 aria-[current=page]:after:scale-x-100 aria-[current=page]:after:opacity-100"
+                      className="relative py-2 text-[13px] font-medium uppercase ltr:tracking-[0.16em] rtl:text-[15px] text-black after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-center after:scale-x-[0.01] after:bg-black after:opacity-0 after:transition-[transform,opacity] after:duration-300 hover:after:scale-x-100 hover:after:opacity-100 aria-[current=page]:after:scale-x-100 aria-[current=page]:after:opacity-100"
                     >
                       {item.label}
                     </Link>
@@ -149,7 +158,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
               {searchOpen ? <X size={20} strokeWidth={1.6} /> : <Search size={20} strokeWidth={1.6} />}
             </button>
 
-            <LocaleSwitcher pathname={pathname} className={`${iconButton} text-[13px] font-bold max-sm:hidden`} />
+            <LocaleSwitcher pathname={pathname} className={`${iconButton} max-sm:hidden`} />
 
             {session?.user ? (
               <>
@@ -180,7 +189,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
             <button type="button" onClick={openDrawer} className={`${iconButton} -me-2`} aria-label={t('cartTooltip')} data-tip={t('cartTooltip')}>
               <ShoppingBag size={20} strokeWidth={1.6} />
               {cartCount > 0 && (
-                <span className="absolute end-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral px-1 text-[10px] font-bold text-white">
+                <span className="absolute end-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-white">
                   {cartCount}
                 </span>
               )}
@@ -193,9 +202,9 @@ export function Header({ nav }: { nav: NavItem[] }) {
       {searchOpen && (
         <div
           id="header-search"
-          className="absolute inset-x-0 top-full border-b border-header-line bg-shell shadow-[0_24px_48px_-24px_rgba(15,42,54,0.25)]"
+          className="absolute inset-x-0 top-full border-b border-header-line bg-white shadow-[0_24px_40px_-28px_rgba(0,0,0,0.18)]"
         >
-          <div className="container-header py-4 lg:py-6">
+          <div className="container-header py-5 lg:py-7">
             <SearchForm autoFocus onSubmitted={() => setSearchOpen(false)} className="mx-auto max-w-2xl" />
           </div>
         </div>
@@ -205,7 +214,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
       <div
         id="mobile-menu"
         hidden={!menuOpen}
-        className="absolute inset-x-0 top-full border-b border-header-line bg-shell shadow-[0_24px_48px_-24px_rgba(15,42,54,0.25)] lg:hidden"
+        className="absolute inset-x-0 top-full border-b border-header-line bg-white shadow-[0_24px_48px_-24px_rgba(15,42,54,0.25)] lg:hidden"
       >
         <nav aria-label={ts('primaryNav')} className="container-header py-4">
           <ul>
@@ -214,7 +223,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
                 <Link
                   href={item.href}
                   aria-current={isActive(item.href) ? 'page' : undefined}
-                  className="block py-4 font-display text-2xl text-ink aria-[current=page]:text-header-active"
+                  className="block py-4 text-[15px] font-medium uppercase ltr:tracking-[0.12em] text-black aria-[current=page]:underline underline-offset-4"
                 >
                   {item.label}
                 </Link>
@@ -225,10 +234,11 @@ export function Header({ nav }: { nav: NavItem[] }) {
             <LocaleSwitcher
               pathname={pathname}
               onAfterSwitch={() => setMenuOpen(false)}
-              className="rounded-full border border-ink/20 px-4 py-2 text-ink"
+              variant="label"
+              className="inline-flex items-center rounded-none border border-black/20 px-4 py-2 text-black"
             />
             {isAdmin && (
-              <Link href="/admin" className="inline-flex items-center gap-2 rounded-full border border-ink/20 px-4 py-2 text-ink">
+              <Link href="/admin" className="inline-flex items-center gap-2 rounded-none border border-black/20 px-4 py-2 text-black">
                 <LayoutDashboard size={16} strokeWidth={1.6} />
                 {t('adminPanel')}
               </Link>
@@ -237,7 +247,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="inline-flex items-center gap-2 rounded-full border border-ink/20 px-4 py-2 text-ink"
+                className="inline-flex items-center gap-2 rounded-none border border-black/20 px-4 py-2 text-black"
               >
                 <LogOut size={16} strokeWidth={1.6} />
                 {t('signOut')}

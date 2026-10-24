@@ -17,12 +17,12 @@ export type ShippingSummary = {
 
 function Section({ title, children, defaultOpen = false }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
   return (
-    <details className="group border-b border-gray-200" open={defaultOpen}>
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-sm font-semibold text-charcoal outline-none focus-visible:ring-2 focus-visible:ring-ocean-600 [&::-webkit-details-marker]:hidden">
+    <details className="group border-b border-black/10" open={defaultOpen}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-[12px] font-medium uppercase ltr:tracking-[0.08em] text-black outline-none focus-visible:ring-2 focus-visible:ring-black [&::-webkit-details-marker]:hidden">
         {title}
-        <ChevronDown size={16} aria-hidden="true" className="shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
+        <ChevronDown size={14} aria-hidden="true" className="shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
       </summary>
-      <div className="pb-5 text-sm leading-relaxed text-gray-600">{children}</div>
+      <div className="pb-5 text-[13px] leading-relaxed text-black/65">{children}</div>
     </details>
   );
 }
@@ -50,7 +50,7 @@ export function ProductInfoSections({
   const fit = isHe ? text(product.fitHe) : text(product.fitEn);
 
   return (
-    <div className="border-t border-gray-200">
+    <div className="border-t border-black/10">
       {description && (
         <Section title={t('sections.description')} defaultOpen>
           <p className="whitespace-pre-line">{description}</p>
@@ -61,12 +61,12 @@ export function ProductInfoSections({
         <dl className="space-y-4">
           {fabric && (
             <div>
-              <dt className="mb-1 font-medium text-charcoal">{t('sections.fabric')}</dt>
+              <dt className="mb-1 font-medium text-black">{t('sections.fabric')}</dt>
               <dd className="whitespace-pre-line">{fabric}</dd>
             </div>
           )}
           <div>
-            <dt className="mb-1 font-medium text-charcoal">{t('sections.care')}</dt>
+            <dt className="mb-1 font-medium text-black">{t('sections.care')}</dt>
             <dd className="whitespace-pre-line">{care ?? t('careGeneric')}</dd>
           </div>
         </dl>
@@ -80,16 +80,16 @@ export function ProductInfoSections({
       <Section title={t('sections.shippingReturns')}>
         <ul className="mb-4 space-y-2.5">
           <li className="flex items-start gap-2.5">
-            <Truck size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+            <Truck size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
             <span>
-              <strong className="font-medium text-charcoal">{t('shipping.courier')}</strong> – {shipping.courierCost} ·{' '}
+              <strong className="font-medium text-black">{t('shipping.courier')}</strong> – {shipping.courierCost} ·{' '}
               {t('shipping.eta', { days: shipping.courierEtaDays })}
             </span>
           </li>
           <li className="flex items-start gap-2.5">
-            <MapPin size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-ocean-700" />
+            <MapPin size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-black" />
             <span>
-              <strong className="font-medium text-charcoal">{t('shipping.pickup')}</strong> – {shipping.pickupCost} ·{' '}
+              <strong className="font-medium text-black">{t('shipping.pickup')}</strong> – {shipping.pickupCost} ·{' '}
               {t('shipping.eta', { days: shipping.pickupEtaDays })}
             </span>
           </li>
@@ -101,13 +101,13 @@ export function ProductInfoSections({
           <li>{t('shipping.hygiene')}</li>
         </ul>
         <p className="flex flex-wrap gap-x-4 gap-y-1">
-          <Link href="/shipping" className="text-ocean-700 underline underline-offset-4 hover:text-ocean-800">
+          <Link href="/shipping" className="text-black underline underline-offset-4 hover:text-black">
             {t('shipping.shippingLink')}
           </Link>
-          <Link href="/returns" className="text-ocean-700 underline underline-offset-4 hover:text-ocean-800">
+          <Link href="/returns" className="text-black underline underline-offset-4 hover:text-black">
             {t('shipping.returnsLink')}
           </Link>
-          <Link href="/terms" className="text-ocean-700 underline underline-offset-4 hover:text-ocean-800">
+          <Link href="/terms" className="text-black underline underline-offset-4 hover:text-black">
             {t('shipping.termsLink')}
           </Link>
         </p>

@@ -19,16 +19,16 @@ function AccountLink({ href, icon, title, description }: { href: string; icon: R
   return (
     <Link
       href={href}
-      className="flex items-center justify-between p-5 bg-white border border-gray-200 rounded-xl hover:border-ocean-300 hover:bg-ocean-50/30 transition-colors group mb-6"
+      className="flex items-center justify-between p-5 bg-white border border-gray-200 rounded-none hover:border-neutral-400 hover:bg-[#F7F7F7]/30 transition-colors group mb-6"
     >
       <div className="flex items-center gap-4">
-        <div className="p-2.5 bg-ocean-50 rounded-lg text-ocean-700">{icon}</div>
+        <div className="p-2.5 bg-[#F7F7F7] rounded-none text-black">{icon}</div>
         <div>
-          <p className="font-body text-base font-semibold text-[#1a1c1c]">{title}</p>
-          <p className="font-body text-sm text-[#3f484c]">{description}</p>
+          <p className="text-base font-semibold text-black">{title}</p>
+          <p className="text-sm text-neutral-600">{description}</p>
         </div>
       </div>
-      <ChevronRight size={18} className="text-gray-400 group-hover:text-ocean-600 rtl:rotate-180 transition-colors" />
+      <ChevronRight size={18} className="text-gray-400 group-hover:text-neutral-700 rtl:rotate-180 transition-colors" />
     </Link>
   );
 }
@@ -40,7 +40,7 @@ export default function AccountPage() {
   if (isPending) {
     return (
       <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6 flex justify-center">
-        <Loader2 size={32} className="animate-spin text-ocean-600" />
+        <Loader2 size={32} className="animate-spin text-neutral-700" />
       </div>
     );
   }
@@ -50,11 +50,11 @@ export default function AccountPage() {
   return (
     <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6">
       <div className="mb-10">
-        <h1 className="font-serif text-[32px] leading-[40px] text-[#1a1c1c] mb-2">
+        <h1 className="mb-2 text-[20px] sm:text-[22px] font-semibold uppercase ltr:tracking-[0.06em] text-black">
           {t('title')}
         </h1>
         {user?.name && (
-          <p className="font-body text-base text-[#3f484c]">
+          <p className="text-base text-neutral-600">
             {t('welcome')}, {user.name}
           </p>
         )}
@@ -85,7 +85,7 @@ export default function AccountPage() {
       <button
         type="button"
         onClick={handleSignOut}
-        className="flex items-center justify-center gap-2 w-full py-3.5 border border-gray-200 rounded-xl font-body text-sm font-semibold text-[#3f484c] hover:border-ocean-300 hover:text-ocean-700 hover:bg-ocean-50/30 transition-colors"
+        className="flex items-center justify-center gap-2 w-full py-3.5 border border-gray-200 rounded-none text-sm font-semibold text-neutral-600 hover:border-neutral-400 hover:text-black hover:bg-[#F7F7F7]/30 transition-colors"
       >
         <LogOut size={16} strokeWidth={1.8} />
         {t('signOut')}
