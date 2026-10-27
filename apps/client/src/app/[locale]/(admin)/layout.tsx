@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { forwardedRequestHeaders, serverAuthUrl } from '@/lib/api-urls';
+import { getLogoUrl } from '@/lib/brand';
 
 async function getSession() {
   const headersList = await headers();
@@ -39,5 +40,5 @@ export default async function AdminLayout({
     redirect(`/${locale}`);
   }
 
-  return <AdminShell user={session.user}>{children}</AdminShell>;
+  return <AdminShell user={session.user} logoUrl={getLogoUrl()}>{children}</AdminShell>;
 }

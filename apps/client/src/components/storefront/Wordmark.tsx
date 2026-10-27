@@ -1,25 +1,27 @@
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { LOGO_FALLBACK_URL } from '@/lib/brand';
 
-/** BAIA wordmark — always LTR so it reads the same in Hebrew and English. */
-export function Wordmark({ className, tone = 'ink' }: { className?: string; tone?: 'ink' | 'light' }) {
+/** BAIA logo (sun, wave and wordmark in the brand light blue). Size it with a height class. */
+export function Wordmark({
+  src = LOGO_FALLBACK_URL,
+  className,
+  priority,
+}: {
+  /** Logo URL from getLogoUrl() (the assets bucket in deployed environments). */
+  src?: string;
+  className?: string;
+  priority?: boolean;
+}) {
   return (
-    <span dir="ltr" className={cn('inline-flex flex-col items-center leading-none', className)}>
-      <span
-        className={cn(
-          'font-display text-[26px] font-medium tracking-[0.32em] ps-[0.32em]',
-          tone === 'ink' ? 'text-ink' : 'text-white',
-        )}
-      >
-        BAIA
-      </span>
-      <span
-        className={cn(
-          'mt-1 text-[9px] font-semibold tracking-[0.5em] ps-[0.5em]',
-          tone === 'ink' ? 'text-[#5E6B70]' : 'text-white/70',
-        )}
-      >
-        SWIMWEAR
-      </span>
-    </span>
+    <Image
+      src={src}
+      alt="BAIA Swimwear"
+      width={839}
+      height={686}
+      priority={priority}
+      sizes="160px"
+      className={cn('h-12 w-auto', className)}
+    />
   );
 }

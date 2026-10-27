@@ -55,7 +55,7 @@ function LocaleSwitcher({ pathname, className, onAfterSwitch, variant = 'icon' }
 const iconButton =
   'tip relative inline-flex size-10 items-center justify-center rounded-full text-black transition-colors hover:bg-black/5';
 
-export function Header({ nav }: { nav: NavItem[] }) {
+export function Header({ nav, logoUrl }: { nav: NavItem[]; logoUrl?: string }) {
   const t = useTranslations('common');
   const ts = useTranslations('storefront');
   const pathname = usePathname();
@@ -94,7 +94,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
         {ts('skipToContent')}
       </a>
 
-      <p className="bg-black px-4 py-2 text-center text-[12px] font-semibold tracking-wide text-white/90">
+      <p className="bg-black px-4 py-2 text-center text-[12px] font-semibold tracking-wide text-logo-blue">
         {ts('announcement')}
       </p>
 
@@ -121,8 +121,8 @@ export function Header({ nav }: { nav: NavItem[] }) {
           </div>
 
           {/* Center: wordmark */}
-          <Link href="/" aria-label="BAIA Swimwear" className="justify-self-center">
-            <Wordmark />
+          <Link href="/" className="justify-self-center">
+            <Wordmark src={logoUrl} priority className="h-14 lg:h-16" />
           </Link>
 
           {/* End: actions */}

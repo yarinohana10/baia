@@ -12,7 +12,6 @@ import {
   FolderTree,
   Tags,
   Settings,
-  Waves,
   Bell,
   Search,
   Shield,
@@ -27,6 +26,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { Wordmark } from '@/components/storefront/Wordmark';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -115,9 +115,11 @@ function CountBadge({ count, active, label }: { count: number; active?: boolean;
 
 export function AdminShell({
   user,
+  logoUrl,
   children,
 }: {
   user: AdminUser;
+  logoUrl?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -185,13 +187,8 @@ export function AdminShell({
         )}
       >
         <div className="flex items-center gap-3 px-6 py-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ocean-700 text-white">
-            <Waves size={20} strokeWidth={2} />
-          </div>
-          <div>
-            <p className="font-serif text-xl leading-none tracking-[-0.02em] text-foreground">
-              BAIA
-            </p>
+          <div className="flex items-center gap-3">
+            <Wordmark src={logoUrl} className="h-14" />
             <p className="font-body text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
               {t('panelTitle')}
             </p>

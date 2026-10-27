@@ -8,6 +8,7 @@ import { JsonLd } from '@/components/storefront/JsonLd';
 import { getProducts, getSiteConfig, toCardProduct } from '@/lib/catalog/server';
 import type { Product } from '@/lib/catalog/types';
 import { SITE_NAME, absoluteUrl, getSiteUrl, pageMetadata } from '@/lib/seo';
+import { getLogoUrl } from '@/lib/brand';
 
 export const revalidate = 300;
 
@@ -100,7 +101,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             '@type': 'Organization',
             name: SITE_NAME,
             url: siteUrl,
-            logo: new URL('/logo/baia-logo.svg', siteUrl).toString(),
+            logo: new URL(getLogoUrl(), siteUrl).toString(),
           },
           {
             '@context': 'https://schema.org',
