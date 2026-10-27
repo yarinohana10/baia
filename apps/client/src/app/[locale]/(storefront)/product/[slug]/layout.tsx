@@ -4,7 +4,8 @@ import { getTranslations } from 'next-intl/server';
 import { JsonLd } from '@/components/storefront/JsonLd';
 import { localizedName } from '@/lib/catalog/names';
 import { getProduct } from '@/lib/catalog/server';
-import { isInStock, isSaleActive } from '@/lib/catalog/pricing';
+import { isInStock, isSaleActive, uniqueColors } from '@/lib/catalog/pricing';
+import { translateColor } from '@/lib/catalog/color-names';
 import { SITE_NAME, absoluteUrl, breadcrumbJsonLd, pageMetadata } from '@/lib/seo';
 import type { Product } from '@/lib/catalog/types';
 
@@ -39,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-function productJsonLd(product: Product, locale: string) {
+function productJsonLd(product: Product, locale: string, colorName: (color: string) => string) {
   const url = absoluteUrl(locale, `/product/${product.slug}`);
   const base = parseFloat(product.basePrice);
   const offers = product.variants.map((v) => {
@@ -65,6 +66,7 @@ function productJsonLd(product: Product, locale: string) {
     image: product.images.map((i) => i.url),
     sku: product.slug,
     brand: { '@type': 'Brand', name: SITE_NAME },
+    color: uniqueColors(product.variants.filter((v) => v.isActive)).map(colorName).join(', ') || undefined,
     category: product.category ? localizedName(product.category, locale) : undefined,
     url,
     offers:
@@ -93,7 +95,10 @@ export default async function ProductLayout({ children, params }: Props & { chil
   const product = await getProduct(slug);
   if (!product) notFound();
 
-  const t = await getTranslations({ locale, namespace: 'storefront' });
+  const [t, tColors] = await Promise.all([
+    getTranslations({ locale, namespace: 'storefront' }),
+    getTranslations({ locale, namespace: 'colors' }),
+  ]);
   const cat = product.category;
   const crumbs = [
     { name: t('home'), url: absoluteUrl(locale, '/') },
@@ -104,7 +109,7 @@ export default async function ProductLayout({ children, params }: Props & { chil
 
   return (
     <>
-      <JsonLd data={[productJsonLd(product, locale), breadcrumbJsonLd(crumbs)]} />
+      <JsonLd data={[productJsonLd(product, locale, (color) => translateColor(tColors, color)), breadcrumbJsonLd(crumbs)]} />
       {children}
     </>
   );

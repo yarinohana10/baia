@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import type { Metadata, Viewport } from 'next';
 import { Assistant, Frank_Ruhl_Libre, Heebo, Inter, Lato, Libre_Caslon_Text, DM_Sans } from 'next/font/google';
-import { SITE_NAME, getSiteUrl, ogLocale } from '@/lib/seo';
+import { DEFAULT_SHARE_IMAGE, SITE_NAME, getSiteUrl, ogLocale } from '@/lib/seo';
 import '../globals.css';
 
 // Storefront type: Inter for Latin text, Heebo (same clean grotesque feel) for
@@ -83,14 +83,11 @@ export async function generateMetadata({
       siteName: SITE_NAME,
       locale: ogLocale(locale),
       alternateLocale: routing.locales.flatMap((l) => (l === locale ? [] : [ogLocale(l)])),
+      images: [DEFAULT_SHARE_IMAGE],
     },
-    twitter: { card: 'summary_large_image' },
+    twitter: { card: 'summary_large_image', images: [DEFAULT_SHARE_IMAGE.url] },
     robots: { index: true, follow: true },
-    icons: {
-      icon: [
-        { url: '/favicon.svg', type: 'image/svg+xml' },
-      ],
-    },
+    // Favicons come from the app/ file conventions (favicon.ico, icon.png, apple-icon.png).
   };
 }
 

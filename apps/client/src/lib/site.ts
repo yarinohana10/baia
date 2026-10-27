@@ -8,6 +8,15 @@ import { LOW_STOCK_THRESHOLD, formatPrice } from './catalog/pricing';
  */
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'baiaswimwear0@gmail.com';
 
+/**
+ * The brand's social profiles: linked from the footer and listed as `sameAs` in the
+ * homepage Organization data, so search engines tie them to the site.
+ */
+export const SOCIAL_LINKS = [
+  { id: 'instagram', name: 'Instagram', href: 'https://www.instagram.com/baiaswimm/' },
+  { id: 'tiktok', name: 'TikTok', href: 'https://www.tiktok.com/@baia.swim' },
+] as const;
+
 /** ח.פ. value meaning "company not registered yet" (schema default). */
 export const COMPANY_ID_PLACEHOLDER = '000000000';
 

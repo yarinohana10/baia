@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { formatPrice } from '@/lib/catalog/pricing';
 import { activeFilterChips, type FilterChip } from '@/lib/catalog/filter-options';
 import type { ListingFilters } from '@/lib/catalog/query';
+import { useColorName } from '@/hooks/catalog/useColorName';
 
 type FiltersT = ReturnType<typeof useTranslations<'filters'>>;
 
@@ -23,12 +24,12 @@ function priceLabel(t: FiltersT, minPrice: number | undefined, maxPrice: number 
   return t('priceUpTo', { max: max ?? '' });
 }
 
-function chipLabel(t: FiltersT, chip: FilterChip): string {
+function chipLabel(t: FiltersT, chip: FilterChip, colorName: (color: string) => string): string {
   switch (chip.kind) {
     case 'size':
       return `${t('size')}: ${chip.value}`;
     case 'color':
-      return `${t('color')}: ${chip.value}`;
+      return `${t('color')}: ${colorName(chip.value)}`;
     case 'price':
       return priceLabel(t, chip.min, chip.max);
     case 'inStock':
@@ -39,10 +40,11 @@ function chipLabel(t: FiltersT, chip: FilterChip): string {
 /** Removable chips for the active filters, plus "Clear all". */
 export function ActiveChips({ filters, onApply, onClearAll, locale }: Props) {
   const t = useTranslations('filters');
+  const colorName = useColorName();
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2" aria-label={t('active')} role="group" lang={locale}>
       {activeFilterChips(filters).map((chip) => {
-        const label = chipLabel(t, chip);
+        const label = chipLabel(t, chip, colorName);
         return (
           <button
             key={chip.key}

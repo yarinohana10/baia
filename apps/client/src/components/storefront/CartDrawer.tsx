@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useColorName } from '@/hooks/catalog/useColorName';
 import { Link } from '@/i18n/navigation';
 import {
   canDecrease,
@@ -29,6 +30,7 @@ import { Button } from '@/components/ui/button';
 export function CartDrawer() {
   const locale = useLocale();
   const t = useTranslations('cart');
+  const colorName = useColorName();
   const tErrors = useTranslations('checkout.errors');
   const {
     items,
@@ -126,7 +128,7 @@ export function CartDrawer() {
                         {name}
                       </Link>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {item.variant.color} / {item.variant.size}
+                        {colorName(item.variant.color)} / {item.variant.size}
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center border border-gray-200 rounded-none overflow-hidden">

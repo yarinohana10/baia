@@ -9,6 +9,7 @@ import { getProducts, getSiteConfig, toCardProduct } from '@/lib/catalog/server'
 import type { Product } from '@/lib/catalog/types';
 import { SITE_NAME, absoluteUrl, getSiteUrl, pageMetadata } from '@/lib/seo';
 import { getLogoUrl } from '@/lib/brand';
+import { SOCIAL_LINKS } from '@/lib/site';
 
 export const revalidate = 300;
 
@@ -102,11 +103,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             name: SITE_NAME,
             url: siteUrl,
             logo: new URL(getLogoUrl(), siteUrl).toString(),
+            sameAs: SOCIAL_LINKS.map((s) => s.href),
           },
           {
             '@context': 'https://schema.org',
             '@type': 'WebSite',
             name: SITE_NAME,
+            alternateName: ['BAIA', 'BAIA בגדי ים'],
             url: absoluteUrl(locale, '/'),
             inLanguage: he ? 'he-IL' : 'en-US',
           },

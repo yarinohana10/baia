@@ -105,6 +105,12 @@ const MEN_PRODUCTS = [
 
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 
+/** Hebrew names for the seed colours, so the Hebrew descriptions stay all-Hebrew. */
+const COLOR_HE: Record<string, string> = {
+  Black: 'שחור', 'Blue Stripe': 'פסים כחולים', Blue: 'כחול', Brown: 'חום', Burgundy: 'בורדו', Camo: 'קמופלאז׳',
+  Charcoal: 'פחם', Cream: 'קרם', Green: 'ירוק', Orange: 'כתום', Red: 'אדום', Taupe: 'טאופ', Wine: 'יין', Yellow: 'צהוב',
+};
+
 // Resolve path to client public directory (works from both local and Docker)
 function resolvePublicPath(imagePath: string): string | null {
   const cwd = process.cwd();
@@ -289,7 +295,7 @@ async function main() {
         nameHe: product.nameHe,
         nameEn: product.nameEn,
         slug: product.slug,
-        descriptionHe: `מכנסי ים איכותיים מבד מתייבש מהר עם שרוך מותאם. צבע: ${product.color}`,
+        descriptionHe: `מכנסי ים איכותיים מבד מתייבש מהר עם שרוך מותאם. צבע: ${COLOR_HE[product.color] ?? product.color}`,
         descriptionEn: `Premium swim shorts with quick-dry fabric and adjustable drawstring. Color: ${product.color}`,
         basePrice: product.price,
         categoryId: menSwimShorts.id,
