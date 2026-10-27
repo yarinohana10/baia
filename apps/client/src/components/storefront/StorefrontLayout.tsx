@@ -24,7 +24,11 @@ export async function StorefrontLayout({ children }: { children: React.ReactNode
         { label: tNav('men'), href: '/category/men' },
         { label: tNav('children'), href: '/category/children' },
       ];
-  const nav: NavItem[] = [...categoryNav, { label: tNav('newArrivals'), href: '/new-arrivals' }];
+  const nav: NavItem[] = [
+    ...categoryNav,
+    { label: tNav('newArrivals'), href: '/new-arrivals' },
+    { label: tNav('featured'), href: '/featured' },
+  ];
 
   // --radius 0: shared UI pieces (inputs, cards, selects) render square in the store, as in
   // the rest of the design; the admin keeps its own rounded look.

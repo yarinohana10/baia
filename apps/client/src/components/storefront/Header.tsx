@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useSession, signOut } from '@/lib/auth-client';
-import { ShoppingBag, User, Menu, X, LogOut, LayoutDashboard, Search, Globe } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, LogOut, LayoutDashboard, Search, Globe, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { Wordmark } from './Wordmark';
 import { SearchForm } from './SearchForm';
@@ -67,7 +67,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
   const openDrawer = useCartStore((s) => s.openDrawer);
   const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'ADMIN';
 
-  // Close the mobile menu and search panel on navigation and on Escape.
+  // Close the menu and search panel on navigation and on Escape.
   useEffect(() => {
     setMenuOpen(false);
     setSearchOpen(false);
@@ -102,38 +102,22 @@ export function Header({ nav }: { nav: NavItem[] }) {
           panel and mobile menu or they would cover the icon tooltips that hang below it. */}
       <div className="relative z-10 border-b border-header-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div className="container-header grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4 lg:h-20">
-          {/* Start: menu (mobile) / nav (desktop) */}
+          {/* Start: menu button (categories live in the menu at every screen size) */}
           <div className="flex items-center">
             <button
               type="button"
-              className={`${iconButton} -ms-2 lg:hidden`}
+              className={`${iconButton} -ms-2`}
               onClick={() => {
                 setMenuOpen((o) => !o);
                 setSearchOpen(false);
               }}
               aria-expanded={menuOpen}
-              aria-controls="mobile-menu"
+              aria-controls="site-menu"
               aria-label={menuOpen ? ts('closeMenu') : ts('menu')}
               data-tip={menuOpen ? ts('closeMenu') : ts('menu')}
             >
               {menuOpen ? <X size={22} strokeWidth={1.6} /> : <Menu size={22} strokeWidth={1.6} />}
             </button>
-
-            <nav aria-label={ts('primaryNav')} className="hidden lg:block">
-              <ul className="flex items-center gap-7">
-                {nav.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      aria-current={isActive(item.href) ? 'page' : undefined}
-                      className="relative py-2 text-[13px] font-medium uppercase ltr:tracking-[0.16em] rtl:text-[15px] text-black after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-center after:scale-x-[0.01] after:bg-black after:opacity-0 after:transition-[transform,opacity] after:duration-300 hover:after:scale-x-100 hover:after:opacity-100 aria-[current=page]:after:scale-x-100 aria-[current=page]:after:opacity-100"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
           </div>
 
           {/* Center: wordmark */}
@@ -210,35 +194,48 @@ export function Header({ nav }: { nav: NavItem[] }) {
         </div>
       )}
 
-      {/* Mobile menu */}
+      {/* Click-outside layer: closes the menu when tapping the page behind it. */}
+      {menuOpen && (
+        <div aria-hidden="true" className="fixed inset-0 -z-10 bg-black/25" onClick={() => setMenuOpen(false)} />
+      )}
+
+      {/* Site menu */}
       <div
-        id="mobile-menu"
+        id="site-menu"
         hidden={!menuOpen}
-        className="absolute inset-x-0 top-full border-b border-header-line bg-white shadow-[0_24px_48px_-24px_rgba(15,42,54,0.25)] lg:hidden"
+        className="absolute inset-x-0 top-full max-h-[calc(100dvh-7rem)] overflow-y-auto border-b border-header-line bg-white shadow-[0_24px_48px_-24px_rgba(15,42,54,0.25)] sm:inset-x-auto sm:start-0 sm:h-[calc(100dvh-6.25rem)] lg:h-[calc(100dvh-7.25rem)] sm:max-h-none sm:w-96 sm:border-b-0 sm:border-e sm:shadow-[0_0_48px_-12px_rgba(15,42,54,0.25)]"
       >
-        <nav aria-label={ts('primaryNav')} className="container-header py-4">
-          <ul>
+        <nav aria-label={ts('primaryNav')} className="px-4 py-5 sm:px-6 sm:py-7">
+          <ul className="flex flex-col gap-1">
             {nav.map((item) => (
-              <li key={item.href} className="border-b border-header-line last:border-0">
+              <li key={item.href}>
+                {/* Hover/active: shell background, ocean text, a sand bar on the start edge and a
+                    sliding arrow, so every row clearly reads as a link. */}
                 <Link
                   href={item.href}
                   aria-current={isActive(item.href) ? 'page' : undefined}
-                  className="block py-4 text-[15px] font-medium uppercase ltr:tracking-[0.12em] text-black aria-[current=page]:underline underline-offset-4"
+                  className="group relative flex min-h-14 items-center justify-between gap-4 border-s-2 border-transparent px-4 text-[16px] font-medium uppercase ltr:tracking-[0.12em] text-ink transition-colors duration-200 hover:border-sand-400 hover:bg-sand-100/60 hover:text-ocean-700 focus-visible:border-sand-400 focus-visible:bg-sand-100/60 focus-visible:text-ocean-700 focus-visible:outline-none aria-[current=page]:border-ocean-700 aria-[current=page]:bg-ocean-50 aria-[current=page]:font-semibold aria-[current=page]:text-ocean-700"
                 >
                   {item.label}
+                  <ChevronRight
+                    size={18}
+                    strokeWidth={1.6}
+                    aria-hidden="true"
+                    className="shrink-0 text-ink/30 transition-[transform,color] duration-200 rtl:rotate-180 group-hover:text-sand-600 group-hover:ltr:translate-x-1 group-hover:rtl:-translate-x-1 group-focus-visible:text-sand-600 group-aria-[current=page]:text-ocean-700"
+                  />
                 </Link>
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-header-line pt-4 text-sm font-semibold">
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-header-line pt-4 text-sm font-semibold sm:hidden">
             <LocaleSwitcher
               pathname={pathname}
               onAfterSwitch={() => setMenuOpen(false)}
               variant="label"
-              className="inline-flex items-center rounded-none border border-black/20 px-4 py-2 text-black"
+              className="inline-flex items-center rounded-none border border-black/20 px-4 py-2 text-ink transition-colors hover:border-ocean-700 hover:bg-shell hover:text-ocean-700"
             />
             {isAdmin && (
-              <Link href="/admin" className="inline-flex items-center gap-2 rounded-none border border-black/20 px-4 py-2 text-black">
+              <Link href="/admin" className="inline-flex items-center gap-2 rounded-none border border-black/20 px-4 py-2 text-ink transition-colors hover:border-ocean-700 hover:bg-shell hover:text-ocean-700">
                 <LayoutDashboard size={16} strokeWidth={1.6} />
                 {t('adminPanel')}
               </Link>
@@ -247,7 +244,7 @@ export function Header({ nav }: { nav: NavItem[] }) {
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="inline-flex items-center gap-2 rounded-none border border-black/20 px-4 py-2 text-black"
+                className="inline-flex items-center gap-2 rounded-none border border-black/20 px-4 py-2 text-ink transition-colors hover:border-ocean-700 hover:bg-shell hover:text-ocean-700"
               >
                 <LogOut size={16} strokeWidth={1.6} />
                 {t('signOut')}
