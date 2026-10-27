@@ -55,7 +55,16 @@ function LocaleSwitcher({ pathname, className, onAfterSwitch, variant = 'icon' }
 const iconButton =
   'tip relative inline-flex size-10 items-center justify-center rounded-full text-black transition-colors hover:bg-black/5';
 
-export function Header({ nav, logoUrl }: { nav: NavItem[]; logoUrl?: string }) {
+export function Header({
+  nav,
+  logoUrl,
+  freeShippingThreshold,
+}: {
+  nav: NavItem[];
+  logoUrl?: string;
+  /** Formatted free-shipping threshold from the site settings, e.g. "₪450". */
+  freeShippingThreshold: string;
+}) {
   const t = useTranslations('common');
   const ts = useTranslations('storefront');
   const pathname = usePathname();
@@ -94,8 +103,8 @@ export function Header({ nav, logoUrl }: { nav: NavItem[]; logoUrl?: string }) {
         {ts('skipToContent')}
       </a>
 
-      <p className="bg-black px-4 py-2 text-center text-[12px] font-semibold tracking-wide text-logo-blue">
-        {ts('announcement')}
+      <p className="border-b border-header-line bg-white px-4 py-2 text-center text-[12px] font-semibold tracking-wide text-logo-blue">
+        {ts('announcement', { threshold: freeShippingThreshold })}
       </p>
 
       {/* z-10: the blur makes this bar its own stacking layer, so lift it above the search

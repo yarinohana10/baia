@@ -34,7 +34,7 @@ export function settingsFromConfig(d: SiteConfigDelivery): DeliverySettings {
   return {
     shippingCost: String(Number(d.shippingCost ?? 29.9)),
     pickupPointCost: String(Number(d.pickupPointCost ?? 19.9)),
-    freeShippingThreshold: String(Number(d.freeShippingThreshold ?? 249)),
+    freeShippingThreshold: String(Number(d.freeShippingThreshold ?? 450)),
     courierEtaDays: d.courierEtaDays ?? '3-5',
     pickupEtaDays: d.pickupEtaDays ?? '2-4',
   };

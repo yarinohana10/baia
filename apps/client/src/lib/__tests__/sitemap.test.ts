@@ -41,7 +41,7 @@ describe('buildSitemap', () => {
     const [entry] = buildSitemap([], [product('p1')]).filter((e) => e.url.endsWith('/he/product/p1'));
     expect(entry.alternates?.languages).toMatchObject({
       en: 'https://baia.example/en/product/p1',
-      'x-default': 'https://baia.example/he/product/p1',
+      'x-default': 'https://baia.example/en/product/p1',
     });
     expect(entry.lastModified).toEqual(new Date('2026-09-05T20:00:00.000Z'));
   });

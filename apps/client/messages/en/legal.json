@@ -129,6 +129,7 @@
           "paragraphs": [
             "Swimwear is worn close to the body. To protect the health of all our customers, every item ships with a hygiene liner and original tags.",
             "Store policy: an item can be returned or exchanged only if it has not been worn (other than a brief try-on over underwear), washed or exposed to water, sunscreen or perfume, and the hygiene liner and original tags are still attached. For hygiene and public-health reasons we may refuse to accept an item that does not meet these conditions, subject to applicable law.",
+            "Swimwear cannot be returned or exchanged if the hygiene sticker is missing.",
             "This does not limit your right to return a defective item or an item that is not what you ordered."
           ]
         },
@@ -473,6 +474,10 @@
         {
           "title": "Swimwear hygiene rules",
           "body": "For hygiene reasons we can only accept items that haven't been worn (other than a brief try-on over underwear), washed or exposed to water, sunscreen or perfume - with the hygiene liner and original tags attached. Items that don't meet these conditions may be refused."
+        },
+        {
+          "title": "Hygiene sticker",
+          "body": "Swimwear cannot be returned or exchanged if the hygiene sticker is missing."
         },
         {
           "title": "Exchanging a size or colour",

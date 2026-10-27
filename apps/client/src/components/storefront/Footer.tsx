@@ -6,9 +6,9 @@ import { SOCIAL_LINKS, businessInfo, telHref, whatsappHref } from '@/lib/site';
 import type { NavItem } from './Header';
 import { NewsletterForm } from './NewsletterForm';
 import { WhatsAppGlyph } from './WhatsAppGlyph';
-import { InstagramGlyph, TikTokGlyph } from './SocialGlyphs';
+import { FacebookGlyph, InstagramGlyph, TikTokGlyph } from './SocialGlyphs';
 
-const SOCIAL_GLYPHS = { instagram: InstagramGlyph, tiktok: TikTokGlyph };
+const SOCIAL_GLYPHS = { instagram: InstagramGlyph, tiktok: TikTokGlyph, facebook: FacebookGlyph };
 
 function FooterColumn({ title, links }: { title: string; links: NavItem[] }) {
   return (

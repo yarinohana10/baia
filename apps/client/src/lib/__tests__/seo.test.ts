@@ -10,12 +10,12 @@ describe('seo helpers', () => {
     expect(absoluteUrl('en', '/category/men')).toBe('https://baia.example/en/category/men');
   });
 
-  it('returns hreflang alternates for every locale plus x-default (Hebrew)', () => {
+  it('returns hreflang alternates for every locale plus x-default (English)', () => {
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://baia.example');
     expect(languageAlternates('/shipping')).toEqual({
       he: 'https://baia.example/he/shipping',
       en: 'https://baia.example/en/shipping',
-      'x-default': 'https://baia.example/he/shipping',
+      'x-default': 'https://baia.example/en/shipping',
     });
   });
 

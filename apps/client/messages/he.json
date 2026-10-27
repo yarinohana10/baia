@@ -149,7 +149,6 @@
     "menCategory": "גברים",
     "womenCategory": "נשים",
     "kidsCategory": "ילדים",
-    "freeShippingBanner": "משלוח חינם בקנייה מעל ₪249",
     "viewAll": "הצג הכל",
     "comingSoon": "עוד מוצרים בקרוב.",
     "heroEyebrow": "קולקציית קיץ",
@@ -218,7 +217,7 @@
     "shippingPolicy": "מדיניות משלוחים",
     "returnsExchanges": "החזרות והחלפות",
     "contactUs": "צור קשר",
-    "freeShipping": "משלוח חינם מעל ₪249",
+    "freeShipping": "משלוח חינם מעל {threshold}",
     "securePayment": "תשלום מאובטח",
     "easyReturns": "החזרות קלות",
     "copyright": "© {year} BAIA בגדי ים. כל הזכויות שמורות.",
@@ -238,8 +237,8 @@
   },
   "seo": {
     "homeTitle": "BAIA בגדי ים — בגדי ים ים-תיכוניים לכל המשפחה",
-    "homeDescription": "בגדי ים פרימיום לנשים, גברים וילדים, בהשראת הקיץ הים-תיכוני. משלוח חינם בהזמנה מעל ₪249 והחזרות בקלות.",
-    "categoryDescription": "בגדי ים {name} ב-BAIA — פריטי פרימיום בהשראת הקיץ הים-תיכוני. משלוח חינם מעל ₪249.",
+    "homeDescription": "בגדי ים פרימיום לנשים, גברים וילדים, בהשראת הקיץ הים-תיכוני. משלוח חינם והחזרות בקלות.",
+    "categoryDescription": "בגדי ים {name} ב-BAIA — פריטי פרימיום בהשראת הקיץ הים-תיכוני. משלוח חינם והחזרות בקלות.",
     "newArrivalsTitle": "חדש באתר",
     "newArrivalsDescription": "בגדי הים החדשים של BAIA לנשים, גברים וילדים — ישר מקולקציית הקיץ.",
     "featuredTitle": "מוצרים מובחרים",
@@ -251,7 +250,7 @@
     "searchDescription": "חיפוש בקולקציית בגדי הים של BAIA."
   },
   "storefront": {
-    "announcement": "משלוח חינם בהזמנה מעל ₪249 · החזרות קלות עד 14 יום",
+    "announcement": "משלוח חינם בהזמנה מעל {threshold}",
     "skipToContent": "דילוג לתוכן",
     "menu": "תפריט",
     "closeMenu": "סגירת התפריט",
@@ -282,7 +281,6 @@
     },
     "values": {
       "title": "למה BAIA",
-      "shippingTitle": "משלוח חינם מעל ₪249",
       "shippingBody": "משלוח מהיר לכל הארץ, עד הבית.",
       "returnsTitle": "החזרות בקלות",
       "returnsBody": "התחרטתם? אפשר להחזיר או להחליף תוך 14 יום.",

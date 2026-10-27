@@ -25,7 +25,7 @@ export function ogLocale(locale: string): string {
   return locale === 'he' ? 'he_IL' : 'en_US';
 }
 
-/** hreflang map for a path in every locale, plus x-default (Hebrew is the default market). */
+/** hreflang map for a path in every locale, plus x-default (English, the default locale). */
 export function languageAlternates(path = '/'): Record<string, string> {
   const languages: Record<string, string> = {};
   for (const l of locales) languages[l] = absoluteUrl(l, path);
