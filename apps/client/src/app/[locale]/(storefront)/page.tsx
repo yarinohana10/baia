@@ -87,7 +87,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const he = locale === 'he';
   const featured = featuredProducts.map(toCardProduct);
 
-  const heroImage = siteConfig?.heroImageUrl || '/hero/hero-woman.jpg';
+  const heroImage = siteConfig?.heroImageUrl || '/hero/hero-bar.jpg';
 
   const siteUrl = getSiteUrl().toString();
 
@@ -113,7 +113,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       />
 
       {/* ─── Hero (full-width campaign photo) ─ */}
-      <section className="relative aspect-[3/4] overflow-hidden bg-neutral-100 sm:aspect-[4/3] lg:aspect-[12/5]">
+      <section className="relative aspect-[3/4] overflow-hidden bg-neutral-100 sm:aspect-[16/9] md:aspect-[5/2]">
         <h1 className="sr-only">{t('heroTitle')}</h1>
         <Image
           src={heroImage}
@@ -121,7 +121,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           fill
           priority
           sizes="100vw"
-          className="object-cover object-[50%_48%]"
+          className="object-cover object-[92%_50%] md:object-center"
         />
       </section>
 
