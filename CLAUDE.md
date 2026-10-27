@@ -1,5 +1,11 @@
 # Baia
 
+## Rules
+
+### Responsive
+
+The whole site must be responsive and work at every screen size, from small phones (~360px) to wide desktops. Every UI change has to look right on mobile, tablet and desktop: no horizontal scrolling, no cut-off content, tap targets usable on touch. Check a UI change at phone (375px), tablet (768px) and desktop (1440px) widths before calling it done.
+
 ## Agent skills
 
 ### Issue tracker
