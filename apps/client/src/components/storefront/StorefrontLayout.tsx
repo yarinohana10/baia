@@ -7,6 +7,7 @@ import { WhatsAppButton } from './WhatsAppButton';
 import { CookieConsent } from './CookieConsent';
 import { AccessibilityMenu } from './AccessibilityMenu';
 import { getCategories, getSiteConfig } from '@/lib/catalog/server';
+import { getLogoUrl } from '@/lib/brand';
 
 export async function StorefrontLayout({ children }: { children: React.ReactNode }) {
   const [locale, categories, tNav, config] = await Promise.all([
@@ -34,7 +35,7 @@ export async function StorefrontLayout({ children }: { children: React.ReactNode
   // the rest of the design; the admin keeps its own rounded look.
   return (
     <div className="flex min-h-screen flex-col overflow-x-clip bg-white [--radius:0px]">
-      <Header nav={nav} />
+      <Header nav={nav} logoUrl={getLogoUrl()} />
       <main id="main" className="flex-1">
         {children}
       </main>

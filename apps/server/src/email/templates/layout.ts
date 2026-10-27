@@ -463,7 +463,7 @@ export function renderLayout(parts: LayoutParts, ctx: LayoutContext = defaultLay
       <tr><td align="center" style="padding:8px 0 20px;">
         <!-- Logo PNG (SVG isn't supported by Gmail/Outlook). Light pill keeps it legible in dark mode; alt text shows when images are blocked. -->
         <table ${TABLE} align="center"><tr><td bgcolor="#ffffff" style="background:#ffffff;border-radius:10px;padding:10px 18px;">
-          <img src="${e(logoUrl(ctx.branding.siteUrl))}" width="220" height="44" alt="BAIA SWIMWEAR" style="display:block;width:220px;height:44px;border:0;outline:none;text-decoration:none;font-family:${SERIF};font-size:22px;letter-spacing:6px;color:#1B4965;">
+          <img src="${e(logoUrl(ctx.branding.siteUrl))}" width="110" height="90" alt="BAIA SWIMWEAR" style="display:block;width:110px;height:90px;border:0;outline:none;text-decoration:none;font-family:${SERIF};font-size:22px;letter-spacing:6px;color:#1B4965;">
         </td></tr></table>
       </td></tr>
       <tr><td class="em-card em-card-pad" dir="${d.dir}" bgcolor="${C.card}" style="background:${C.card};border-radius:12px;padding:36px 32px;text-align:${d.start};">

@@ -31,6 +31,8 @@
 
   /* Header-only tokens (the redesigned header was kept; the rest of the site uses the palette above). */
   --color-ink: #0F2A36;
+  /* The light blue of the BAIA logo. */
+  --color-logo-blue: #6BAFD6;
   --color-shell: #FAF6EF;
   --color-coral: #B5452D;
   --color-header-line: #EDEDED;
