@@ -15,6 +15,7 @@ export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'baiaswimw
 export const SOCIAL_LINKS = [
   { id: 'instagram', name: 'Instagram', href: 'https://www.instagram.com/baiaswimm/' },
   { id: 'tiktok', name: 'TikTok', href: 'https://www.tiktok.com/@baia.swim' },
+  { id: 'facebook', name: 'Facebook', href: 'https://www.facebook.com/people/Baia-swim/61595649462981/' },
 ] as const;
 
 /** ח.פ. value meaning "company not registered yet" (schema default). */
@@ -60,7 +61,7 @@ export function businessInfo(config: SiteConfig | null | undefined): BusinessInf
     lowStockThreshold: config?.lowStockThreshold ?? LOW_STOCK_THRESHOLD,
     courierCost: formatPrice(num(config?.shippingCost, 29.9)),
     pickupCost: formatPrice(num(config?.pickupPointCost, 19.9)),
-    freeShippingThreshold: formatPrice(num(config?.freeShippingThreshold, 249)),
+    freeShippingThreshold: formatPrice(num(config?.freeShippingThreshold, 450)),
     courierEtaDays: config?.courierEtaDays || '3-5',
     pickupEtaDays: config?.pickupEtaDays || '2-4',
   };

@@ -90,7 +90,7 @@ export type ShippingConfig = {
 /** Same fallbacks the API uses when no site config row exists. */
 export const DEFAULT_SHIPPING: Required<ShippingConfig> = {
   cost: 29.9,
-  freeThreshold: 249,
+  freeThreshold: 450,
   pickupCost: 19.9,
   courierEtaDays: '3-5',
   pickupEtaDays: '2-4',

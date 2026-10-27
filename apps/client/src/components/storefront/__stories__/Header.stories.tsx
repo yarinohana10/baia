@@ -16,6 +16,7 @@ const meta: Meta<typeof Header> = {
       { label: 'Kids', href: '/category/children' },
       { label: 'New Arrivals', href: '/new-arrivals' },
     ],
+    freeShippingThreshold: '₪450',
   },
 };
 

@@ -149,7 +149,6 @@
     "menCategory": "MEN'S",
     "womenCategory": "WOMEN'S",
     "kidsCategory": "KIDS",
-    "freeShippingBanner": "Free shipping on orders over ₪249",
     "viewAll": "View All",
     "comingSoon": "More products coming soon.",
     "heroEyebrow": "Summer collection",
@@ -218,7 +217,7 @@
     "shippingPolicy": "Shipping Policy",
     "returnsExchanges": "Returns & Exchanges",
     "contactUs": "Contact Us",
-    "freeShipping": "Free shipping over ₪249",
+    "freeShipping": "Free shipping over {threshold}",
     "securePayment": "Secure Payment",
     "easyReturns": "Easy Returns",
     "copyright": "© {year} BAIA Swimwear. All rights reserved.",
@@ -238,8 +237,8 @@
   },
   "seo": {
     "homeTitle": "BAIA Swimwear — Mediterranean Swimwear for the Whole Family",
-    "homeDescription": "Premium swimwear for women, men and kids, designed for Mediterranean summers. Free shipping in Israel over ₪249 and easy returns.",
-    "categoryDescription": "Shop {name} swimwear at BAIA — premium pieces designed for Mediterranean summers. Free shipping over ₪249.",
+    "homeDescription": "Premium swimwear for women, men and kids, designed for Mediterranean summers. Free shipping in Israel and easy returns.",
+    "categoryDescription": "Shop {name} swimwear at BAIA — premium pieces designed for Mediterranean summers. Free shipping and easy returns.",
     "newArrivalsTitle": "New Arrivals",
     "newArrivalsDescription": "The latest BAIA swimwear for women, men and kids — fresh from the summer collection.",
     "featuredTitle": "Featured Products",
@@ -251,7 +250,7 @@
     "searchDescription": "Search the BAIA swimwear collection."
   },
   "storefront": {
-    "announcement": "Free shipping in Israel on orders over ₪249 · Easy 14-day returns",
+    "announcement": "Free shipping on orders over {threshold}",
     "skipToContent": "Skip to content",
     "menu": "Menu",
     "closeMenu": "Close menu",
@@ -282,7 +281,6 @@
     },
     "values": {
       "title": "Why BAIA",
-      "shippingTitle": "Free shipping over ₪249",
       "shippingBody": "Fast delivery across Israel, straight to your door.",
       "returnsTitle": "Easy returns",
       "returnsBody": "Changed your mind? Return or exchange within 14 days.",
