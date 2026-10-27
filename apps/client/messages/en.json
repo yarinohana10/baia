@@ -83,10 +83,10 @@
     "passwordLabel": "Password",
     "forgotPassword": "Forgot?",
     "signIn": "Sign In",
-    "newToBaia": "New to Baia?",
+    "newToBaia": "New to BAIA?",
     "createAnAccount": "Create an Account",
     "createAccount": "Create Account",
-    "createAccountSubtitle": "Enter your details to join the Baia community.",
+    "createAccountSubtitle": "Enter your details to join the BAIA community.",
     "fullNameLabel": "Full Name",
     "confirmPasswordLabel": "Confirm Password",
     "newsletterSignup": "Sign up for emails to receive updates, exclusive offers, and early access to new collections.",
@@ -94,7 +94,7 @@
     "signInLink": "Sign In",
     "heroLoginSubtitle": "Discover the new standard in coastal luxury and sophisticated summer escapes.",
     "heroRegisterTitle": "Discover Your Endless Summer",
-    "heroRegisterSubtitle": "Join Baia Swimwear for exclusive access to new collections and premium member benefits.",
+    "heroRegisterSubtitle": "Join BAIA Swimwear for exclusive access to new collections and premium member benefits.",
     "backToHome": "Back to Home",
     "orContinueWith": "or continue with",
     "signInWithGoogle": "Sign in with Google",
@@ -138,7 +138,7 @@
     "featured": "Featured Products"
   },
   "home": {
-    "heroTitle": "New Arrivals",
+    "heroTitle": "BAIA Swimwear — swimwear for women, men and kids",
     "heroSubtitle": "Just landed. Swimwear designed with care for the whole family: clean cuts, fresh colourways and soft fabrics that feel right from a morning at the beach to sunset by the pool. Every piece is chosen to look good now, and stay a favourite next summer.",
     "heroCta": "EXPLORE COLLECTION",
     "shopByCategory": "Shop by Category",
@@ -232,7 +232,9 @@
     "freeShippingSub": "Delivery across Israel",
     "easyReturnsSub": "14 days to return or exchange",
     "securePaymentSub": "Your details stay protected",
-    "secureCheckoutNote": "Secure checkout"
+    "secureCheckoutNote": "Secure checkout",
+    "followTitle": "Follow us",
+    "followOn": "BAIA on {network} (opens in a new window)"
   },
   "seo": {
     "homeTitle": "BAIA Swimwear — Mediterranean Swimwear for the Whole Family",

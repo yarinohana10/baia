@@ -13,6 +13,7 @@ import { useAddToBag } from '@/hooks/catalog/useAddToBag';
 import { useLiveProduct } from '@/hooks/catalog/useLiveProduct';
 import { useScrolledPast } from '@/hooks/catalog/useScrolledPast';
 import { useVariantSelection } from '@/hooks/catalog/useVariantSelection';
+import { useColorName } from '@/hooks/catalog/useColorName';
 import { WishlistButton } from '@/components/storefront/WishlistButton';
 import ProductGallery from '@/components/storefront/ProductGallery';
 import { AddToBagButton } from './AddToBagButton';
@@ -50,6 +51,7 @@ function addToBagLabelKey({ variant, purchasable, adding }: ButtonState) {
 export function ProductDetails({ product: initial, shipping, whatsappNumber, lowStockThreshold = LOW_STOCK_THRESHOLD }: Props) {
   const locale = useLocale();
   const t = useTranslations('pdp');
+  const colorName = useColorName();
   const tErrors = useTranslations('checkout.errors');
 
   const product = useLiveProduct(initial);
@@ -160,7 +162,7 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber, low
         visible={showSticky}
         name={name}
         image={galleryImages[0]}
-        selectionLabel={[selection.color, selection.size].filter(Boolean).join(' · ')}
+        selectionLabel={[selection.color && colorName(selection.color), selection.size].filter(Boolean).join(' · ')}
         price={price}
         buttonLabel={buttonLabel}
         purchasable={purchasable}

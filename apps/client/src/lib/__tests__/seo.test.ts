@@ -42,6 +42,12 @@ describe('seo helpers', () => {
     expect(meta.robots).toEqual({ index: false, follow: true });
   });
 
+  it('falls back to the brand share image when a page has no photo of its own', () => {
+    const meta = pageMetadata({ locale: 'he', path: '/', title: 'BAIA', description: 'd' });
+    expect(meta.openGraph).toMatchObject({ images: [{ url: '/og/baia-share.jpg', width: 1200, height: 630 }] });
+    expect(meta.twitter).toMatchObject({ images: ['/og/baia-share.jpg'] });
+  });
+
   it('escapes < in JSON-LD so it cannot close the script tag', () => {
     expect(jsonLd({ name: '</script><b>' })).not.toContain('</script>');
   });

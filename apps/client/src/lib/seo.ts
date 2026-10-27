@@ -3,6 +3,9 @@ import { locales, defaultLocale, type Locale } from '@/i18n/config';
 
 export const SITE_NAME = 'BAIA Swimwear';
 
+/** Brand card (logo on the shell background) shown when a page without its own photo is shared. */
+export const DEFAULT_SHARE_IMAGE = { url: '/og/baia-share.jpg', width: 1200, height: 630, alt: SITE_NAME };
+
 /** Public origin of the storefront. Set NEXT_PUBLIC_SITE_URL in production. */
 export function getSiteUrl(): URL {
   try {
@@ -52,6 +55,7 @@ export function pageMetadata({
   noIndex,
 }: PageMetaInput): Metadata {
   const url = absoluteUrl(locale, path);
+  const shareImages = images?.length ? images : [DEFAULT_SHARE_IMAGE];
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
@@ -63,13 +67,13 @@ export function pageMetadata({
       siteName: SITE_NAME,
       locale: ogLocale(locale),
       type: 'website',
-      ...(images?.length ? { images } : {}),
+      images: shareImages,
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      ...(images?.length ? { images: images.map((i) => i.url) } : {}),
+      images: shareImages.map((i) => i.url),
     },
     ...(noIndex ? { robots: { index: false, follow: true } } : {}),
   };

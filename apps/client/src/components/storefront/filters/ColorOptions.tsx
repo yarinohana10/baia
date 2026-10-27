@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { isLightColor, swatchColor } from '@/lib/catalog/pricing';
 import { withSelectedOptions } from '@/lib/catalog/filter-options';
 import type { Facets } from '@/lib/catalog/types';
+import { useColorName } from '@/hooks/catalog/useColorName';
 
 type Props = {
   facets: Facets;
@@ -16,6 +17,7 @@ type Props = {
 /** Colour filter: a checkbox per colour with its swatch and product count. */
 export function ColorOptions({ facets, selected = [], onToggle }: Props) {
   const t = useTranslations('filters');
+  const colorName = useColorName();
   const options = withSelectedOptions(facets.colors, selected);
   if (options.length === 0) return <p className="text-sm text-gray-500">{t('noOptions')}</p>;
   const isSelected = new Set(selected);
@@ -44,7 +46,7 @@ export function ColorOptions({ facets, selected = [], onToggle }: Props) {
               >
                 {on && <Check size={12} className={swatch && isLightColor(swatch) ? 'text-charcoal' : 'text-white'} />}
               </span>
-              <span className="min-w-0 flex-1 truncate">{value}</span>
+              <span className="min-w-0 flex-1 truncate">{colorName(value)}</span>
               {count > 0 && <span className="text-xs text-gray-400 tabular-nums">{count}</span>}
             </button>
           </li>

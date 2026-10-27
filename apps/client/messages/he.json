@@ -83,10 +83,10 @@
     "passwordLabel": "סיסמה",
     "forgotPassword": "שכחתם?",
     "signIn": "התחברות",
-    "newToBaia": "?חדשים ב-Baia",
+    "newToBaia": "חדשים ב-BAIA?",
     "createAnAccount": "צרו חשבון",
     "createAccount": "יצירת חשבון",
-    "createAccountSubtitle": "הזינו את הפרטים שלכם כדי להצטרף לקהילת Baia.",
+    "createAccountSubtitle": "הזינו את הפרטים שלכם כדי להצטרף לקהילת BAIA.",
     "fullNameLabel": "שם מלא",
     "confirmPasswordLabel": "אימות סיסמה",
     "newsletterSignup": "הירשמו לקבלת עדכונים, הצעות בלעדיות וגישה מוקדמת לקולקציות חדשות.",
@@ -94,7 +94,7 @@
     "signInLink": "התחברות",
     "heroLoginSubtitle": "גלו את הסטנדרט החדש של יוקרה חופית ובריחות קיץ מתוחכמות.",
     "heroRegisterTitle": "גלו את הקיץ האינסופי שלכם",
-    "heroRegisterSubtitle": "הצטרפו ל-Baia Swimwear לגישה בלעדית לקולקציות חדשות והטבות חברים פרימיום.",
+    "heroRegisterSubtitle": "הצטרפו ל-BAIA Swimwear לגישה בלעדית לקולקציות חדשות והטבות חברים פרימיום.",
     "backToHome": "חזרה לדף הבית",
     "orContinueWith": "או המשיכו עם",
     "signInWithGoogle": "התחברות עם Google",
@@ -138,7 +138,7 @@
     "featured": "מוצרים מובחרים"
   },
   "home": {
-    "heroTitle": "חדשים באתר",
+    "heroTitle": "BAIA Swimwear — בגדי ים לנשים, גברים וילדים",
     "heroSubtitle": "הגיעו עכשיו. בגדי ים שתוכננו בקפידה לכל המשפחה: גזרות נקיות, צבעים רעננים ובדים נעימים שמרגישים נכון מהבוקר בחוף ועד השקיעה ליד הבריכה. כל פריט נבחר כדי להיראות טוב עכשיו, ולהישאר אהוב גם בקיץ הבא.",
     "heroCta": "לגלות את הקולקציה",
     "shopByCategory": "קנו לפי קטגוריה",
@@ -232,7 +232,9 @@
     "freeShippingSub": "משלוחים לכל הארץ",
     "easyReturnsSub": "14 יום להחזרה או החלפה",
     "securePaymentSub": "הפרטים שלכם מוגנים",
-    "secureCheckoutNote": "תשלום מאובטח"
+    "secureCheckoutNote": "תשלום מאובטח",
+    "followTitle": "עקבו אחרינו",
+    "followOn": "BAIA ב-{network} (נפתח בחלון חדש)"
   },
   "seo": {
     "homeTitle": "BAIA בגדי ים — בגדי ים ים-תיכוניים לכל המשפחה",

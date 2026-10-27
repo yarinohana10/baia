@@ -2,10 +2,13 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Truck, ShieldCheck, RotateCcw } from 'lucide-react';
 import type { SiteConfig } from '@/lib/catalog/types';
-import { businessInfo, telHref, whatsappHref } from '@/lib/site';
+import { SOCIAL_LINKS, businessInfo, telHref, whatsappHref } from '@/lib/site';
 import type { NavItem } from './Header';
 import { NewsletterForm } from './NewsletterForm';
 import { WhatsAppGlyph } from './WhatsAppGlyph';
+import { InstagramGlyph, TikTokGlyph } from './SocialGlyphs';
+
+const SOCIAL_GLYPHS = { instagram: InstagramGlyph, tiktok: TikTokGlyph };
 
 function FooterColumn({ title, links }: { title: string; links: NavItem[] }) {
   return (
@@ -79,6 +82,28 @@ export function Footer({ categories, config }: { categories: NavItem[]; config: 
           <h2 className="text-[17px] sm:text-[18px] font-semibold uppercase ltr:tracking-[0.04em]">{t('newsletterTitle')}</h2>
           <p className="mt-2 text-[13px] text-black/70">{t('newsletterBody')}</p>
           <NewsletterForm />
+          <div className="mt-8">
+            <h2 className="text-[12px] font-semibold uppercase ltr:tracking-[0.08em]">{t('followTitle')}</h2>
+            <ul className="mt-2 -ms-2.5 flex items-center gap-1">
+              {SOCIAL_LINKS.map(({ id, name, href }) => {
+                const Glyph = SOCIAL_GLYPHS[id];
+                return (
+                  <li key={id}>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener"
+                      aria-label={t('followOn', { network: name })}
+                      title={name}
+                      className="flex size-11 items-center justify-center rounded-full text-black/70 transition-colors hover:bg-sand-100/60 hover:text-ocean-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-700"
+                    >
+                      <Glyph size={20} />
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
       </div>
 
