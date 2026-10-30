@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { adminSelectClassName } from '@/components/admin/common/select-class';
 import type { CategoryDraft } from '@/hooks/admin/category-editor';
-import { autoSlug, parentOptions, type Category, type SizeSetOption } from './types';
+import { autoSlug, parentOptions, type Category, type SizeGuideOption, type SizeSetOption } from './types';
 import { CategoryImageField } from './CategoryImageField';
 
 type Props = {
@@ -16,6 +16,7 @@ type Props = {
   editing: Category | null;
   categories: Category[];
   sizeSets: SizeSetOption[];
+  sizeGuides: SizeGuideOption[];
   submitting: boolean;
   image: { hasPendingFile: boolean; previewUrl: string | null; onPick: (file: File | null) => void; onRemoveSaved: () => void };
   onChange: (changes: Partial<CategoryDraft>) => void;
@@ -24,7 +25,7 @@ type Props = {
 };
 
 /** Create / edit category card. */
-export function CategoryForm({ draft, editing, categories, sizeSets, submitting, image, onChange, onSubmit, onCancel }: Props) {
+export function CategoryForm({ draft, editing, categories, sizeSets, sizeGuides, submitting, image, onChange, onSubmit, onCancel }: Props) {
   const t = useTranslations('admin.categories');
   const locale = useLocale();
   const editingHasChildren = !!editing && editing.children?.length > 0;
@@ -105,6 +106,26 @@ export function CategoryForm({ draft, editing, categories, sizeSets, submitting,
             </select>
             <p id="category-sizeSetId-hint" className="text-xs text-muted-foreground">
               {t('sizeSetHint')}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="category-sizeGuideId">{t('sizeGuide')}</Label>
+            <select
+              id="category-sizeGuideId"
+              value={draft.sizeGuideId}
+              onChange={(e) => onChange({ sizeGuideId: e.target.value })}
+              aria-describedby="category-sizeGuideId-hint"
+              className={adminSelectClassName()}
+            >
+              <option value="">{draft.parentId ? t('sizeGuideInherit') : t('sizeGuideNone')}</option>
+              {sizeGuides.map((guide) => (
+                <option key={guide.id} value={guide.id}>
+                  {localName(guide)}
+                </option>
+              ))}
+            </select>
+            <p id="category-sizeGuideId-hint" className="text-xs text-muted-foreground">
+              {t('sizeGuideHint')}
             </p>
           </div>
           <CategoryImageField savedImage={editing?.image} {...image} />

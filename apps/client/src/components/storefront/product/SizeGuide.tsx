@@ -1,14 +1,17 @@
 'use client';
 
 import { Dialog } from '@base-ui/react/dialog';
-import { useTranslations } from 'next-intl';
-import { MessageCircle, Ruler, X } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { ArrowLeft, ArrowRight, MessageCircle, Ruler, X } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
-import { GENERIC_HOW_TO_MEASURE, type SizeChart } from '@/lib/catalog/size-charts';
+import { localized, type SizeGuide as SizeGuideData } from '@/lib/catalog/size-guides';
+import { HowToMeasure } from '@/components/storefront/size-guide/HowToMeasure';
+import { SizeGuideTables } from '@/components/storefront/size-guide/SizeGuideTables';
 
 type Props = {
-  chart: SizeChart | null;
+  /** The guide linked to the product's category (Admin -> Size guides). */
+  guide: SizeGuideData;
   /** Sizes this product comes in (highlighted in the chart). */
   sizes: string[];
   /** wa.me link, or null to show the contact-page link instead. */
@@ -23,10 +26,12 @@ type Props = {
  * focus returns to the link). Slides in from the side on desktop and up from
  * the bottom on phones.
  */
-export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', className }: Props) {
+export function SizeGuide({ guide, sizes, whatsappLink, variant = 'inline', className }: Props) {
   const t = useTranslations('pdp.sizeGuide');
-  const steps = chart?.howToMeasure ?? GENERIC_HOW_TO_MEASURE;
-  const offered = new Set(sizes);
+  const tGuide = useTranslations('sizeGuide');
+  const locale = useLocale();
+  const intro = localized(locale, guide.introHe, guide.introEn);
+  const Arrow = locale === 'he' ? ArrowLeft : ArrowRight;
 
   return (
     <Dialog.Root>
@@ -52,7 +57,9 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
           )}
         >
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-            <Dialog.Title className="text-lg font-semibold text-charcoal">{t('title')}</Dialog.Title>
+            <Dialog.Title className="text-lg font-semibold text-charcoal">
+              {t('title')} <span className="font-normal text-black/50">· {localized(locale, guide.nameHe, guide.nameEn)}</span>
+            </Dialog.Title>
             <Dialog.Close
               aria-label={t('close')}
               className="flex size-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-charcoal focus-visible:outline-2 focus-visible:outline-neutral-700"
@@ -62,77 +69,34 @@ export function SizeGuide({ chart, sizes, whatsappLink, variant = 'inline', clas
           </div>
 
           <div className="flex-1 space-y-7 overflow-y-auto px-5 py-5 text-sm text-gray-700">
-            <Dialog.Description className="leading-relaxed text-gray-600">{t('intro')}</Dialog.Description>
+            <Dialog.Description className={cn('leading-relaxed text-gray-600', !intro && 'sr-only')}>
+              {intro || t('title')}
+            </Dialog.Description>
 
-            {chart ? (
-              <section aria-labelledby="size-chart-title">
-                <h3 id="size-chart-title" className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  {t('chartTitle', { chart: t(`charts.${chart.id}`) })}
-                </h3>
-                <div className="overflow-x-auto rounded-none border border-gray-200">
-                  <table className="w-full text-center text-[13px] tabular-nums">
-                    <thead className="bg-neutral-100 text-gray-600">
-                      <tr>
-                        <th scope="col" className="px-3 py-2.5 font-medium">
-                          {t('sizeColumn')}
-                        </th>
-                        {chart.columns.map((m) => (
-                          <th key={m} scope="col" className="px-3 py-2.5 font-medium">
-                            {t(`measurements.${m}`)}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {chart.rows.map((row) => (
-                        <tr
-                          key={row.size}
-                          className={cn('border-t border-gray-100', offered.has(row.size) && 'bg-[#F7F7F7]/50')}
-                        >
-                          <th scope="row" className="px-3 py-2.5 font-semibold text-charcoal" dir="ltr">
-                            {row.size}
-                          </th>
-                          {chart.columns.map((m) => (
-                            <td key={m} className="px-3 py-2.5" dir="ltr">
-                              {row.values[m] ?? '–'}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            ) : (
-              <p className="rounded-none bg-neutral-100 px-4 py-3 leading-relaxed">{t('noChart')}</p>
+            {guide.tables.length > 0 && (
+              <SizeGuideTables tables={guide.tables} locale={locale} sizeLabel={t('sizeColumn')} highlight={sizes} compact />
             )}
 
-            <section aria-labelledby="how-to-measure-title">
-              <h3 id="how-to-measure-title" className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                {t('howToMeasure')}
-              </h3>
-              <ol className="space-y-3">
-                {steps.map((m, i) => (
-                  <li key={m} className="flex gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="flex size-6 shrink-0 items-center justify-center rounded-full bg-black text-xs font-semibold text-white"
-                    >
-                      {i + 1}
-                    </span>
-                    <p className="leading-relaxed">
-                      <strong className="font-semibold text-charcoal">{t(`measurements.${m}`)}: </strong>
-                      {t(`steps.${m}`)}
-                    </p>
-                  </li>
-                ))}
-              </ol>
-            </section>
+            <HowToMeasure guide={guide} locale={locale} title={t('howToMeasure')} compact />
 
-            <section className="rounded-none border border-neutral-200 bg-[#F7F7F7] px-4 py-3">
-              <h3 className="mb-1 font-semibold text-charcoal">{t('fitTipTitle')}</h3>
-              <p className="leading-relaxed">{t('fitTip')}</p>
-            </section>
+            {guide.tips.length > 0 && (
+              <section className="border border-ocean-100 bg-[#F5F9FC] px-4 py-3">
+                <h3 className="mb-1.5 font-semibold text-charcoal">{t('fitTipTitle')}</h3>
+                <ul className="list-disc space-y-1 ps-4 leading-relaxed">
+                  {guide.tips.map((tip, i) => (
+                    <li key={i}>{localized(locale, tip.he, tip.en)}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <Link
+              href={`/size-guide/${guide.slug}`}
+              className="group inline-flex items-center gap-1.5 font-medium text-ocean-700 underline underline-offset-4 hover:no-underline"
+            >
+              {tGuide('fullGuide')}
+              <Arrow size={14} aria-hidden="true" className="transition-transform group-hover:ltr:translate-x-0.5 group-hover:rtl:-translate-x-0.5" />
+            </Link>
           </div>
 
           <div className="border-t border-gray-100 bg-[#F7F7F7] px-5 py-4">

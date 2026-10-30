@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/card';
 import { FormFeedback, type Feedback } from '@/components/admin/common/FormFeedback';
 import { CategoryForm } from '@/components/admin/categories/CategoryForm';
 import { CategoryRow } from '@/components/admin/categories/CategoryRow';
-import { deleteErrorKey, saveErrorKey, type Category, type SizeSetOption } from '@/components/admin/categories/types';
+import { deleteErrorKey, saveErrorKey, type Category, type SizeGuideOption, type SizeSetOption } from '@/components/admin/categories/types';
 
 const selectCategories = (data: Category[]): ListPage<Category> => ({
   items: data,
@@ -40,6 +40,7 @@ export default function CategoriesPage() {
   const list = useAdminList({ url: '/categories', select: selectCategories });
   const [editor, dispatch] = useReducer(categoryEditorReducer, CLOSED_CATEGORY_EDITOR);
   const [sizeSets, setSizeSets] = useState<SizeSetOption[]>([]);
+  const [sizeGuides, setSizeGuides] = useState<SizeGuideOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<Feedback | null>(null);
   // Image chosen in the form; uploaded after the category is saved.
@@ -51,6 +52,10 @@ export default function CategoriesPage() {
     api.get<SizeSetOption[]>('/size-sets').then(
       (res) => !cancelled && setSizeSets(res.data),
       () => !cancelled && setSizeSets([]),
+    );
+    api.get<SizeGuideOption[]>('/admin/size-guides').then(
+      (res) => !cancelled && setSizeGuides(res.data),
+      () => !cancelled && setSizeGuides([]),
     );
     return () => {
       cancelled = true;
@@ -138,6 +143,7 @@ export default function CategoriesPage() {
           editing={editor.editing}
           categories={list.items}
           sizeSets={sizeSets}
+          sizeGuides={sizeGuides}
           submitting={submitting}
           image={{
             hasPendingFile: !!image.file,

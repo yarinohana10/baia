@@ -49,7 +49,7 @@ describe('POST /api/revalidate', () => {
     expect(res.status).toBe(200);
     expect(fetchMock.mock.calls[0][0]).toContain('/api/auth/get-session');
     expect(fetchMock.mock.calls[0][1].headers.cookie).toBe('baia.session_token=x');
-    expect(revalidateTag.mock.calls.map((c) => c[0])).toEqual(['products', 'categories', 'site-config']);
+    expect(revalidateTag.mock.calls.map((c) => c[0])).toEqual(['products', 'categories', 'site-config', 'size-guides']);
     expect(revalidatePath).toHaveBeenCalledWith('/', 'layout');
   });
 });

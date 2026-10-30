@@ -135,7 +135,8 @@
     "children": "Kids",
     "sale": "Sale",
     "newArrivals": "New Arrivals",
-    "featured": "Featured Products"
+    "featured": "Featured Products",
+    "sizeGuide": "Size guide"
   },
   "home": {
     "heroTitle": "BAIA Swimwear — swimwear for women, men and kids",
@@ -233,7 +234,8 @@
     "securePaymentSub": "Your details stay protected",
     "secureCheckoutNote": "Secure checkout",
     "followTitle": "Follow us",
-    "followOn": "BAIA on {network} (opens in a new window)"
+    "followOn": "BAIA on {network} (opens in a new window)",
+    "sizeGuide": "Size guide"
   },
   "seo": {
     "homeTitle": "BAIA Swimwear — Mediterranean Swimwear for the Whole Family",
@@ -466,7 +468,8 @@
       "admins": "Admins",
       "soon": "Soon",
       "openMenu": "Open menu",
-      "closeMenu": "Close menu"
+      "closeMenu": "Close menu",
+      "sizeGuides": "Size guides"
     },
     "admins": {
       "title": "Admins",
@@ -1057,5 +1060,24 @@
     "off": "Off",
     "reset": "Reset",
     "statement": "Accessibility statement"
+  },
+  "sizeGuide": {
+    "eyebrow": "BAIA Swimwear",
+    "title": "Size guide",
+    "metaTitle": "{name} size guide",
+    "metaDescription": "BAIA {name} swimwear size chart: body measurements in cm and how to measure, so you can choose your size with confidence.",
+    "tabsLabel": "Size guides",
+    "chartsLabel": "{name} size charts",
+    "size": "Size",
+    "howToMeasure": "How to measure",
+    "tipsTitle": "Good to know",
+    "scrollHint": "Swipe sideways to see every size",
+    "helpTitle": "Still not sure about your size?",
+    "helpBody": "Send us your measurements and we'll recommend the right size for you.",
+    "whatsapp": "Ask us on WhatsApp",
+    "whatsappPrefill": "Hi, I'd like help choosing a size ({name})",
+    "contact": "Contact us",
+    "shop": "Shop {name}",
+    "fullGuide": "Full size guide"
   }
 }

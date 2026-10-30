@@ -135,7 +135,8 @@
     "children": "ילדים",
     "sale": "מבצעים",
     "newArrivals": "חדש באתר",
-    "featured": "מוצרים מובחרים"
+    "featured": "מוצרים מובחרים",
+    "sizeGuide": "מדריך מידות"
   },
   "home": {
     "heroTitle": "BAIA Swimwear — בגדי ים לנשים, גברים וילדים",
@@ -233,7 +234,8 @@
     "securePaymentSub": "הפרטים שלכם מוגנים",
     "secureCheckoutNote": "תשלום מאובטח",
     "followTitle": "עקבו אחרינו",
-    "followOn": "BAIA ב-{network} (נפתח בחלון חדש)"
+    "followOn": "BAIA ב-{network} (נפתח בחלון חדש)",
+    "sizeGuide": "מדריך מידות"
   },
   "seo": {
     "homeTitle": "BAIA בגדי ים — בגדי ים ים-תיכוניים לכל המשפחה",
@@ -466,7 +468,8 @@
       "admins": "מנהלים",
       "soon": "בקרוב",
       "openMenu": "פתיחת תפריט",
-      "closeMenu": "סגירת תפריט"
+      "closeMenu": "סגירת תפריט",
+      "sizeGuides": "מדריכי מידות"
     },
     "admins": {
       "title": "מנהלים",
@@ -1057,5 +1060,24 @@
     "off": "כבוי",
     "reset": "איפוס הגדרות",
     "statement": "הצהרת נגישות"
+  },
+  "sizeGuide": {
+    "eyebrow": "BAIA בגדי ים",
+    "title": "מדריך מידות",
+    "metaTitle": "מדריך מידות {name}",
+    "metaDescription": "טבלת המידות של BAIA לבגדי ים {name}: מידות גוף בס״מ והסבר איך למדוד, כדי לבחור מידה בביטחון.",
+    "tabsLabel": "מדריכי מידות",
+    "chartsLabel": "טבלאות מידות {name}",
+    "size": "מידה",
+    "howToMeasure": "איך מודדים",
+    "tipsTitle": "כדאי לדעת",
+    "scrollHint": "החליקו הצידה כדי לראות את כל המידות",
+    "helpTitle": "עדיין לא בטוחים במידה?",
+    "helpBody": "שלחו לנו את המידות שלכם ונמליץ לכם על המידה המתאימה.",
+    "whatsapp": "שאלו אותנו בוואטסאפ",
+    "whatsappPrefill": "היי, אשמח לעזרה בבחירת מידה ({name})",
+    "contact": "צרו איתנו קשר",
+    "shop": "לקולקציית {name}",
+    "fullGuide": "למדריך המידות המלא"
   }
 }

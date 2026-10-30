@@ -49,6 +49,12 @@ export class CreateCategoryDto {
   @IsString()
   sizeSetId?: string | null;
 
+  /** `null` (or empty) = inherit the parent's size guide. */
+  @Transform(emptyToNull)
+  @ValidateIf(present)
+  @IsString()
+  sizeGuideId?: string | null;
+
   @Transform(emptyToNull)
   @ValidateIf(present)
   @IsString()

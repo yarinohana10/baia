@@ -76,6 +76,7 @@ export class CategoriesService {
 
   async create(data: CreateCategoryDto) {
     if (data.parentId) await this.assertValidParent(null, data.parentId);
+    if (data.sizeGuideId) await this.assertSizeGuideExists(data.sizeGuideId);
     return this.prisma.category.create({
       data,
       include: { imageUpload: true },
@@ -85,11 +86,19 @@ export class CategoriesService {
   async update(id: string, data: UpdateCategoryDto) {
     await this.findById(id);
     if (data.parentId) await this.assertValidParent(id, data.parentId);
+    if (data.sizeGuideId) await this.assertSizeGuideExists(data.sizeGuideId);
     return this.prisma.category.update({
       where: { id },
       data,
       include: { imageUpload: true },
     });
+  }
+
+  private async assertSizeGuideExists(sizeGuideId: string) {
+    const found = await this.prisma.sizeGuide.findUnique({ where: { id: sizeGuideId }, select: { id: true } });
+    if (!found) {
+      throw fieldValidationException([{ field: 'sizeGuideId', code: 'notFound', message: 'Size guide does not exist' }]);
+    }
   }
 
   /**

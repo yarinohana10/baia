@@ -31,7 +31,7 @@ function flatten(categories: Category[]): Category[] {
 }
 
 /** Pure builder so it can be unit-tested without the API. */
-export function buildSitemap(categories: Category[], products: Product[]): MetadataRoute.Sitemap {
+export function buildSitemap(categories: Category[], products: Product[], sizeGuideSlugs: string[] = []): MetadataRoute.Sitemap {
   return [
     ...STATIC_PATHS.flatMap((p) =>
       entriesFor(p, { changeFrequency: p === '/' ? 'daily' : 'monthly', priority: p === '/' ? 1 : 0.5 }),
@@ -39,6 +39,7 @@ export function buildSitemap(categories: Category[], products: Product[]): Metad
     ...flatten(categories).flatMap((c) =>
       entriesFor(`/category/${c.slug}`, { changeFrequency: 'weekly', priority: c.parentId ? 0.7 : 0.8 }),
     ),
+    ...sizeGuideSlugs.flatMap((slug) => entriesFor(`/size-guide/${slug}`, { changeFrequency: 'monthly', priority: 0.5 })),
     ...products.flatMap((p) =>
       entriesFor(`/product/${p.slug}`, {
         changeFrequency: 'weekly',

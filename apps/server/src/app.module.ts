@@ -24,6 +24,7 @@ import { CancellationsModule } from './cancellations/cancellations.module';
 import { PickupPointsModule } from './pickup-points/pickup-points.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { AdminNotificationsModule } from './admin-notifications/admin-notifications.module';
+import { SizeGuidesModule } from './size-guides/size-guides.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { AdminNotificationsModule } from './admin-notifications/admin-notificati
     NewsletterModule,
     CancellationsModule,
     PickupPointsModule,
+    SizeGuidesModule,
     AdminNotificationsModule,
     InventoryModule,
   ],

@@ -16,17 +16,17 @@ enum Role {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  role          Role      @default(CUSTOMER)
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String    @unique
+  emailVerified      Boolean   @default(false)
+  image              String?
+  role               Role      @default(CUSTOMER)
   // Spam-law (חוק התקשורת 30א) opt-in for marketing email; never pre-ticked.
   marketingConsent   Boolean   @default(false)
   marketingConsentAt DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   sessions Session[]
   accounts Account[]
@@ -120,6 +120,7 @@ model Upload {
 
   productImages ProductImage[]
   categories    Category[]
+  sizeGuides    SizeGuide[]
 
   @@map("uploads")
 }
@@ -127,23 +128,26 @@ model Upload {
 // ─── Catalog ──────────────────────────────────────────────────
 
 model Category {
-  id             String     @id @default(cuid())
-  nameHe         String
-  nameEn         String
-  slug           String     @unique
-  image          String?
-  imageUploadId  String?
-  imageUpload    Upload?    @relation(fields: [imageUploadId], references: [id])
-  sortOrder      Int        @default(0)
-  parentId       String?
-  parent         Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  id            String     @id @default(cuid())
+  nameHe        String
+  nameEn        String
+  slug          String     @unique
+  image         String?
+  imageUploadId String?
+  imageUpload   Upload?    @relation(fields: [imageUploadId], references: [id])
+  sortOrder     Int        @default(0)
+  parentId      String?
+  parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   // Default size set for products in this category (inherited from parent when null)
-  sizeSetId      String?
-  sizeSet        SizeSet?   @relation(fields: [sizeSetId], references: [id], onDelete: SetNull)
-  children       Category[] @relation("CategoryHierarchy")
-  products       Product[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  sizeSetId     String?
+  sizeSet       SizeSet?   @relation(fields: [sizeSetId], references: [id], onDelete: SetNull)
+  // Size guide shown for products in this category (inherited from parent when null)
+  sizeGuideId   String?
+  sizeGuide     SizeGuide? @relation(fields: [sizeGuideId], references: [id], onDelete: SetNull)
+  children      Category[] @relation("CategoryHierarchy")
+  products      Product[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@map("categories")
 }
@@ -167,11 +171,11 @@ model Product {
   sizeSetId     String?
   sizeSet       SizeSet?         @relation(fields: [sizeSetId], references: [id], onDelete: SetNull)
   // Product-page content (all optional, bilingual)
-  fabricHe      String?          // e.g. "82% ניילון ממוחזר, 18% ליקרה"
+  fabricHe      String? // e.g. "82% ניילון ממוחזר, 18% ליקרה"
   fabricEn      String?
   careHe        String?
   careEn        String?
-  fitHe         String?          // fit notes, e.g. "הדוגמנית לובשת M, גובה 1.75"
+  fitHe         String? // fit notes, e.g. "הדוגמנית לובשת M, גובה 1.75"
   fitEn         String?
   variants      ProductVariant[]
   images        ProductImage[]
@@ -183,27 +187,27 @@ model Product {
 }
 
 model ProductVariant {
-  id            String      @id @default(cuid())
-  productId     String
-  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  color         String
-  size          String
-  sku           String      @unique
-  stockQuantity Int         @default(0)
+  id                 String      @id @default(cuid())
+  productId          String
+  product            Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color              String
+  size               String
+  sku                String      @unique
+  stockQuantity      Int         @default(0)
   // false = unlimited stock: always purchasable, stockQuantity is ignored and never decremented
-  trackInventory Boolean    @default(true)
-  priceOverride Decimal?    @db.Decimal(10, 2)
-  salePrice     Decimal?    @db.Decimal(10, 2)
-  saleStart     DateTime?
-  saleEnd       DateTime?
-  isActive      Boolean     @default(true)
+  trackInventory     Boolean     @default(true)
+  priceOverride      Decimal?    @db.Decimal(10, 2)
+  salePrice          Decimal?    @db.Decimal(10, 2)
+  saleStart          DateTime?
+  saleEnd            DateTime?
+  isActive           Boolean     @default(true)
   // Stock-alert dedupe: set when an alert email was sent, cleared on restock above the threshold.
   lowStockNotifiedAt DateTime?
   soldOutNotifiedAt  DateTime?
-  cartItems     CartItem[]
-  orderItems    OrderItem[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  cartItems          CartItem[]
+  orderItems         OrderItem[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   @@unique([productId, color, size])
   @@map("product_variants")
@@ -228,6 +232,35 @@ model ProductImage {
 
 // A named, ordered list of sizes (e.g. adult letter sizes, kids ages).
 // Data-driven: add rows to support new size systems without code changes.
+// Size guide (e.g. Women / Men / Kids): its own storefront page (/size-guide/<slug>) and the
+// size-guide dialog on product pages of the categories linked to it. Bilingual throughout.
+model SizeGuide {
+  id            String     @id @default(cuid())
+  slug          String     @unique
+  nameHe        String
+  nameEn        String
+  introHe       String?
+  introEn       String?
+  // How-to-measure illustration (assets bucket)
+  imageUploadId String?
+  imageUpload   Upload?    @relation(fields: [imageUploadId], references: [id], onDelete: SetNull)
+  imageAltHe    String?
+  imageAltEn    String?
+  // [{ titleHe, titleEn, noteHe?, noteEn?, columns: string[], rows: [{ labelHe, labelEn, values: string[] }] }]
+  tables        Json       @default("[]")
+  // How-to-measure steps: [{ titleHe, titleEn, bodyHe, bodyEn }]
+  steps         Json       @default("[]")
+  // Short fit tips: [{ he, en }]
+  tips          Json       @default("[]")
+  isActive      Boolean    @default(true)
+  sortOrder     Int        @default(0)
+  categories    Category[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@map("size_guides")
+}
+
 model SizeSet {
   id         String     @id @default(cuid())
   key        String     @unique
@@ -324,26 +357,26 @@ model Order {
   paymentRef     String?
   items          OrderItem[]
 
-  deliveryMethod  DeliveryMethod @default(COURIER)
+  deliveryMethod   DeliveryMethod @default(COURIER)
   // Snapshot of the chosen pickup point (the shipping* fields hold its address).
-  pickupPointId   String?
-  pickupPointName String?
+  pickupPointId    String?
+  pickupPointName  String?
   // Shopper ticked the (unticked-by-default) marketing consent box at checkout.
-  marketingConsent Boolean @default(false)
+  marketingConsent Boolean        @default(false)
 
   // How the order was paid (filled from the payment provider's result).
-  paymentMethod       String?  // "card" | "bit" | "apple_pay"
+  paymentMethod       String? // "card" | "bit" | "apple_pay"
   paymentInstallments Int?
   cardBrand           String?
   cardLast4           String?
 
-  paidAt      DateTime?
-  shippedAt   DateTime?
-  deliveredAt DateTime?
-  cancelledAt DateTime?
+  paidAt               DateTime?
+  shippedAt            DateTime?
+  deliveredAt          DateTime?
+  cancelledAt          DateTime?
   cancellationRequests CancellationRequest[]
-  refunds       Refund[]
-  statusEvents  OrderStatusEvent[]
+  refunds              Refund[]
+  statusEvents         OrderStatusEvent[]
 
   // Guest access: SHA-256 hash of a 256-bit random token returned once at
   // creation. The raw token is never stored. Null for logged-in orders.
@@ -373,14 +406,14 @@ model Order {
 
 // Audit trail of every status change (who/when), written with the change itself.
 model OrderStatusEvent {
-  id            String       @id @default(cuid())
-  orderId       String
-  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  fromStatus    OrderStatus?
-  toStatus      OrderStatus
+  id             String       @id @default(cuid())
+  orderId        String
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus     OrderStatus?
+  toStatus       OrderStatus
   // Email of the admin or customer who triggered it; null for system changes (e.g. sweeper).
   changedByEmail String?
-  createdAt     DateTime     @default(now())
+  createdAt      DateTime     @default(now())
 
   @@index([orderId, createdAt])
   @@map("order_status_events")
@@ -450,22 +483,22 @@ model PaymentAttempt {
 }
 
 model OrderItem {
-  id          String         @id @default(cuid())
-  orderId     String
-  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  variantId   String
-  variant     ProductVariant @relation(fields: [variantId], references: [id])
-  productName String
+  id            String         @id @default(cuid())
+  orderId       String
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId     String
+  variant       ProductVariant @relation(fields: [variantId], references: [id])
+  productName   String
   // Hebrew name snapshot (productName is English); null on older orders.
   productNameHe String?
-  color       String
-  size        String
-  quantity    Int
-  unitPrice   Decimal        @db.Decimal(10, 2)
+  color         String
+  size          String
+  quantity      Int
+  unitPrice     Decimal        @db.Decimal(10, 2)
   // Whether this line decremented variant stock (false for unlimited-stock variants),
   // so a cancel/refund restores exactly what was taken.
-  stockDeducted Boolean      @default(true)
-  createdAt   DateTime       @default(now())
+  stockDeducted Boolean        @default(true)
+  createdAt     DateTime       @default(now())
 
   @@map("order_items")
 }
@@ -509,27 +542,26 @@ model SiteConfig {
   heroCtaUrl            String?
 
   // Delivery: shippingCost above is the courier price.
-  pickupPointCost       Decimal @default(19.90) @db.Decimal(10, 2)
-  courierEtaDays        String  @default("3-5")
-  pickupEtaDays         String  @default("2-4")
+  pickupPointCost Decimal @default(19.90) @db.Decimal(10, 2)
+  courierEtaDays  String  @default("3-5")
+  pickupEtaDays   String  @default("2-4")
 
   // Business details shown in the footer and legal pages (placeholders until registered).
-  businessName          String  @default("BAIA Swimwear")
-  companyId             String  @default("000000000")
-  businessAddress       String  @default("מושב גילת")
-  businessPhone         String  @default("054-4446739")
-  contactEmail          String  @default("baiaswimwear0@gmail.com")
-  whatsappNumber        String? @default("972544446739")
-  accessibilityCoordinatorName  String @default("יעודכן בקרוב")
-  accessibilityCoordinatorPhone String @default("054-4446739")
-  accessibilityCoordinatorEmail String @default("baiaswimwear0@gmail.com")
+  businessName                  String  @default("BAIA Swimwear")
+  companyId                     String  @default("000000000")
+  businessAddress               String  @default("מושב גילת")
+  businessPhone                 String  @default("054-4446739")
+  contactEmail                  String  @default("baiaswimwear0@gmail.com")
+  whatsappNumber                String? @default("972544446739")
+  accessibilityCoordinatorName  String  @default("יעודכן בקרוב")
+  accessibilityCoordinatorPhone String  @default("054-4446739")
+  accessibilityCoordinatorEmail String  @default("baiaswimwear0@gmail.com")
 
   // Stock alerts: a variant at or below this quantity is "low stock".
   lowStockThreshold Int @default(5)
 
   @@map("site_config")
 }
-
 
 // ─── Delivery ─────────────────────────────────────────────────
 
@@ -551,9 +583,9 @@ model PickupPoint {
 // ─── Cancellations ────────────────────────────────────────────
 
 enum CancellationStatus {
-  REQUESTED      // waiting for the store to contact the customer
-  APPROVED       // store cancelled the order
-  REJECTED       // store declined (e.g. already shipped); note explains
+  REQUESTED // waiting for the store to contact the customer
+  APPROVED // store cancelled the order
+  REJECTED // store declined (e.g. already shipped); note explains
   AUTO_CANCELLED // customer cancelled instantly inside the self-service window
 }
 
@@ -607,7 +639,7 @@ model NewsletterSubscriber {
   id             String    @id @default(cuid())
   email          String    @unique
   locale         String    @default("he")
-  source         String    // "footer" | "checkout" | "register"
+  source         String // "footer" | "checkout" | "register"
   consentAt      DateTime  @default(now())
   unsubscribedAt DateTime?
   createdAt      DateTime  @default(now())
