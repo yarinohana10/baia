@@ -27,7 +27,15 @@ function FooterColumn({ title, links }: { title: string; links: NavItem[] }) {
   );
 }
 
-export function Footer({ categories, config }: { categories: NavItem[]; config: SiteConfig | null }) {
+export function Footer({
+  categories,
+  config,
+  sizeGuideHref,
+}: {
+  categories: NavItem[];
+  config: SiteConfig | null;
+  sizeGuideHref?: string;
+}) {
   const t = useTranslations('footer');
   const tCommon = useTranslations('common');
   const tNav = useTranslations('nav');
@@ -47,6 +55,7 @@ export function Footer({ categories, config }: { categories: NavItem[]; config: 
   const care: NavItem[] = [
     { label: t('shippingPolicy'), href: '/shipping' },
     { label: t('returnsExchanges'), href: '/returns' },
+    ...(sizeGuideHref ? [{ label: t('sizeGuide'), href: sizeGuideHref }] : []),
     { label: t('trackOrder'), href: '/order-status' },
     { label: t('cancelOrder'), href: '/cancel-order' },
     { label: t('contactUs'), href: '/contact' },

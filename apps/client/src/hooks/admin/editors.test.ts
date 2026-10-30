@@ -74,7 +74,7 @@ const category: Category = {
 describe('categoryEditorReducer', () => {
   it('edits a category and forgets its image once removed', () => {
     const editing = categoryEditorReducer(CLOSED_CATEGORY_EDITOR, { type: 'edit', category });
-    expect(editing.draft).toEqual({ nameHe: 'בגדי ים', nameEn: 'Swimwear', slug: 'swimwear', parentId: '', sizeSetId: '', sortOrder: 2 });
+    expect(editing.draft).toEqual({ nameHe: 'בגדי ים', nameEn: 'Swimwear', slug: 'swimwear', parentId: '', sizeSetId: '', sizeGuideId: '', sortOrder: 2 });
     expect(categoryEditorReducer(editing, { type: 'imageRemoved' }).editing?.image).toBeNull();
   });
 

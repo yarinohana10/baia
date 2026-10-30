@@ -6,6 +6,7 @@ export type CategoryDraft = {
   slug: string;
   parentId: string;
   sizeSetId: string;
+  sizeGuideId: string;
   sortOrder: number;
 };
 
@@ -25,7 +26,7 @@ export type CategoryEditorAction =
   /** A category was deleted; close the form if it was the one being edited. */
   | { type: 'deleted'; id: string };
 
-export const EMPTY_CATEGORY_DRAFT: CategoryDraft = { nameHe: '', nameEn: '', slug: '', parentId: '', sizeSetId: '', sortOrder: 0 };
+export const EMPTY_CATEGORY_DRAFT: CategoryDraft = { nameHe: '', nameEn: '', slug: '', parentId: '', sizeSetId: '', sizeGuideId: '', sortOrder: 0 };
 
 export const CLOSED_CATEGORY_EDITOR: CategoryEditor = { open: false, editing: null, draft: EMPTY_CATEGORY_DRAFT };
 
@@ -36,13 +37,14 @@ export function categoryToDraft(cat: Category): CategoryDraft {
     slug: cat.slug,
     parentId: cat.parentId || '',
     sizeSetId: cat.sizeSetId || '',
+    sizeGuideId: cat.sizeGuideId || '',
     sortOrder: cat.sortOrder,
   };
 }
 
-/** API body: an empty parent moves the category to the top level, an empty size set inherits the parent's. */
+/** API body: an empty parent moves the category to the top level, an empty size set / size guide inherits the parent's. */
 export function categoryPayload(d: CategoryDraft) {
-  return { ...d, parentId: d.parentId || null, sizeSetId: d.sizeSetId || null };
+  return { ...d, parentId: d.parentId || null, sizeSetId: d.sizeSetId || null, sizeGuideId: d.sizeGuideId || null };
 }
 
 export function categoryEditorReducer(state: CategoryEditor, action: CategoryEditorAction): CategoryEditor {

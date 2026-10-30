@@ -8,11 +8,14 @@ export type Category = {
   sortOrder: number;
   parentId: string | null;
   sizeSetId?: string | null;
+  sizeGuideId?: string | null;
   image?: string | null;
   children: Category[];
 };
 
 export type SizeSetOption = { id: string; nameHe: string; nameEn: string };
+
+export type SizeGuideOption = { id: string; nameHe: string; nameEn: string };
 
 /** Slug suggested from the English name (new categories only). */
 export function autoSlug(name: string) {

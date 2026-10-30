@@ -50,4 +50,10 @@ describe('buildSitemap', () => {
     const urls = buildSitemap([cat('men')], []).map((e) => e.url).join(' ');
     for (const p of ['/admin', '/account', '/cart', '/checkout']) expect(urls).not.toContain(p);
   });
+
+  it('lists every size guide in both languages', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://baia.example');
+    const urls = buildSitemap([], [], ['women']).map((e) => e.url);
+    expect(urls).toEqual(expect.arrayContaining(['https://baia.example/he/size-guide/women', 'https://baia.example/en/size-guide/women']));
+  });
 });

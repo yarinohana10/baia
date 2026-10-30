@@ -1,6 +1,7 @@
 import type { Category, Product, ProductList, SiteConfig, SortOption, CardProduct, Facets } from './types';
 import { filterApiParams, type ListingFilters } from './query';
 import { serverApiUrl } from '../api-urls';
+import type { SizeGuide } from './size-guides';
 
 /**
  * Server-side catalogue reads. Uses Next's data cache (ISR) with tags so an admin
@@ -19,7 +20,7 @@ export const REVALIDATE_SECONDS = 300;
  * hidden products, price changes and settings show up immediately instead of
  * after REVALIDATE_SECONDS.
  */
-export const CATALOG_TAGS = ['products', 'categories', 'site-config'] as const;
+export const CATALOG_TAGS = ['products', 'categories', 'site-config', 'size-guides'] as const;
 
 async function get<T>(path: string, tags: string[], fallback: T): Promise<T> {
   try {
@@ -86,6 +87,11 @@ export function getRelatedProducts(slug: string, limit = 8): Promise<Product[]> 
 
 export function getProduct(slug: string): Promise<Product | null> {
   return get<Product | null>(`/products/${encodeURIComponent(slug)}`, ['products', `product:${slug}`], null);
+}
+
+/** Active size guides, in display order (each with the categories linked to it). */
+export function getSizeGuides(): Promise<SizeGuide[]> {
+  return get<SizeGuide[]>('/size-guides', ['size-guides'], []);
 }
 
 export function getSiteConfig(): Promise<SiteConfig | null> {

@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { backfillSizeSets } from './size-sets';
+import sizeGuides from './data/size-guides.json';
 import { buildPublicUrl, buildS3ClientConfig } from '../src/storage/s3-client-options';
 
 /** process.env without unset/empty entries, so spreading it never overrides a default with `undefined`. */
@@ -242,6 +243,14 @@ async function main() {
   const men = await upsertCategoryWithImage('men', 'גברים', 'Men', 1, '/categories/men.jpg');
   const women = await upsertCategoryWithImage('women', 'נשים', 'Women', 2, '/categories/women.jpg');
   const children = await upsertCategoryWithImage('children', 'ילדים', 'Children', 3, '/categories/kids.jpg');
+
+  // Size guides: created once (the migration already adds them), then edited in the admin.
+  // Each top-level category gets its guide unless one was already chosen.
+  for (const guide of sizeGuides) {
+    const saved = await prisma.sizeGuide.upsert({ where: { slug: guide.slug }, update: {}, create: guide });
+    const categorySlug = guide.slug === 'kids' ? 'children' : guide.slug;
+    await prisma.category.updateMany({ where: { slug: categorySlug, parentId: null, sizeGuideId: null }, data: { sizeGuideId: saved.id } });
+  }
 
   const existingProducts = await prisma.product.count();
   if (existingProducts > 0) {

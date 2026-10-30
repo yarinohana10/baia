@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useSession, signOut } from '@/lib/auth-client';
-import { ShoppingBag, User, Menu, X, LogOut, LayoutDashboard, Search, Globe, ChevronRight } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, LogOut, LayoutDashboard, Search, Globe, ChevronRight, Ruler } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { Wordmark } from './Wordmark';
 import { SearchForm } from './SearchForm';
@@ -59,14 +59,18 @@ export function Header({
   nav,
   logoUrl,
   freeShippingThreshold,
+  sizeGuideHref,
 }: {
   nav: NavItem[];
   logoUrl?: string;
+  /** Size guide page, shown under the categories when at least one guide is published. */
+  sizeGuideHref?: string;
   /** Formatted free-shipping threshold from the site settings, e.g. "₪450". */
   freeShippingThreshold: string;
 }) {
   const t = useTranslations('common');
   const ts = useTranslations('storefront');
+  const tNav = useTranslations('nav');
   const pathname = usePathname();
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -236,6 +240,18 @@ export function Header({
               </li>
             ))}
           </ul>
+          {sizeGuideHref && (
+            <div className="mt-3 border-t border-header-line pt-3">
+              <Link
+                href={sizeGuideHref}
+                aria-current={isActive('/size-guide') ? 'page' : undefined}
+                className="flex min-h-12 items-center gap-3 px-4 text-[14px] font-medium text-ink/75 transition-colors hover:bg-sand-100/60 hover:text-ocean-700 focus-visible:bg-sand-100/60 focus-visible:text-ocean-700 focus-visible:outline-none aria-[current=page]:text-ocean-700"
+              >
+                <Ruler size={18} strokeWidth={1.5} aria-hidden="true" />
+                {tNav('sizeGuide')}
+              </Link>
+            </div>
+          )}
           <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-header-line pt-4 text-sm font-semibold sm:hidden">
             <LocaleSwitcher
               pathname={pathname}

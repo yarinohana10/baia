@@ -8,7 +8,6 @@ import {
   toggleValue,
   withFilters,
 } from '../catalog/query';
-import { effectiveSizeSetKey, sizeChartFor, sizeChartIdFor } from '../catalog/size-charts';
 import { discountPercent, lowStockCount, variantPrice } from '../catalog/pricing';
 
 describe('listing filters <-> URL', () => {
@@ -80,29 +79,6 @@ describe('listing filters <-> URL', () => {
       inStock: 'true',
     });
     expect(filterApiParams({})).toEqual({});
-  });
-});
-
-describe('size charts', () => {
-  it('picks the chart from the size set and top-level category', () => {
-    expect(sizeChartIdFor({ sizeSetKey: 'adult-letter', topCategorySlug: 'women' })).toBe('women');
-    expect(sizeChartIdFor({ sizeSetKey: 'adult-letter', topCategorySlug: 'men' })).toBe('men');
-    expect(sizeChartIdFor({ sizeSetKey: 'kids-age', topCategorySlug: 'children' })).toBe('kids');
-    expect(sizeChartIdFor({ sizeSetKey: null, topCategorySlug: 'women' })).toBeNull();
-  });
-
-  it('trims the chart to the offered sizes, or keeps it whole', () => {
-    const chart = sizeChartFor({ sizeSetKey: 'adult-letter', topCategorySlug: 'men', sizes: ['M', 'L'] });
-    expect(chart?.rows.map((r) => r.size)).toEqual(['M', 'L']);
-    expect(chart?.howToMeasure).toContain('inseam');
-    expect(sizeChartFor({ sizeSetKey: 'kids-age', sizes: ['One size'] })?.rows).toHaveLength(7);
-  });
-
-  it('infers a size set for products without one', () => {
-    expect(effectiveSizeSetKey(null, ['S', 'M'])).toBe('adult-letter');
-    expect(effectiveSizeSetKey(null, ['4Y', '6Y'])).toBe('kids-age');
-    expect(effectiveSizeSetKey(null, ['36', '38'])).toBeNull();
-    expect(effectiveSizeSetKey('kids-age', ['S'])).toBe('kids-age');
   });
 });
 

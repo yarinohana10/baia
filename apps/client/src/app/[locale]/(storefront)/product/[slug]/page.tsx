@@ -4,7 +4,8 @@ import { Breadcrumbs } from '@/components/storefront/Breadcrumbs';
 import { ProductDetails } from '@/components/storefront/product/ProductDetails';
 import { RelatedProducts } from '@/components/storefront/product/RelatedProducts';
 import { localizedName } from '@/lib/catalog/names';
-import { getProduct, getRelatedProducts, getSiteConfig, toCardProduct } from '@/lib/catalog/server';
+import { getProduct, getRelatedProducts, getSiteConfig, getSizeGuides, toCardProduct } from '@/lib/catalog/server';
+import { sizeGuideForCategory } from '@/lib/catalog/size-guides';
 import { businessInfo } from '@/lib/site';
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
@@ -18,12 +19,13 @@ export default async function ProductPage({ params }: Props) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const [product, config, related, t, tPdp] = await Promise.all([
+  const [product, config, related, t, tPdp, sizeGuides] = await Promise.all([
     getProduct(slug),
     getSiteConfig(),
     getRelatedProducts(slug, 8),
     getTranslations('storefront'),
     getTranslations('pdp'),
+    getSizeGuides(),
   ]);
   if (!product) notFound();
 
@@ -47,6 +49,7 @@ export default async function ProductPage({ params }: Props) {
         product={product}
         whatsappNumber={info.whatsappNumber}
         lowStockThreshold={info.lowStockThreshold}
+        sizeGuide={sizeGuideForCategory(product.category, sizeGuides)}
         shipping={{
           courierCost: info.courierCost,
           pickupCost: info.pickupCost,

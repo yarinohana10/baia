@@ -6,17 +6,19 @@ import { SessionSync } from './SessionSync';
 import { WhatsAppButton } from './WhatsAppButton';
 import { CookieConsent } from './CookieConsent';
 import { AccessibilityMenu } from './AccessibilityMenu';
-import { getCategories, getSiteConfig } from '@/lib/catalog/server';
+import { getCategories, getSiteConfig, getSizeGuides } from '@/lib/catalog/server';
 import { getLogoUrl } from '@/lib/brand';
 import { businessInfo } from '@/lib/site';
 
 export async function StorefrontLayout({ children }: { children: React.ReactNode }) {
-  const [locale, categories, tNav, config] = await Promise.all([
+  const [locale, categories, tNav, config, sizeGuides] = await Promise.all([
     getLocale(),
     getCategories(),
     getTranslations('nav'),
     getSiteConfig(),
+    getSizeGuides(),
   ]);
+  const sizeGuideHref = sizeGuides.length > 0 ? '/size-guide' : undefined;
 
   // Top-level categories drive both nav and footer, so links always match real slugs.
   const categoryNav: NavItem[] = categories.length
@@ -36,11 +38,16 @@ export async function StorefrontLayout({ children }: { children: React.ReactNode
   // the rest of the design; the admin keeps its own rounded look.
   return (
     <div className="flex min-h-screen flex-col overflow-x-clip bg-white [--radius:0px]">
-      <Header nav={nav} logoUrl={getLogoUrl()} freeShippingThreshold={businessInfo(config).freeShippingThreshold} />
+      <Header
+        nav={nav}
+        logoUrl={getLogoUrl()}
+        freeShippingThreshold={businessInfo(config).freeShippingThreshold}
+        sizeGuideHref={sizeGuideHref}
+      />
       <main id="main" className="flex-1">
         {children}
       </main>
-      <Footer categories={categoryNav} config={config} />
+      <Footer categories={categoryNav} config={config} sizeGuideHref={sizeGuideHref} />
       <CartDrawer />
       <SessionSync />
       <WhatsAppButton number={config?.whatsappNumber ?? null} />

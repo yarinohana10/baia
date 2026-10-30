@@ -4,7 +4,7 @@ import { useMemo, useRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AlertTriangle } from 'lucide-react';
 import { LOW_STOCK_THRESHOLD, lowStockCount } from '@/lib/catalog/pricing';
-import { effectiveSizeSetKey, sizeChartFor } from '@/lib/catalog/size-charts';
+import type { SizeGuide as SizeGuideData } from '@/lib/catalog/size-guides';
 import { localizedName } from '@/lib/catalog/names';
 import { activeVariants, displayPrice, distinctValues, galleryImagesFor } from '@/lib/catalog/variant-selection';
 import { whatsappHref } from '@/lib/site';
@@ -32,6 +32,8 @@ type Props = {
   whatsappNumber: string | null;
   /** SiteConfig.lowStockThreshold: the "only N left" hint shows at or under it. */
   lowStockThreshold?: number;
+  /** Size guide of the product's category; null hides the size-guide link. */
+  sizeGuide?: SizeGuideData | null;
 };
 
 type ButtonState = { variant: Variant | undefined; purchasable: boolean; adding: boolean };
@@ -48,7 +50,13 @@ function addToBagLabelKey({ variant, purchasable, adding }: ButtonState) {
  * Server-rendered from the cached catalogue, then stock is refreshed live so
  * sold-out sizes are accurate.
  */
-export function ProductDetails({ product: initial, shipping, whatsappNumber, lowStockThreshold = LOW_STOCK_THRESHOLD }: Props) {
+export function ProductDetails({
+  product: initial,
+  shipping,
+  whatsappNumber,
+  lowStockThreshold = LOW_STOCK_THRESHOLD,
+  sizeGuide = null,
+}: Props) {
   const locale = useLocale();
   const t = useTranslations('pdp');
   const colorName = useColorName();
@@ -74,11 +82,6 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber, low
   const price = displayPrice(variant, variants, product.basePrice);
   const name = localizedName(product, locale);
 
-  const chart = sizeChartFor({
-    sizeSetKey: effectiveSizeSetKey(product.sizeSet?.key, allSizes),
-    topCategorySlug: product.category?.parent?.slug ?? product.category?.slug,
-    sizes: allSizes,
-  });
   const whatsappLink = whatsappHref(whatsappNumber, t('sizeGuide.whatsappMessage', { name }));
   const buttonLabel = t(addToBagLabelKey({ variant, purchasable, adding }));
 
@@ -113,7 +116,7 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber, low
                 onSelect={selection.selectSize}
                 lowStock={variant && !backSoon ? lowStockCount(variant, lowStockThreshold) : null}
                 backSoon={backSoon}
-                guide={<SizeGuide chart={chart} sizes={allSizes} whatsappLink={whatsappLink} />}
+                guide={sizeGuide && <SizeGuide guide={sizeGuide} sizes={allSizes} whatsappLink={whatsappLink} />}
               />
             )}
 
@@ -152,7 +155,7 @@ export function ProductDetails({ product: initial, shipping, whatsappNumber, low
             <ProductInfoSections
               product={product}
               shipping={shipping}
-              sizeGuide={<SizeGuide chart={chart} sizes={allSizes} whatsappLink={whatsappLink} variant="text" />}
+              sizeGuide={sizeGuide && <SizeGuide guide={sizeGuide} sizes={allSizes} whatsappLink={whatsappLink} variant="text" />}
             />
           </div>
         </div>

@@ -35,6 +35,8 @@ export type CategoryRef = {
   slug: string;
   parentId?: string | null;
   parent?: CategoryRef | null;
+  /** Size guide linked to the category (null = inherit the parent's). */
+  sizeGuideId?: string | null;
 };
 
 export type Product = {

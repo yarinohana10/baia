@@ -23,6 +23,7 @@ import {
   Newspaper,
   Truck,
   UserCog,
+  Ruler,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -61,6 +62,7 @@ const navItems: {
   { href: '/admin/customers', labelKey: 'customers', icon: Users },
   { href: '/admin/products', labelKey: 'products', icon: Package },
   { href: '/admin/categories', labelKey: 'categories', icon: FolderTree },
+  { href: '/admin/size-guides', labelKey: 'sizeGuides', icon: Ruler },
   { href: '/admin/coupons', labelKey: 'coupons', icon: Tags },
   { href: '/admin/delivery', labelKey: 'delivery', icon: Truck },
   { href: '/admin/newsletter', labelKey: 'newsletter', icon: Newspaper },
