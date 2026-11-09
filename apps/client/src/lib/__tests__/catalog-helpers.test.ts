@@ -53,5 +53,6 @@ describe('pricing helpers', () => {
       saleEnd: null,
     });
     expect(sizesInStock([v('L', 1), v('S', 2), v('M', 0), v('S', 1), v('XS', 3)])).toEqual(['XS', 'S', 'L']);
+    expect(sizesInStock([v('5XL', 1), v('XXL', 1), v('3XL', 1), v('M', 1), v('4XL', 1)])).toEqual(['M', 'XXL', '3XL', '4XL', '5XL']);
   });
 });

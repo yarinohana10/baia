@@ -85,7 +85,7 @@ export function uniqueColors(variants: V[]): string[] {
   return [...new Set(variants.map((v) => v.color).filter((c): c is string => !!c))];
 }
 
-const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '3XL', '4XL', '5XL'];
 
 /** Distinct sizes that still have stock, in a natural order. */
 export function sizesInStock(variants: V[]): string[] {

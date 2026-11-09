@@ -2,15 +2,12 @@ import type { FieldErrors } from '../product-form-errors';
 import { stockSummary, type Variant } from './stock-variants';
 import { toNum } from './product-payload';
 
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
 /** next-intl translator scoped to `admin.productForm`. */
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 type ProductFields = {
   nameHe: string;
   nameEn: string;
-  slug: string;
   basePrice: string;
   categoryId: string;
   isActive: boolean;
@@ -60,8 +57,6 @@ export function validateProduct(f: ProductFields, t: Translate): FieldErrors {
   const errors: FieldErrors = {};
   if (!f.nameEn.trim()) errors.nameEn = t('validation.nameEnRequired');
   if (!f.nameHe.trim()) errors.nameHe = t('validation.nameHeRequired');
-  if (!f.slug.trim()) errors.slug = t('validation.slugRequired');
-  else if (!SLUG_PATTERN.test(f.slug.trim())) errors.slug = t('errors.slugInvalid');
   const base = parseFloat(f.basePrice);
   if (!f.basePrice) errors.basePrice = t('validation.priceRequired');
   else if (!(base > 0)) errors.basePrice = t('validation.pricePositive');

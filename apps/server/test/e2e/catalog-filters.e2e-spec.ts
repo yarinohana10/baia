@@ -337,4 +337,29 @@ describe('Catalog filters, facets and related products (e2e)', () => {
       expect(fields).toEqual(expect.arrayContaining(['careHe', 'fitEn']));
     });
   });
+
+  describe('generated product address', () => {
+    const product = (nameEn: string, sku: string) => ({
+      nameHe: 'מכנסי ים',
+      nameEn,
+      basePrice: 199,
+      categoryId: bikinis.id,
+      variants: [{ color: 'Black', size: '4XL', sku: `${sku}-${Date.now()}`, stockQuantity: 2 }],
+    });
+
+    it('builds the address from the top-level category and English name, unique and stable', async () => {
+      const admin = await signUp(t, { admin: true });
+      const first = await admin.agent.post('/v1/admin/products').send(product('Enzo Swim Shorts', 'ENZO-A')).expect(201);
+      expect(first.body.slug).toBe('women-enzo-swim-shorts');
+      expect(first.body.variants[0].size).toBe('4XL');
+
+      const second = await admin.agent.post('/v1/admin/products').send(product('Enzo Swim Shorts', 'ENZO-B')).expect(201);
+      expect(second.body.slug).toBe('women-enzo-swim-shorts-2');
+
+      // Renaming keeps the address, so shared links and search results keep working.
+      const renamed = await admin.agent.put(`/v1/admin/products/${first.body.id}`).send({ nameEn: 'Enzo Shorts' }).expect(200);
+      expect(renamed.body.slug).toBe('women-enzo-swim-shorts');
+      await t.http().get('/v1/products/women-enzo-swim-shorts').expect(200);
+    });
+  });
 });

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../generated/prisma';
 import { randomUUID } from 'crypto';
+import { productSlugBase, uniqueSlug } from './product-slug';
 import { fieldConflictException, fieldValidationException, type FieldError } from '../common/validation';
 import { CreateProductDto, ImageMetaDto, UpdateProductDto, UpdateVariantDto, VariantDto } from './dto/product.dto';
 import { compareSizes } from './size-sets';
@@ -399,6 +400,16 @@ export class ProductsService {
   }
 
   /** Pre-checks unique fields so the client gets precise field paths (409). */
+  /** "<top-level category>-<english name>", made unique (see product-slug.ts). */
+  private async generateSlug(nameEn: string, categoryId: string): Promise<string> {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { slug: true, parent: { select: { slug: true } } },
+    });
+    const base = productSlugBase(nameEn, category?.parent?.slug ?? category?.slug ?? '');
+    return uniqueSlug(base, async (slug) => !!(await this.prisma.product.findUnique({ where: { slug }, select: { id: true } })));
+  }
+
   private async uniquenessErrors(params: {
     slug?: string;
     excludeProductId?: string;
@@ -495,6 +506,7 @@ export class ProductsService {
 
     const conflicts = await this.uniquenessErrors({ slug: dto.slug, variants });
     if (conflicts.length) throw fieldConflictException(conflicts);
+    const slug = dto.slug ?? (await this.generateSlug(dto.nameEn, dto.categoryId));
 
     const productId = randomUUID();
     const stored = await this.images.putFiles(productId, files);
@@ -514,7 +526,7 @@ export class ProductsService {
             careEn: dto.careEn ?? null,
             fitHe: dto.fitHe ?? null,
             fitEn: dto.fitEn ?? null,
-            slug: dto.slug,
+            slug,
             basePrice: new Prisma.Decimal(dto.basePrice),
             categoryId: dto.categoryId,
             sizeSetId: dto.sizeSetId ?? null,

@@ -78,12 +78,11 @@ describe('stock variants', () => {
 
 describe('validateProduct', () => {
   const t = (key: string) => key;
-  const base = { nameHe: 'א', nameEn: 'A', slug: 'a', basePrice: '100', categoryId: 'c', isActive: true };
+  const base = { nameHe: 'א', nameEn: 'A', basePrice: '100', categoryId: 'c', isActive: true };
 
   it('requires the basics and at least one size for a visible product', () => {
-    expect(validateProduct({ ...base, nameEn: ' ', slug: 'Bad Slug', basePrice: '0', categoryId: '', variants: [] }, t)).toEqual({
+    expect(validateProduct({ ...base, nameEn: ' ', basePrice: '0', categoryId: '', variants: [] }, t)).toEqual({
       nameEn: 'validation.nameEnRequired',
-      slug: 'errors.slugInvalid',
       basePrice: 'validation.pricePositive',
       categoryId: 'validation.categoryRequired',
       variants: 'errors.noSizes',

@@ -23,6 +23,11 @@ describe('stock edits sent with the quantity the form loaded', () => {
     const form = { ...initialProductForm(), basePrice: '10', backSoon: true, isActive: false };
     expect(productPayload(form)).toMatchObject({ backSoon: true, isActive: false });
   });
+
+  it('never sends a web address (the server generates it on create and keeps it after)', () => {
+    const form = { ...initialProductForm({ slug: 'women-top' } as never), nameEn: 'Top', basePrice: '10' };
+    expect(productPayload(form)).not.toHaveProperty('slug');
+  });
 });
 
 describe('products list stock badge', () => {
