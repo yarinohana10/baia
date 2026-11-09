@@ -791,7 +791,6 @@
       "nameHe": "Name (Hebrew)",
       "descriptionEn": "Description (English)",
       "descriptionHe": "Description (Hebrew)",
-      "slug": "Slug",
       "basePrice": "Base Price (₪)",
       "category": "Category",
       "selectCategory": "Select category",
@@ -819,7 +818,6 @@
       "validation": {
         "nameEnRequired": "Product name (English) is required",
         "nameHeRequired": "Product name (Hebrew) is required",
-        "slugRequired": "Slug is required",
         "priceRequired": "Base price is required",
         "pricePositive": "Price must be greater than 0",
         "categoryRequired": "You must assign the product to a category"

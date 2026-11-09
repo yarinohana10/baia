@@ -14,9 +14,9 @@ export type SizeSetDefinition = {
 
 export const ADULT_LETTER_SIZE_SET: SizeSetDefinition = {
   key: 'adult-letter',
-  nameHe: 'מבוגרים (XS–XXL)',
-  nameEn: 'Adult (XS–XXL)',
-  sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+  nameHe: 'מבוגרים (XS–5XL)',
+  nameEn: 'Adult (XS–5XL)',
+  sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'],
   sortOrder: 1,
 };
 

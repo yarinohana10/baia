@@ -50,7 +50,6 @@ export function productPayload(f: ProductFormValues) {
     descriptionHe: f.descHe.trim() || null,
     descriptionEn: f.descEn.trim() || null,
     ...contentPayload(f.content),
-    slug: f.slug.trim(),
     basePrice: parseFloat(f.basePrice),
     categoryId: f.categoryId,
     sizeSetId: f.sizeSetId || null,

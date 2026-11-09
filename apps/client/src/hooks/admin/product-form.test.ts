@@ -10,21 +10,24 @@ const categories: ProductCategory[] = [
 ];
 
 describe('productFormReducer', () => {
-  it('derives the slug from the English name until the slug is edited', () => {
-    let state = productFormReducer(initialProductForm(), { type: 'nameEn', value: 'Sea Breeze Top' });
-    expect(state.slug).toBe('sea-breeze-top');
-    state = productFormReducer(state, { type: 'slug', value: 'breeze' });
-    state = productFormReducer(state, { type: 'nameEn', value: 'Other' });
-    expect(state.slug).toBe('breeze');
+  it('has no editable web address: new products leave it to the server, saved ones keep theirs', () => {
+    const created = productFormReducer(initialProductForm(), { type: 'nameEn', value: 'Sea Breeze Top' });
+    expect(created.slug).toBe('');
+    const saved = productFormReducer(initialProductForm({ slug: 'women-sea-breeze-top', nameEn: 'Sea Breeze Top' } as never), {
+      type: 'nameEn',
+      value: 'Renamed',
+    });
+    expect(saved.slug).toBe('women-sea-breeze-top');
   });
 
-  it('keeps generated SKUs in step with the slug', () => {
+  it('builds generated SKUs from the English name (new) or the saved address', () => {
     let state = productFormReducer(initialProductForm(), { type: 'nameEn', value: 'Top' });
     const generated = newVariant(skuPrefixOf(state), 'Black', 'M');
     const manual = { ...newVariant('x', 'Red', 'S'), sku: 'CUSTOM', autoSku: false };
     state = productFormReducer(state, { type: 'variants', variants: [generated, manual] });
-    state = productFormReducer(state, { type: 'slug', value: 'wave-top' });
+    state = productFormReducer(state, { type: 'nameEn', value: 'Wave Top' });
     expect(state.variants.map((v) => v.sku)).toEqual(['wave-top-black-m', 'CUSTOM']);
+    expect(skuPrefixOf({ slug: 'women-wave-top', nameEn: 'Renamed' })).toBe('women-wave-top');
   });
 
   it('follows the category size set (children inherit) until one is picked', () => {
@@ -55,7 +58,7 @@ describe('productFormReducer', () => {
       variants: [],
       images: [],
     });
-    expect(product).toMatchObject({ basePrice: '120', sizeSetTouched: true, autoSlug: false });
+    expect(product).toMatchObject({ basePrice: '120', sizeSetTouched: true });
     expect(productFormReducer(product, { type: 'categoriesLoaded', categories }).sizeSetId).toBe('');
   });
 });

@@ -791,7 +791,6 @@
       "nameHe": "שם (עברית)",
       "descriptionEn": "תיאור (אנגלית)",
       "descriptionHe": "תיאור (עברית)",
-      "slug": "כתובת URL",
       "basePrice": "מחיר בסיס (₪)",
       "category": "קטגוריה",
       "selectCategory": "בחר קטגוריה",
@@ -819,7 +818,6 @@
       "validation": {
         "nameEnRequired": "שם המוצר (אנגלית) הוא שדה חובה",
         "nameHeRequired": "שם המוצר (עברית) הוא שדה חובה",
-        "slugRequired": "כתובת URL היא שדה חובה",
         "priceRequired": "מחיר בסיס הוא שדה חובה",
         "pricePositive": "המחיר חייב להיות גדול מ-0",
         "categoryRequired": "חובה לשייך את המוצר לקטגוריה"

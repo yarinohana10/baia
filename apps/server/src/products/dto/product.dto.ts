@@ -225,12 +225,14 @@ export class CreateProductDto {
   @MaxLength(PRODUCT_CONTENT_MAX.fit)
   fitEn?: string | null;
 
+  /** Optional: generated from the category and English name when omitted (the admin form never sends it). */
+  @IsOptional()
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   @Matches(SLUG_PATTERN, { message: 'slug may only contain lowercase letters, digits and dashes' })
-  slug!: string;
+  slug?: string;
 
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()

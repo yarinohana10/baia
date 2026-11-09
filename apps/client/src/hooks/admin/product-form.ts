@@ -1,7 +1,7 @@
 import type { ImageItem } from '@/components/admin/ProductImagesManager';
 import { emptyContent, type ProductContent } from '@/components/admin/product-form/product-content';
 import { categorySizeSet, type ProductCategory, type ServerProduct } from '@/components/admin/product-form/types';
-import { resyncAutoSkus, slugify, withLoadedStock, type Variant } from '@/components/admin/product-form/stock-variants';
+import { resyncAutoSkus, withLoadedStock, type Variant } from '@/components/admin/product-form/stock-variants';
 import { toImageItem } from '@/components/admin/product-form/product-payload';
 
 /** Everything the product form edits. */
@@ -11,6 +11,7 @@ export type ProductFormValues = {
   descHe: string;
   descEn: string;
   content: ProductContent;
+  /** Saved product's web address (read-only; the server generates it on create). */
   slug: string;
   basePrice: string;
   categoryId: string;
@@ -20,8 +21,6 @@ export type ProductFormValues = {
   sizeSetId: string;
   /** Once the admin picks a size set it no longer follows the category. */
   sizeSetTouched: boolean;
-  /** The slug follows the English name until the admin edits it. */
-  autoSlug: boolean;
   variants: Variant[];
   images: ImageItem[];
 };
@@ -31,7 +30,6 @@ type TextField = 'nameHe' | 'descHe' | 'descEn' | 'basePrice';
 export type ProductFormAction =
   | { type: 'text'; field: TextField; value: string }
   | { type: 'nameEn'; value: string }
-  | { type: 'slug'; value: string }
   | { type: 'flag'; field: 'isActive' | 'isFeatured' | 'backSoon'; value: boolean }
   | { type: 'content'; content: ProductContent }
   | { type: 'category'; categoryId: string; categories: ProductCategory[] }
@@ -55,13 +53,12 @@ export function initialProductForm(product?: ServerProduct): ProductFormValues {
     backSoon: product?.backSoon ?? false,
     sizeSetId: product?.sizeSetId ?? '',
     sizeSetTouched: !!product,
-    autoSlug: !product,
     variants: (product?.variants ?? []).map(withLoadedStock),
     images: (product?.images ?? []).map(toImageItem),
   };
 }
 
-/** Generated SKUs are built from the slug, or the English name while there is none. */
+/** Generated SKUs are built from the saved web address, or the English name for a new product. */
 export const skuPrefixOf = (f: Pick<ProductFormValues, 'slug' | 'nameEn'>) => f.slug || f.nameEn;
 
 /** Re-generates auto SKUs when the prefix changed. */
@@ -84,13 +81,7 @@ export function productFormReducer(state: ProductFormValues, action: ProductForm
     case 'text':
       return { ...state, [action.field]: action.value };
     case 'nameEn':
-      return withSkuPrefix(state, {
-        ...state,
-        nameEn: action.value,
-        slug: state.autoSlug ? slugify(action.value) : state.slug,
-      });
-    case 'slug':
-      return withSkuPrefix(state, { ...state, slug: action.value, autoSlug: false });
+      return withSkuPrefix(state, { ...state, nameEn: action.value });
     case 'flag':
       return { ...state, [action.field]: action.value };
     case 'content':
