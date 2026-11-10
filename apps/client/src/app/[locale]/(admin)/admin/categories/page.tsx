@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { FormFeedback, type Feedback } from '@/components/admin/common/FormFeedback';
 import { CategoryForm } from '@/components/admin/categories/CategoryForm';
 import { CategoryRow } from '@/components/admin/categories/CategoryRow';
+import { BulkEditProductsDialog } from '@/components/admin/bulk-edit/BulkEditProductsDialog';
 import { deleteErrorKey, saveErrorKey, type Category, type SizeGuideOption, type SizeSetOption } from '@/components/admin/categories/types';
 
 const selectCategories = (data: Category[]): ListPage<Category> => ({
@@ -42,6 +43,8 @@ export default function CategoriesPage() {
   const [sizeSets, setSizeSets] = useState<SizeSetOption[]>([]);
   const [sizeGuides, setSizeGuides] = useState<SizeGuideOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // Category whose products are being bulk-edited.
+  const [bulkCategory, setBulkCategory] = useState<Category | null>(null);
   const [message, setMessage] = useState<Feedback | null>(null);
   // Image chosen in the form; uploaded after the category is saved.
   const image = useFilePreview();
@@ -162,10 +165,18 @@ export default function CategoriesPage() {
           <p className="p-6 text-muted-foreground text-center">{t('noCategories')}</p>
         ) : (
           list.items.map((cat) => (
-            <CategoryRow key={cat.id} category={cat} onEdit={(category) => openForm({ type: 'edit', category })} onDelete={handleDelete} />
+            <CategoryRow
+              key={cat.id}
+              category={cat}
+              onEdit={(category) => openForm({ type: 'edit', category })}
+              onDelete={handleDelete}
+              onBulkEdit={setBulkCategory}
+            />
           ))
         )}
       </Card>
+
+      {bulkCategory && <BulkEditProductsDialog category={bulkCategory} onClose={() => setBulkCategory(null)} />}
     </div>
   );
 }

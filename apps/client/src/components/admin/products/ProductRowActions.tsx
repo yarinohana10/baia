@@ -27,19 +27,21 @@ export function ProductRowActions({
       <button
         type="button"
         onClick={() => onToggleFeatured(product)}
-        className={`rounded-lg p-2 transition-colors ${
+        className={`tip relative rounded-lg p-2 transition-colors ${
           product.isFeatured ? 'text-[#005d72] hover:bg-[#e7e2d9]' : 'text-[#bec8cd] hover:bg-[#f3f3f4] hover:text-[#005d72]'
         }`}
         aria-label={product.isFeatured ? t('removeFeatured') : t('markFeatured')}
+        data-tip={product.isFeatured ? t('removeFeatured') : t('markFeatured')}
       >
         <Star size={16} fill={product.isFeatured ? 'currentColor' : 'none'} />
       </button>
       <button
         type="button"
         onClick={() => onToggleActive(product)}
-        className="rounded-lg p-2 text-[#3f484c] transition-colors hover:bg-[#f3f3f4] hover:text-[#005d72]"
+        className="tip relative rounded-lg p-2 text-[#3f484c] transition-colors hover:bg-[#f3f3f4] hover:text-[#005d72]"
         aria-label={product.isActive ? t('deactivate') : t('activate')}
-        title={product.isActive ? t('deactivateHint') : t('activateHint')}
+        aria-description={product.isActive ? t('deactivateHint') : t('activateHint')}
+        data-tip={product.isActive ? t('deactivate') : t('activate')}
       >
         {product.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
       </button>
@@ -47,26 +49,29 @@ export function ProductRowActions({
         type="button"
         onClick={() => onToggleBackSoon(product)}
         aria-pressed={!!product.backSoon}
-        className={`rounded-lg p-2 transition-colors ${
+        className={`tip relative rounded-lg p-2 transition-colors ${
           product.backSoon ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'text-[#3f484c] hover:bg-[#f3f3f4] hover:text-[#005d72]'
         }`}
         aria-label={product.backSoon ? t('clearBackSoon') : t('markBackSoon')}
-        title={t('backSoonHint')}
+        aria-description={t('backSoonHint')}
+        data-tip={product.backSoon ? t('clearBackSoon') : t('markBackSoon')}
       >
         <Clock size={16} />
       </button>
       <Link
         href={`/admin/products/${product.id}`}
-        className="rounded-lg p-2 text-[#3f484c] transition-colors hover:bg-[#f3f3f4] hover:text-[#005d72]"
+        className="tip relative rounded-lg p-2 text-[#3f484c] transition-colors hover:bg-[#f3f3f4] hover:text-[#005d72]"
         aria-label={t('editProduct', { name: productName })}
+        data-tip={t('edit')}
       >
         <Pencil size={16} />
       </Link>
       <button
         type="button"
         onClick={() => onDelete(product.id)}
-        className="rounded-lg p-2 text-[#3f484c] transition-colors hover:bg-red-50 hover:text-[#ba1a1a]"
+        className="tip relative rounded-lg p-2 text-[#3f484c] transition-colors hover:bg-red-50 hover:text-[#ba1a1a]"
         aria-label={t('deleteProduct', { name: productName })}
+        data-tip={t('delete')}
       >
         <Trash2 size={16} />
       </button>

@@ -1,4 +1,4 @@
-import { OmitType, PartialType } from '@nestjs/swagger';
+import { OmitType, PartialType, PickType } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -10,6 +10,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsPositive,
   IsString,
@@ -285,3 +286,64 @@ export class CreateProductDto {
  * Variants are removed through `DELETE admin/variants/:id`.
  */
 export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['images'] as const)) {}
+
+// ─── Bulk edit ───────────────────────────────────────────────
+
+/**
+ * Fields an admin may set on all products of a subcategory at once. Everything
+ * that makes a product itself (names, web address, images, sizes / stock / SKUs)
+ * is left out so every product keeps its own identity, and so is the category:
+ * a bulk edit runs inside one subcategory and never moves products.
+ */
+export const BULK_EDITABLE_FIELDS = [
+  'descriptionHe',
+  'descriptionEn',
+  'basePrice',
+  'isActive',
+  'backSoon',
+  'isFeatured',
+  'fabricHe',
+  'fabricEn',
+  'careHe',
+  'careEn',
+  'fitHe',
+  'fitEn',
+] as const;
+
+export class BulkProductChangesDto extends PickType(UpdateProductDto, BULK_EDITABLE_FIELDS) {}
+
+/** Upper bound for an explicit list of products (include or exclude). */
+export const BULK_MAX_SELECTION_IDS = 20_000;
+
+/**
+ * Which products of the subcategory: `all: true` = every product except `ids`;
+ * `all: false` = only `ids`. A rule rather than a full list, so a category with
+ * thousands of products is one small request.
+ */
+export class BulkSelectionDto {
+  @IsBoolean()
+  all!: boolean;
+
+  @IsArray()
+  @ArrayMaxSize(BULK_MAX_SELECTION_IDS)
+  @IsString({ each: true })
+  ids!: string[];
+}
+
+export class BulkUpdateProductsDto {
+  /** The subcategory being edited; products are never moved out of it. */
+  @IsString()
+  @IsNotEmpty()
+  categoryId!: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => BulkSelectionDto)
+  selection!: BulkSelectionDto;
+
+  /** Only the fields present here change; omitted fields keep each product's own value. */
+  @IsObject()
+  @ValidateNested()
+  @Type(() => BulkProductChangesDto)
+  changes!: BulkProductChangesDto;
+}

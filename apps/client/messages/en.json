@@ -603,7 +603,9 @@
       "deleteFailed": "Couldn't delete the product. Try again.",
       "updateFailed": "Couldn't update the product. Try again.",
       "loadFailed": "Couldn't load products. Try again.",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "edit": "Edit",
+      "delete": "Delete"
     },
     "categories": {
       "title": "Categories",

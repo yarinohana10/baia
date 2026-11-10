@@ -4,7 +4,14 @@ import { Prisma } from '../generated/prisma';
 import { randomUUID } from 'crypto';
 import { productSlugBase, uniqueSlug } from './product-slug';
 import { fieldConflictException, fieldValidationException, type FieldError } from '../common/validation';
-import { CreateProductDto, ImageMetaDto, UpdateProductDto, UpdateVariantDto, VariantDto } from './dto/product.dto';
+import {
+  BulkUpdateProductsDto,
+  CreateProductDto,
+  ImageMetaDto,
+  UpdateProductDto,
+  UpdateVariantDto,
+  VariantDto,
+} from './dto/product.dto';
 import { compareSizes } from './size-sets';
 import { availableStock } from '../common/stock';
 import { StockAlertsService } from '../inventory/stock-alerts.service';
@@ -551,6 +558,91 @@ export class ProductsService {
       await this.images.removeKeys(stored.map((s) => s.key));
       throw err;
     }
+  }
+
+  /**
+   * Sets the same values on the selected products of one subcategory (Admin ->
+   * Categories -> "Edit all products"). Only the fields sent in `changes` are
+   * written; each product keeps its own name, address, images, sizes, category
+   * and every field not sent.
+   *
+   * Built for large categories: the selection is a rule (all except / only
+   * these ids), the rule checks run as database queries, and the checks plus the
+   * single UPDATE share one transaction, so either every selected product
+   * changes or none does. Errors name the offending products (`productIds`).
+   */
+  async bulkUpdate(dto: BulkUpdateProductsDto) {
+    const changes = Object.fromEntries(
+      Object.entries(dto.changes ?? {}).filter(([, value]) => value !== undefined),
+    ) as BulkUpdateProductsDto['changes'];
+    if (Object.keys(changes).length === 0) {
+      throw fieldValidationException([{ field: 'changes', code: 'noChanges', message: 'Choose at least one field to change' }]);
+    }
+
+    const category = await this.prisma.category.findUnique({
+      where: { id: dto.categoryId },
+      select: { id: true, _count: { select: { children: true } } },
+    });
+    if (!category) throw new NotFoundException('Category not found');
+    if (category._count.children > 0) {
+      throw fieldValidationException([
+        { field: 'categoryId', code: 'hasSubcategories', message: 'Products live in subcategories; edit a subcategory' },
+      ]);
+    }
+
+    const ids = [...new Set(dto.selection.ids)];
+    const scope: Prisma.ProductWhereInput = {
+      categoryId: category.id,
+      ...(dto.selection.all ? (ids.length ? { id: { notIn: ids } } : {}) : { id: { in: ids } }),
+    };
+    const { basePrice, ...rest } = changes;
+    const data: Prisma.ProductUncheckedUpdateManyInput = {
+      ...rest,
+      ...(basePrice !== undefined ? { basePrice: new Prisma.Decimal(basePrice) } : {}),
+    };
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const matching = async (extra: Prisma.ProductWhereInput) =>
+          (await tx.product.findMany({ where: { AND: [scope, extra] }, select: { id: true }, orderBy: { id: 'asc' } })).map((p) => p.id);
+
+        if ((await tx.product.count({ where: scope })) === 0) {
+          throw fieldValidationException([{ field: 'selection', code: 'noProducts', message: 'No products match the selection' }]);
+        }
+
+        const errors: FieldError[] = [];
+        if (basePrice !== undefined) {
+          // A sale must stay below the price it applies to; sizes with their own price are unaffected.
+          const conflicting = await matching({
+            variants: { some: { priceOverride: null, salePrice: { gte: new Prisma.Decimal(basePrice) } } },
+          });
+          if (conflicting.length) {
+            errors.push({
+              field: 'changes.basePrice',
+              code: 'saleBelowPrice',
+              message: 'Some products have a sale price that would not be below the new price',
+              productIds: conflicting,
+            });
+          }
+        }
+        if (changes.isActive === true) {
+          const withoutSizes = await matching({ variants: { none: { isActive: true } } });
+          if (withoutSizes.length) {
+            errors.push({
+              field: 'changes.isActive',
+              code: 'noActiveSizes',
+              message: 'Some products have no active sizes, so they cannot be shown in the store',
+              productIds: withoutSizes,
+            });
+          }
+        }
+        if (errors.length) throw fieldValidationException(errors);
+
+        const result = await tx.product.updateMany({ where: scope, data });
+        return { updated: result.count };
+      },
+      { timeout: 60_000 },
+    );
   }
 
   async update(id: string, dto: UpdateProductDto) {

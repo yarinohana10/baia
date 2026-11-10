@@ -46,10 +46,14 @@ function Button({
   size = "default",
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  // Icon-only buttons show their label as a hover / keyboard-focus tooltip (.tip in globals.css).
+  const label = props["aria-label"]
+  const tip = (props as { "data-tip"?: string })["data-tip"] ?? (size?.startsWith("icon") && typeof label === "string" ? label : undefined)
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      data-tip={tip}
+      className={cn(buttonVariants({ variant, size, className }), tip && "tip relative")}
       {...props}
     />
   )

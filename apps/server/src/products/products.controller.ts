@@ -21,6 +21,7 @@ import { AuthGuard, Roles } from '../auth/auth.guard';
 import { Request } from 'express';
 import { JsonBody, JsonBodyValidationPipe } from '../common/json-body.decorator';
 import {
+  BulkUpdateProductsDto,
   CreateProductDto,
   ImageMetaDto,
   MAX_IMAGES_PER_REQUEST,
@@ -162,6 +163,14 @@ export class ProductsController {
     @Req() req: Request,
   ) {
     return this.productsService.create(body, files ?? [], userIdOf(req));
+  }
+
+  /** Same values on many products at once: `{ productIds, changes }` -> `{ updated }`. */
+  @Patch('admin/products/bulk')
+  @UseGuards(AuthGuard)
+  @Roles('ADMIN')
+  bulkUpdate(@Body() body: BulkUpdateProductsDto) {
+    return this.productsService.bulkUpdate(body);
   }
 
   @Put('admin/products/:id')
