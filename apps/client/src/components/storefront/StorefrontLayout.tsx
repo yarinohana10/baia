@@ -28,9 +28,10 @@ export async function StorefrontLayout({ children }: { children: React.ReactNode
         { label: tNav('men'), href: '/category/men' },
         { label: tNav('children'), href: '/category/children' },
       ];
+  // New Arrivals first, then the categories in their admin order, Featured last.
   const nav: NavItem[] = [
-    ...categoryNav,
     { label: tNav('newArrivals'), href: '/new-arrivals' },
+    ...categoryNav,
     { label: tNav('featured'), href: '/featured' },
   ];
 
