@@ -14,12 +14,19 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Category } from '@/components/admin/categories/types';
 import type { ServerProduct } from '@/components/admin/product-form/types';
 import {
+  ALL_SELECTED,
   BULK_FLAGS,
   BULK_TEXT_FIELDS,
   EMPTY_BULK_DRAFT,
+  NONE_SELECTED,
   bulkChanges,
   bulkIssues,
+  excludeFromSelection,
+  isSelected,
   rejectedProducts,
+  selectedCount,
+  toggleSelected,
+  type BulkSelection,
   type BulkDraft,
   type BulkField as BulkFieldName,
   type BulkFlag,
@@ -31,6 +38,11 @@ import { BulkField } from './BulkField';
 import { YesNoSwitch } from './YesNoSwitch';
 
 const STEPS = ['products', 'details', 'info', 'review'] as const;
+const PAGE_SIZE = 50;
+/** How many refused products are named; the rest are counted. */
+const NAMED_LIMIT = 20;
+
+type ProductPage = { products: ServerProduct[]; total: number; page: number; totalPages: number };
 type Step = (typeof STEPS)[number];
 
 type Props = {
@@ -49,9 +61,14 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
   const locale = useLocale();
   const name = (c: { nameHe: string; nameEn: string }) => (locale === 'he' ? c.nameHe : c.nameEn);
 
+  // Loaded page by page: a subcategory can hold thousands of products.
   const [products, setProducts] = useState<ServerProduct[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selection, setSelection] = useState<BulkSelection>(ALL_SELECTED);
   const [step, setStep] = useState<Step>('products');
   const [draft, setDraft] = useState<BulkDraft>(EMPTY_BULK_DRAFT);
   const [applying, setApplying] = useState(false);
@@ -59,37 +76,39 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
   const [failed, setFailed] = useState(false);
   const [updated, setUpdated] = useState<number | null>(null);
 
+  const loadPage = async (next: number) => {
+    const res = await api.get<ProductPage>('/admin/products', { params: { categoryId: category.id, page: next, limit: PAGE_SIZE } });
+    setProducts((prev) => [...(next === 1 ? [] : (prev ?? [])), ...res.data.products]);
+    setTotal(res.data.total);
+    setPage(res.data.page);
+    setTotalPages(res.data.totalPages);
+  };
+
   useEffect(() => {
-    let cancelled = false;
-    api
-      .get<ServerProduct[]>('/admin/products', { params: { categoryId: category.id } })
-      .then((res) => {
-        if (cancelled) return;
-        const all = res.data;
-        setProducts(all);
-        setSelected(new Set(all.map((p) => p.id)));
-      })
-      .catch(() => !cancelled && setLoadFailed(true));
-    return () => {
-      cancelled = true;
-    };
-  }, [category]);
+    loadPage(1).catch(() => setLoadFailed(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per category
+  }, [category.id]);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      await loadPage(page + 1);
+    } catch {
+      setLoadFailed(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const byId = useMemo(() => new Map((products ?? []).map((p) => [p.id, p])), [products]);
   const changes = bulkChanges(draft);
-  const issues = bulkIssues(draft, selected.size);
+  const count = selectedCount(selection, total);
+  const issues = bulkIssues(draft, count);
   const stepIndex = STEPS.indexOf(step);
 
   const setValue = (field: BulkValueField, value: string) => setDraft((d) => ({ ...d, values: { ...d.values, [field]: value } }));
   const setEnabled = (field: BulkFieldName, on: boolean) => setDraft((d) => ({ ...d, enabled: { ...d.enabled, [field]: on } }));
   const setFlag = (flag: BulkFlag, value: boolean) => setDraft((d) => ({ ...d, flags: { ...d.flags, [flag]: value } }));
-  const toggle = (id: string) =>
-    setSelected((s) => {
-      const next = new Set(s);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
 
   const apply = async () => {
     if (applying || issues.length) return;
@@ -97,7 +116,7 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
     setRejected([]);
     setFailed(false);
     try {
-      const res = await api.patch<{ updated: number }>('/admin/products/bulk', { productIds: [...selected], changes });
+      const res = await api.patch<{ updated: number }>('/admin/products/bulk', { categoryId: category.id, selection, changes });
       setUpdated(res.data.updated);
       await revalidateCatalog();
     } catch (err) {
@@ -110,8 +129,7 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
   };
 
   const unselectRejected = () => {
-    const ids = new Set(rejected.flatMap((r) => r.productIds));
-    setSelected((s) => new Set([...s].filter((id) => !ids.has(id))));
+    setSelection((s) => excludeFromSelection(s, rejected.flatMap((r) => r.productIds)));
     setRejected([]);
   };
 
@@ -126,6 +144,7 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
     };
     return (
       <BulkField
+        tip={t('checkboxTip')}
         key={field}
         id={`bulk-${field}`}
         label={t(`fields.${field}`)}
@@ -188,13 +207,13 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
               <section aria-labelledby="bulk-products-title">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h3 id="bulk-products-title" className="text-sm font-semibold">
-                    {t('selectedCount', { count: selected.size, total: products?.length ?? 0 })}
+                    {t('selectedCount', { count, total })}
                   </h3>
                   <div className="flex gap-1">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setSelected(new Set((products ?? []).map((p) => p.id)))}>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setSelection(ALL_SELECTED)}>
                       {t('selectAll')}
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setSelection(NONE_SELECTED)}>
                       {t('selectNone')}
                     </Button>
                   </div>
@@ -208,11 +227,11 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
                 ) : (
                   <ul className="divide-y divide-border rounded-lg border border-border">
                     {products.map((p) => {
-                      const on = selected.has(p.id);
+                      const on = isSelected(selection, p.id);
                       return (
                         <li key={p.id}>
                           <label className="flex cursor-pointer items-center gap-3 px-3 py-2.5 hover:bg-muted/50">
-                            <input type="checkbox" checked={on} onChange={() => toggle(p.id)} className="size-4 accent-ocean-700" />
+                            <input type="checkbox" checked={on} onChange={() => setSelection((s) => toggleSelected(s, p.id))} className="size-4 accent-ocean-700" />
                             <span className="relative size-12 shrink-0 overflow-hidden rounded bg-muted">
                               {p.images[0]?.url && <Image src={p.images[0].url} alt="" fill sizes="48px" className="object-cover" />}
                             </span>
@@ -231,13 +250,22 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
                     })}
                   </ul>
                 )}
+                {products && page < totalPages && (
+                  <div className="mt-3 flex items-center justify-center gap-3">
+                    <Button type="button" variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
+                      {loadingMore ? t('loading') : t('loadMore', { shown: products.length, total })}
+                    </Button>
+                  </div>
+                )}
                 <p className="mt-3 text-xs text-muted-foreground">{t('ownDataNote')}</p>
               </section>
             ) : step === 'details' ? (
               <section className="space-y-3">
+                <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">{t('untickedNote')}</p>
                 {textField('descriptionHe', true)}
                 {textField('descriptionEn', true)}
                 <BulkField
+                  tip={t('checkboxTip')}
                   id="bulk-basePrice"
                   label={t('fields.basePrice')}
                   enabled={!!draft.enabled.basePrice}
@@ -258,6 +286,7 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
                 </BulkField>
                 {BULK_FLAGS.map((flag) => (
                   <BulkField
+                    tip={t('checkboxTip')}
                     key={flag}
                     id={`bulk-${flag}`}
                     label={t(`fields.${flag}`)}
@@ -272,12 +301,13 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
             ) : step === 'info' ? (
               <section className="space-y-3">
                 <p className="text-sm text-muted-foreground">{t('infoHint')}</p>
+                <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">{t('untickedNote')}</p>
                 {BULK_TEXT_FIELDS.filter((f) => !f.startsWith('description')).map((f) => textField(f, true))}
               </section>
             ) : (
               <section aria-labelledby="bulk-review-title" className="space-y-4">
                 <h3 id="bulk-review-title" className="text-sm font-semibold">
-                  {t('reviewTitle', { count: selected.size })}
+                  {t('reviewTitle', { count })}
                 </h3>
                 {Object.keys(changes).length > 0 && (
                   <dl className="divide-y divide-border rounded-lg border border-border text-sm">
@@ -309,10 +339,13 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
                       <div key={r.code}>
                         <p className="font-medium text-destructive">{t(`rejected.${r.code}`)}</p>
                         <ul className="mt-1 list-disc ps-5">
-                          {r.productIds.map((id) => (
+                          {r.productIds.slice(0, NAMED_LIMIT).map((id) => (
                             <li key={id}>{byId.get(id) ? name(byId.get(id)!) : id}</li>
                           ))}
                         </ul>
+                        {r.productIds.length > NAMED_LIMIT && (
+                          <p className="mt-1 text-muted-foreground">{t('andMore', { count: r.productIds.length - NAMED_LIMIT })}</p>
+                        )}
                       </div>
                     ))}
                     <Button type="button" variant="outline" size="sm" onClick={unselectRejected}>
@@ -343,13 +376,13 @@ export function BulkEditProductsDialog({ category, onClose }: Props) {
                     className="gap-1.5 bg-ocean-700 px-6 text-white hover:bg-ocean-800"
                   >
                     <Check size={15} />
-                    {applying ? t('applying') : t('apply', { count: selected.size })}
+                    {applying ? t('applying') : t('apply', { count })}
                   </Button>
                 ) : (
                   <Button
                     type="button"
                     onClick={() => setStep(STEPS[stepIndex + 1])}
-                    disabled={step === 'products' && selected.size === 0}
+                    disabled={step === 'products' && count === 0}
                     className="bg-ocean-700 px-6 text-white hover:bg-ocean-800"
                   >
                     {t('next')}

@@ -2,7 +2,6 @@ import { OmitType, PartialType, PickType } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
-  ArrayMinSize,
   ArrayNotEmpty,
   ArrayUnique,
   IsArray,
@@ -313,14 +312,34 @@ export const BULK_EDITABLE_FIELDS = [
 
 export class BulkProductChangesDto extends PickType(UpdateProductDto, BULK_EDITABLE_FIELDS) {}
 
-export const BULK_MAX_PRODUCTS = 500;
+/** Upper bound for an explicit list of products (include or exclude). */
+export const BULK_MAX_SELECTION_IDS = 20_000;
+
+/**
+ * Which products of the subcategory: `all: true` = every product except `ids`;
+ * `all: false` = only `ids`. A rule rather than a full list, so a category with
+ * thousands of products is one small request.
+ */
+export class BulkSelectionDto {
+  @IsBoolean()
+  all!: boolean;
+
+  @IsArray()
+  @ArrayMaxSize(BULK_MAX_SELECTION_IDS)
+  @IsString({ each: true })
+  ids!: string[];
+}
 
 export class BulkUpdateProductsDto {
-  @IsArray()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(BULK_MAX_PRODUCTS)
-  @IsString({ each: true })
-  productIds!: string[];
+  /** The subcategory being edited; products are never moved out of it. */
+  @IsString()
+  @IsNotEmpty()
+  categoryId!: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => BulkSelectionDto)
+  selection!: BulkSelectionDto;
 
   /** Only the fields present here change; omitted fields keep each product's own value. */
   @IsObject()

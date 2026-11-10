@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { isAxiosError } from 'axios';
-import { EMPTY_BULK_DRAFT, bulkChanges, bulkIssues, rejectedProducts, type BulkDraft, type BulkField } from './bulk-edit';
+import {
+  ALL_SELECTED,
+  EMPTY_BULK_DRAFT,
+  NONE_SELECTED,
+  bulkChanges,
+  bulkIssues,
+  excludeFromSelection,
+  isSelected,
+  rejectedProducts,
+  selectedCount,
+  toggleSelected,
+  type BulkDraft,
+  type BulkField,
+} from './bulk-edit';
 
 const draft = (
   values: Partial<BulkDraft['values']>,
@@ -43,5 +56,29 @@ describe('bulk product edit', () => {
     expect(isAxiosError(err)).toBe(true);
     expect(rejectedProducts(err)).toEqual([{ code: 'noActiveSizes', productIds: ['p2'] }]);
     expect(rejectedProducts(new Error('network'))).toEqual([]);
+  });
+
+  describe('selection (scales to thousands: a rule, not a list)', () => {
+    it('starts with everything selected and counts against the total', () => {
+      expect(selectedCount(ALL_SELECTED, 10_000)).toBe(10_000);
+      expect(isSelected(ALL_SELECTED, 'any')).toBe(true);
+    });
+
+    it('unticking from "all" keeps a short exclude list; ticking from "none" a short include list', () => {
+      const allButOne = toggleSelected(ALL_SELECTED, 'p1');
+      expect(allButOne).toEqual({ all: true, ids: ['p1'] });
+      expect(selectedCount(allButOne, 10_000)).toBe(9_999);
+      expect(isSelected(allButOne, 'p1')).toBe(false);
+      expect(toggleSelected(allButOne, 'p1')).toEqual(ALL_SELECTED);
+
+      const two = toggleSelected(toggleSelected(NONE_SELECTED, 'a'), 'b');
+      expect(two).toEqual({ all: false, ids: ['a', 'b'] });
+      expect(selectedCount(two, 10_000)).toBe(2);
+    });
+
+    it('drops refused products from either kind of selection', () => {
+      expect(excludeFromSelection({ all: true, ids: ['x'] }, ['y', 'x'])).toEqual({ all: true, ids: ['x', 'y'] });
+      expect(excludeFromSelection({ all: false, ids: ['a', 'b'] }, ['b'])).toEqual({ all: false, ids: ['a'] });
+    });
   });
 });

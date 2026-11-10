@@ -84,3 +84,30 @@ export function rejectedProducts(err: unknown): RejectedProducts[] {
   const errors: { code: string; productIds?: string[] }[] = err.response?.data?.errors ?? [];
   return errors.filter((e) => e.productIds?.length).map((e) => ({ code: e.code, productIds: e.productIds! }));
 }
+
+// ─── Selection ────────────────────────────────────────────────
+
+/**
+ * Which products of the subcategory: `all` = every product except `ids`, else
+ * only `ids`. Sent to the API as-is, so a category with thousands of products
+ * never needs a full list of ids (and the dialog only loads them page by page).
+ */
+export type BulkSelection = { all: boolean; ids: string[] };
+
+export const ALL_SELECTED: BulkSelection = { all: true, ids: [] };
+export const NONE_SELECTED: BulkSelection = { all: false, ids: [] };
+
+export const isSelected = (s: BulkSelection, id: string) => s.ids.includes(id) !== s.all;
+
+export const selectedCount = (s: BulkSelection, total: number) => (s.all ? total - s.ids.length : s.ids.length);
+
+export function toggleSelected(s: BulkSelection, id: string): BulkSelection {
+  return { all: s.all, ids: s.ids.includes(id) ? s.ids.filter((x) => x !== id) : [...s.ids, id] };
+}
+
+/** Takes products out of the selection (e.g. the ones the API refused). */
+export function excludeFromSelection(s: BulkSelection, ids: string[]): BulkSelection {
+  if (s.all) return { all: true, ids: [...new Set([...s.ids, ...ids])] };
+  const drop = new Set(ids);
+  return { all: false, ids: s.ids.filter((id) => !drop.has(id)) };
+}

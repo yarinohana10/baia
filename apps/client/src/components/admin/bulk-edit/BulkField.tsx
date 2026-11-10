@@ -11,13 +11,15 @@ type Props = {
   /** Shown under the input while the field is marked to change. */
   hint?: string;
   children: ReactNode;
+  /** Tooltip on the checkbox (what ticking / not ticking does). */
+  tip?: string;
 };
 
 /** One bulk-editable field: a "change this" checkbox; the input only applies when it is ticked. */
-export function BulkField({ id, label, enabled, onToggle, hint, children }: Props) {
+export function BulkField({ id, label, enabled, onToggle, hint, children, tip }: Props) {
   return (
     <div className={cn('rounded-lg border p-3 transition-colors', enabled ? 'border-ocean-300 bg-ocean-50/40' : 'border-border')}>
-      <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium">
+      <label className={cn('flex w-fit cursor-pointer items-center gap-2.5 text-sm font-medium', tip && 'tip relative')} data-tip={tip}>
         <input
           type="checkbox"
           checked={enabled}

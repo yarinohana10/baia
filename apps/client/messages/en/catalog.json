@@ -312,7 +312,7 @@
     },
     "bulkEdit": {
       "title": "Edit all products · {category}",
-      "subtitle": "Set the same details on many products at once. Only the fields you tick change.",
+      "subtitle": "Set the same details on all products of this subcategory. Only ticked fields change; the rest stay as they are on each product.",
       "stepsLabel": "Steps",
       "close": "Close",
       "cancel": "Cancel",
@@ -371,7 +371,11 @@
       "done": "{count, plural, one {# product updated} other {# products updated}}",
       "doneHint": "The store shows the changes right away.",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "untickedNote": "Only ticked fields change. A field left unticked stays exactly as it is on each product.",
+      "checkboxTip": "Tick to change this on every selected product; unticked = stays as it is",
+      "loadMore": "Show more ({shown} of {total})",
+      "andMore": "and {count} more"
     }
   }
 }
