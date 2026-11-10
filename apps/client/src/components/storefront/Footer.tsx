@@ -51,7 +51,11 @@ export function Footer({
     { icon: ShieldCheck, title: t('securePayment'), body: t('securePaymentSub') },
   ];
 
-  const shop: NavItem[] = [...categories, { label: tNav('newArrivals'), href: '/new-arrivals' }];
+  const shop: NavItem[] = [
+    { label: tNav('newArrivals'), href: '/new-arrivals' },
+    ...categories,
+    { label: tNav('featured'), href: '/featured' },
+  ];
   const care: NavItem[] = [
     { label: t('shippingPolicy'), href: '/shipping' },
     { label: t('returnsExchanges'), href: '/returns' },
