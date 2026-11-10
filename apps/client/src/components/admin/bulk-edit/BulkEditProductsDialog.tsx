@@ -11,49 +11,40 @@ import { revalidateCatalog } from '@/lib/catalog/revalidate';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { adminSelectClassName } from '@/components/admin/common/select-class';
 import type { Category } from '@/components/admin/categories/types';
 import type { ServerProduct } from '@/components/admin/product-form/types';
 import {
+  BULK_FLAGS,
   BULK_TEXT_FIELDS,
   EMPTY_BULK_DRAFT,
   bulkChanges,
   bulkIssues,
-  bulkScopeIds,
   rejectedProducts,
   type BulkDraft,
+  type BulkField as BulkFieldName,
   type BulkFlag,
   type BulkTextField,
   type BulkValueField,
   type RejectedProducts,
 } from '@/hooks/admin/bulk-edit';
 import { BulkField } from './BulkField';
-import { FlagChoiceField } from './FlagChoiceField';
+import { YesNoSwitch } from './YesNoSwitch';
 
 const STEPS = ['products', 'details', 'info', 'review'] as const;
 type Step = (typeof STEPS)[number];
 
 type Props = {
-  /** The category whose products (including its subcategories') are edited. */
+  /** The subcategory whose products are edited (products only live in subcategories). */
   category: Category;
-  /** All categories, for "move to another subcategory". */
-  categories: Category[];
   onClose: () => void;
 };
 
-/** Leaf categories as "Parent › Child", the only valid homes for products. */
-function leafOptions(categories: Category[], name: (c: { nameHe: string; nameEn: string }) => string) {
-  return categories.flatMap((c) =>
-    c.children?.length ? c.children.map((child) => ({ id: child.id, label: `${name(c)} › ${name(child)}` })) : [{ id: c.id, label: name(c) }],
-  );
-}
-
 /**
- * "Edit all products" of a category, step by step: pick products, set the shared
- * details and product info, review, apply. Only the fields ticked are written;
- * each product keeps its own name, address, images and sizes.
+ * "Edit all products" of a subcategory, step by step: pick products, set the
+ * shared details and product info, review, apply. Only the fields ticked are
+ * written; each product keeps its own name, address, images, sizes and category.
  */
-export function BulkEditProductsDialog({ category, categories, onClose }: Props) {
+export function BulkEditProductsDialog({ category, onClose }: Props) {
   const t = useTranslations('admin.bulkEdit');
   const locale = useLocale();
   const name = (c: { nameHe: string; nameEn: string }) => (locale === 'he' ? c.nameHe : c.nameEn);
@@ -70,10 +61,11 @@ export function BulkEditProductsDialog({ category, categories, onClose }: Props)
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all(bulkScopeIds(category).map((id) => api.get<ServerProduct[]>('/admin/products', { params: { categoryId: id } })))
-      .then((responses) => {
+    api
+      .get<ServerProduct[]>('/admin/products', { params: { categoryId: category.id } })
+      .then((res) => {
         if (cancelled) return;
-        const all = responses.flatMap((r) => r.data);
+        const all = res.data;
         setProducts(all);
         setSelected(new Set(all.map((p) => p.id)));
       })
@@ -89,8 +81,8 @@ export function BulkEditProductsDialog({ category, categories, onClose }: Props)
   const stepIndex = STEPS.indexOf(step);
 
   const setValue = (field: BulkValueField, value: string) => setDraft((d) => ({ ...d, values: { ...d.values, [field]: value } }));
-  const setEnabled = (field: BulkValueField, on: boolean) => setDraft((d) => ({ ...d, enabled: { ...d.enabled, [field]: on } }));
-  const setFlag = (flag: BulkFlag, value: BulkDraft['flags'][BulkFlag]) => setDraft((d) => ({ ...d, flags: { ...d.flags, [flag]: value } }));
+  const setEnabled = (field: BulkFieldName, on: boolean) => setDraft((d) => ({ ...d, enabled: { ...d.enabled, [field]: on } }));
+  const setFlag = (flag: BulkFlag, value: boolean) => setDraft((d) => ({ ...d, flags: { ...d.flags, [flag]: value } }));
   const toggle = (id: string) =>
     setSelected((s) => {
       const next = new Set(s);
@@ -264,30 +256,18 @@ export function BulkEditProductsDialog({ category, categories, onClose }: Props)
                     className="max-w-48"
                   />
                 </BulkField>
-                <BulkField
-                  id="bulk-categoryId"
-                  label={t('fields.categoryId')}
-                  enabled={!!draft.enabled.categoryId}
-                  onToggle={(on) => setEnabled('categoryId', on)}
-                >
-                  <select
-                    value={draft.values.categoryId}
-                    onChange={(e) => setValue('categoryId', e.target.value)}
-                    aria-label={t('fields.categoryId')}
-                    disabled={!draft.enabled.categoryId}
-                    className={adminSelectClassName()}
+                {BULK_FLAGS.map((flag) => (
+                  <BulkField
+                    key={flag}
+                    id={`bulk-${flag}`}
+                    label={t(`fields.${flag}`)}
+                    enabled={!!draft.enabled[flag]}
+                    onToggle={(on) => setEnabled(flag, on)}
+                    hint={flag === 'isActive' ? t('isActiveHint') : undefined}
                   >
-                    <option value="">{t('chooseCategory')}</option>
-                    {leafOptions(categories, name).map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </BulkField>
-                <FlagChoiceField label={t('fields.isActive')} hint={t('isActiveHint')} value={draft.flags.isActive} onChange={(v) => setFlag('isActive', v)} />
-                <FlagChoiceField label={t('fields.backSoon')} value={draft.flags.backSoon} onChange={(v) => setFlag('backSoon', v)} />
-                <FlagChoiceField label={t('fields.isFeatured')} value={draft.flags.isFeatured} onChange={(v) => setFlag('isFeatured', v)} />
+                    <YesNoSwitch label={t(`fields.${flag}`)} value={draft.flags[flag]} onChange={(v) => setFlag(flag, v)} disabled={!draft.enabled[flag]} />
+                  </BulkField>
+                ))}
               </section>
             ) : step === 'info' ? (
               <section className="space-y-3">
@@ -306,12 +286,10 @@ export function BulkEditProductsDialog({ category, categories, onClose }: Props)
                         <dt className="font-medium">{t(`fields.${field}`)}</dt>
                         <dd className="whitespace-pre-line break-words text-muted-foreground">
                           {typeof value === 'boolean'
-                            ? t(value ? 'flag.yes' : 'flag.no')
-                            : field === 'categoryId'
-                              ? leafOptions(categories, name).find((o) => o.id === value)?.label
-                              : field === 'basePrice'
-                                ? `₪${Number(value).toFixed(2)}`
-                                : value || <em>{t('cleared')}</em>}
+                            ? t(value ? 'yes' : 'no')
+                            : field === 'basePrice'
+                              ? `₪${Number(value).toFixed(2)}`
+                              : value || <em>{t('cleared')}</em>}
                         </dd>
                       </div>
                     ))}

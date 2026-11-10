@@ -203,7 +203,8 @@
       "sizeGuideNone": "No size guide",
       "sizeGuideHint": "Shown from the product pages of this category (and its subcategories).",
       "bulkEdit": "Edit all products",
-      "bulkEditAction": "Edit all products in {name}"
+      "bulkEditAction": "Edit all products in {name}",
+      "bulkEditTip": "Edit all products in this subcategory"
     },
     "sizeGuides": {
       "title": "Size guides",
@@ -342,29 +343,21 @@
         "fitHe": "Fit & sizing (Hebrew)",
         "fitEn": "Fit & sizing (English)",
         "basePrice": "Base price (₪)",
-        "categoryId": "Move to category",
         "isActive": "Shown in store",
         "backSoon": "Back soon",
         "isFeatured": "Featured on the homepage"
       },
       "willClear": "Left empty, this field will be cleared on every selected product.",
       "priceHint": "Size-specific prices and sales stay as they are.",
-      "chooseCategory": "Choose a subcategory",
-      "isActiveHint": "Products need at least one active size to be shown.",
+      "isActiveHint": "A product needs at least one active size to be shown.",
       "infoHint": "Shown on the product page under \"Fabric & care\" and \"Size & fit\".",
-      "flag": {
-        "keep": "Keep as is",
-        "yes": "Yes",
-        "no": "No"
-      },
       "reviewTitle": "These changes will apply to {count, plural, one {# product} other {# products}}:",
       "cleared": "Cleared",
       "untouchedNote": "Everything not listed stays as it is on each product.",
       "issues": {
         "noProducts": "Choose at least one product.",
         "noChanges": "Tick at least one field to change.",
-        "price": "Enter a price above 0.",
-        "category": "Choose the category to move to."
+        "price": "Enter a price above 0."
       },
       "rejected": {
         "noActiveSizes": "These products have no active sizes, so they can't be shown in the store:",
@@ -376,7 +369,9 @@
       "applying": "Applying…",
       "apply": "Apply to {count, plural, one {# product} other {# products}}",
       "done": "{count, plural, one {# product updated} other {# products updated}}",
-      "doneHint": "The store shows the changes right away."
+      "doneHint": "The store shows the changes right away.",
+      "yes": "Yes",
+      "no": "No"
     }
   }
 }

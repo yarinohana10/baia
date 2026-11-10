@@ -291,15 +291,15 @@ export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['i
 // ─── Bulk edit ───────────────────────────────────────────────
 
 /**
- * Fields an admin may set on many products at once. Everything that makes a
- * product itself (names, web address, images, sizes / stock / SKUs) is left out,
- * so every product keeps its own identity.
+ * Fields an admin may set on all products of a subcategory at once. Everything
+ * that makes a product itself (names, web address, images, sizes / stock / SKUs)
+ * is left out so every product keeps its own identity, and so is the category:
+ * a bulk edit runs inside one subcategory and never moves products.
  */
 export const BULK_EDITABLE_FIELDS = [
   'descriptionHe',
   'descriptionEn',
   'basePrice',
-  'categoryId',
   'isActive',
   'backSoon',
   'isFeatured',

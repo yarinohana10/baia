@@ -11,7 +11,7 @@ type Props = {
   category: Category;
   onEdit: (cat: Category) => void;
   onDelete: (id: string) => void;
-  /** Opens "Edit all products" for this category (and its subcategories). */
+  /** Opens "Edit all products" (subcategories only: products live there). */
   onBulkEdit: (cat: Category) => void;
   depth?: number;
 };
@@ -53,17 +53,20 @@ export function CategoryRow({ category, onEdit, onDelete, onBulkEdit, depth = 0 
           <span className="text-xs text-muted-foreground/60">/{category.slug}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onBulkEdit(category)}
-            className="gap-1.5 text-muted-foreground hover:text-ocean-600"
-            aria-label={t('bulkEditAction', { name: locale === 'he' ? category.nameHe : category.nameEn })}
-          >
-            <Layers size={14} />
-            <span className="max-sm:sr-only">{t('bulkEdit')}</span>
-          </Button>
+          {!hasChildren && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onBulkEdit(category)}
+              className="tip relative gap-1.5 text-muted-foreground hover:text-ocean-600"
+              aria-label={t('bulkEditAction', { name: locale === 'he' ? category.nameHe : category.nameEn })}
+              data-tip={t('bulkEditTip')}
+            >
+              <Layers size={14} />
+              <span className="max-sm:sr-only">{t('bulkEdit')}</span>
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"

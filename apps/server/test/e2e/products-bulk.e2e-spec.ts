@@ -162,13 +162,11 @@ describe('Admin bulk product edit (e2e)', () => {
     expect((await t.prisma.product.findUniqueOrThrow({ where: { id: outside.id } })).fabricEn).toBe('outside fabric');
   });
 
-  it('moves products to another subcategory, but never to a parent category', async () => {
+  it('cannot move products between categories (they stay in the subcategory being edited)', async () => {
     const admin = await signUp(t, { admin: true });
     const a = await product('a');
-    await bulk(admin.agent, { productIds: [a.id], changes: { categoryId: boards.id } }).expect(200);
-    expect((await t.prisma.product.findUniqueOrThrow({ where: { id: a.id } })).categoryId).toBe(boards.id);
-    const res = await bulk(admin.agent, { productIds: [a.id], changes: { categoryId: men.id } }).expect(400);
-    expect(res.body.errors).toEqual([expect.objectContaining({ field: 'changes.categoryId', code: 'hasSubcategories' })]);
+    await bulk(admin.agent, { productIds: [a.id], changes: { categoryId: boards.id } }).expect(400);
+    expect((await t.prisma.product.findUniqueOrThrow({ where: { id: a.id } })).categoryId).toBe(shorts.id);
   });
 
   it('is all-or-nothing: names the products that would break a rule and changes none', async () => {

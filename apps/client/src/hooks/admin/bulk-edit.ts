@@ -1,9 +1,10 @@
 import { isAxiosError } from 'axios';
 
 /**
- * Admin "Edit all products" (bulk edit) state. Each field is changed only when
- * the admin marks it; everything else keeps every product's own value. Names,
- * web addresses, images and sizes are never part of a bulk edit.
+ * Admin "Edit all products" (bulk edit) of one subcategory. Each field is
+ * changed only when the admin ticks it; everything else keeps every product's
+ * own value. Names, web addresses, images, sizes and the category are never
+ * part of a bulk edit.
  */
 
 export const BULK_TEXT_FIELDS = [
@@ -18,17 +19,20 @@ export const BULK_TEXT_FIELDS = [
 ] as const;
 
 export type BulkTextField = (typeof BULK_TEXT_FIELDS)[number];
-export type BulkValueField = BulkTextField | 'basePrice' | 'categoryId';
+export type BulkValueField = BulkTextField | 'basePrice';
 export type BulkFlag = 'isActive' | 'backSoon' | 'isFeatured';
-/** keep = leave each product as it is. */
-export type FlagChoice = 'keep' | 'yes' | 'no';
+/** Anything the admin can tick to change. */
+export type BulkField = BulkValueField | BulkFlag;
 
 export type BulkDraft = {
   values: Record<BulkValueField, string>;
+  /** Yes / no settings (applied only when ticked). */
+  flags: Record<BulkFlag, boolean>;
   /** Fields the admin chose to change. */
-  enabled: Partial<Record<BulkValueField, boolean>>;
-  flags: Record<BulkFlag, FlagChoice>;
+  enabled: Partial<Record<BulkField, boolean>>;
 };
+
+export const BULK_FLAGS: BulkFlag[] = ['isActive', 'backSoon', 'isFeatured'];
 
 export const EMPTY_BULK_DRAFT: BulkDraft = {
   values: {
@@ -41,46 +45,35 @@ export const EMPTY_BULK_DRAFT: BulkDraft = {
     fitHe: '',
     fitEn: '',
     basePrice: '',
-    categoryId: '',
   },
+  flags: { isActive: true, backSoon: false, isFeatured: false },
   enabled: {},
-  flags: { isActive: 'keep', backSoon: 'keep', isFeatured: 'keep' },
 };
 
-export type BulkChanges = Partial<Record<BulkTextField, string> & Record<BulkFlag, boolean>> & {
-  basePrice?: number;
-  categoryId?: string;
-};
+export type BulkChanges = Partial<Record<BulkTextField, string> & Record<BulkFlag, boolean>> & { basePrice?: number };
 
-/** API `changes`: only the marked fields. An empty text clears it on every product. */
+/** API `changes`: only the ticked fields. An empty text clears it on every product. */
 export function bulkChanges(d: BulkDraft): BulkChanges {
   const changes: BulkChanges = {};
   for (const field of BULK_TEXT_FIELDS) {
     if (d.enabled[field]) changes[field] = d.values[field].trim();
   }
   if (d.enabled.basePrice) changes.basePrice = parseFloat(d.values.basePrice);
-  if (d.enabled.categoryId && d.values.categoryId) changes.categoryId = d.values.categoryId;
-  for (const flag of Object.keys(d.flags) as BulkFlag[]) {
-    if (d.flags[flag] !== 'keep') changes[flag] = d.flags[flag] === 'yes';
+  for (const flag of BULK_FLAGS) {
+    if (d.enabled[flag]) changes[flag] = d.flags[flag];
   }
   return changes;
 }
 
-export type BulkIssue = 'noProducts' | 'noChanges' | 'price' | 'category';
+export type BulkIssue = 'noProducts' | 'noChanges' | 'price';
 
 /** What stops the admin from applying (shown on the review step). */
 export function bulkIssues(d: BulkDraft, selectedCount: number): BulkIssue[] {
   const issues: BulkIssue[] = [];
   if (selectedCount === 0) issues.push('noProducts');
   if (d.enabled.basePrice && !(parseFloat(d.values.basePrice) > 0)) issues.push('price');
-  if (d.enabled.categoryId && !d.values.categoryId) issues.push('category');
   if (Object.keys(bulkChanges(d)).length === 0) issues.push('noChanges');
   return issues;
-}
-
-/** The categories whose products a bulk edit covers: the category and its subcategories. */
-export function bulkScopeIds(category: { id: string; children?: { id: string }[] }): string[] {
-  return [category.id, ...(category.children ?? []).map((c) => c.id)];
 }
 
 export type RejectedProducts = { code: string; productIds: string[] };

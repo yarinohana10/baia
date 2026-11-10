@@ -592,10 +592,6 @@ export class ProductsService {
     }
 
     const errors: FieldError[] = [];
-    if (changes.categoryId !== undefined) {
-      const relation = await this.relationErrors({ categoryId: changes.categoryId });
-      errors.push(...relation.map((e) => ({ ...e, field: `changes.${e.field}` })));
-    }
     if (changes.basePrice !== undefined) {
       const basePrice = changes.basePrice;
       const asNumber = (v: unknown) => (v === null || v === undefined ? null : toNumber(v as DecimalLike));

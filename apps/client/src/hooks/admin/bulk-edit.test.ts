@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { isAxiosError } from 'axios';
-import {
-  EMPTY_BULK_DRAFT,
-  bulkChanges,
-  bulkIssues,
-  bulkScopeIds,
-  rejectedProducts,
-  type BulkDraft,
-} from './bulk-edit';
+import { EMPTY_BULK_DRAFT, bulkChanges, bulkIssues, rejectedProducts, type BulkDraft, type BulkField } from './bulk-edit';
 
-const draft = (changes: Partial<BulkDraft['values']>, enabled: (keyof BulkDraft['values'])[] = [], flags: Partial<BulkDraft['flags']> = {}): BulkDraft => ({
-  values: { ...EMPTY_BULK_DRAFT.values, ...changes },
-  enabled: Object.fromEntries(enabled.map((k) => [k, true])),
+const draft = (
+  values: Partial<BulkDraft['values']>,
+  enabled: BulkField[] = [],
+  flags: Partial<BulkDraft['flags']> = {},
+): BulkDraft => ({
+  values: { ...EMPTY_BULK_DRAFT.values, ...values },
   flags: { ...EMPTY_BULK_DRAFT.flags, ...flags },
+  enabled: Object.fromEntries(enabled.map((k) => [k, true])),
 });
 
 describe('bulk product edit', () => {
@@ -21,26 +18,21 @@ describe('bulk product edit', () => {
     expect(bulkChanges(d)).toEqual({ descriptionHe: 'תיאור', careEn: '', basePrice: 249.9 });
   });
 
-  it('turns the three-way switches into true / false, leaving "keep" out', () => {
-    const d = draft({}, [], { isActive: 'yes', backSoon: 'no', isFeatured: 'keep' });
+  it('sends a yes/no setting only when it is ticked', () => {
+    const d = draft({}, ['isActive', 'backSoon'], { isActive: true, backSoon: false, isFeatured: true });
     expect(bulkChanges(d)).toEqual({ isActive: true, backSoon: false });
   });
 
-  it('includes the category only when one is picked to move to', () => {
-    expect(bulkChanges(draft({ categoryId: 'c2' }, ['categoryId']))).toEqual({ categoryId: 'c2' });
-    expect(bulkChanges(draft({ categoryId: '' }, ['categoryId']))).toEqual({});
+  it('never sends the category (products stay in the subcategory being edited)', () => {
+    expect(Object.keys(bulkChanges(draft({ descriptionEn: 'x' }, ['descriptionEn'])))).toEqual(['descriptionEn']);
+    expect(EMPTY_BULK_DRAFT.values).not.toHaveProperty('categoryId');
   });
 
   it('reports what blocks applying', () => {
     expect(bulkIssues(draft({}), 0).sort()).toEqual(['noChanges', 'noProducts']);
     expect(bulkIssues(draft({ basePrice: '0' }, ['basePrice']), 2)).toEqual(['price']);
-    expect(bulkIssues(draft({ categoryId: '' }, ['categoryId']), 2)).toEqual(['category', 'noChanges']);
     expect(bulkIssues(draft({ fitEn: '' }, ['fitEn']), 2)).toEqual([]);
-  });
-
-  it('covers a category and its subcategories', () => {
-    expect(bulkScopeIds({ id: 'men', children: [{ id: 'shorts' }, { id: 'boards' }] })).toEqual(['men', 'shorts', 'boards']);
-    expect(bulkScopeIds({ id: 'shorts', children: [] })).toEqual(['shorts']);
+    expect(bulkIssues(draft({}, ['isFeatured']), 2)).toEqual([]);
   });
 
   it('reads which products the server refused and why', () => {

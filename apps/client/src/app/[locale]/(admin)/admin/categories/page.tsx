@@ -176,7 +176,7 @@ export default function CategoriesPage() {
         )}
       </Card>
 
-      {bulkCategory && <BulkEditProductsDialog category={bulkCategory} categories={list.items} onClose={() => setBulkCategory(null)} />}
+      {bulkCategory && <BulkEditProductsDialog category={bulkCategory} onClose={() => setBulkCategory(null)} />}
     </div>
   );
 }
