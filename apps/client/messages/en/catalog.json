@@ -201,7 +201,9 @@
       "sizeGuide": "Size guide",
       "sizeGuideInherit": "Same as the parent category",
       "sizeGuideNone": "No size guide",
-      "sizeGuideHint": "Shown from the product pages of this category (and its subcategories)."
+      "sizeGuideHint": "Shown from the product pages of this category (and its subcategories).",
+      "bulkEdit": "Edit all products",
+      "bulkEditAction": "Edit all products in {name}"
     },
     "sizeGuides": {
       "title": "Size guides",
@@ -306,6 +308,75 @@
         "stepText": "Every step needs a title and an explanation in both languages.",
         "tipText": "Every tip needs text in both languages."
       }
+    },
+    "bulkEdit": {
+      "title": "Edit all products · {category}",
+      "subtitle": "Set the same details on many products at once. Only the fields you tick change.",
+      "stepsLabel": "Steps",
+      "close": "Close",
+      "cancel": "Cancel",
+      "back": "Back",
+      "next": "Next",
+      "steps": {
+        "products": "Products",
+        "details": "Details",
+        "info": "Product info",
+        "review": "Review"
+      },
+      "selectedCount": "{count} of {total} products selected",
+      "selectAll": "Select all",
+      "selectNone": "Clear",
+      "loading": "Loading products…",
+      "loadFailed": "Couldn't load the products.",
+      "empty": "This category has no products yet.",
+      "visible": "In store",
+      "hidden": "Hidden",
+      "ownDataNote": "Each product keeps its own name, web address, images, sizes and stock; those are never changed here.",
+      "fields": {
+        "descriptionHe": "Description (Hebrew)",
+        "descriptionEn": "Description (English)",
+        "fabricHe": "Fabric (Hebrew)",
+        "fabricEn": "Fabric (English)",
+        "careHe": "Care (Hebrew)",
+        "careEn": "Care (English)",
+        "fitHe": "Fit & sizing (Hebrew)",
+        "fitEn": "Fit & sizing (English)",
+        "basePrice": "Base price (₪)",
+        "categoryId": "Move to category",
+        "isActive": "Shown in store",
+        "backSoon": "Back soon",
+        "isFeatured": "Featured on the homepage"
+      },
+      "willClear": "Left empty, this field will be cleared on every selected product.",
+      "priceHint": "Size-specific prices and sales stay as they are.",
+      "chooseCategory": "Choose a subcategory",
+      "isActiveHint": "Products need at least one active size to be shown.",
+      "infoHint": "Shown on the product page under \"Fabric & care\" and \"Size & fit\".",
+      "flag": {
+        "keep": "Keep as is",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "reviewTitle": "These changes will apply to {count, plural, one {# product} other {# products}}:",
+      "cleared": "Cleared",
+      "untouchedNote": "Everything not listed stays as it is on each product.",
+      "issues": {
+        "noProducts": "Choose at least one product.",
+        "noChanges": "Tick at least one field to change.",
+        "price": "Enter a price above 0.",
+        "category": "Choose the category to move to."
+      },
+      "rejected": {
+        "noActiveSizes": "These products have no active sizes, so they can't be shown in the store:",
+        "saleBelowPrice": "These products have a sale price that wouldn't be below the new price:",
+        "notFound": "These products no longer exist:"
+      },
+      "unselectRejected": "Remove them from the selection",
+      "failed": "Couldn't save the changes. Nothing was changed; please try again.",
+      "applying": "Applying…",
+      "apply": "Apply to {count, plural, one {# product} other {# products}}",
+      "done": "{count, plural, one {# product updated} other {# products updated}}",
+      "doneHint": "The store shows the changes right away."
     }
   }
 }

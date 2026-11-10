@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
-import { ChevronDown, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Layers, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Category } from './types';
 
@@ -11,11 +11,13 @@ type Props = {
   category: Category;
   onEdit: (cat: Category) => void;
   onDelete: (id: string) => void;
+  /** Opens "Edit all products" for this category (and its subcategories). */
+  onBulkEdit: (cat: Category) => void;
   depth?: number;
 };
 
 /** A category with edit / delete, followed by its (collapsible) subcategories. */
-export function CategoryRow({ category, onEdit, onDelete, depth = 0 }: Props) {
+export function CategoryRow({ category, onEdit, onDelete, onBulkEdit, depth = 0 }: Props) {
   const t = useTranslations('admin.categories');
   const locale = useLocale();
   const [expanded, setExpanded] = useState(true);
@@ -54,6 +56,17 @@ export function CategoryRow({ category, onEdit, onDelete, depth = 0 }: Props) {
           <Button
             type="button"
             variant="ghost"
+            size="sm"
+            onClick={() => onBulkEdit(category)}
+            className="gap-1.5 text-muted-foreground hover:text-ocean-600"
+            aria-label={t('bulkEditAction', { name: locale === 'he' ? category.nameHe : category.nameEn })}
+          >
+            <Layers size={14} />
+            <span className="max-sm:sr-only">{t('bulkEdit')}</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
             size="icon-sm"
             onClick={() => onEdit(category)}
             className="text-muted-foreground hover:text-ocean-600"
@@ -76,7 +89,14 @@ export function CategoryRow({ category, onEdit, onDelete, depth = 0 }: Props) {
       {expanded &&
         hasChildren &&
         category.children.map((child) => (
-          <CategoryRow key={child.id} category={{ ...child, children: [] }} onEdit={onEdit} onDelete={onDelete} depth={depth + 1} />
+          <CategoryRow
+            key={child.id}
+            category={{ ...child, children: [] }}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onBulkEdit={onBulkEdit}
+            depth={depth + 1}
+          />
         ))}
     </>
   );

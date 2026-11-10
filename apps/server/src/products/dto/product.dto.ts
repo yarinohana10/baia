@@ -1,7 +1,8 @@
-import { OmitType, PartialType } from '@nestjs/swagger';
+import { OmitType, PartialType, PickType } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   ArrayNotEmpty,
   ArrayUnique,
   IsArray,
@@ -10,6 +11,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsPositive,
   IsString,
@@ -285,3 +287,44 @@ export class CreateProductDto {
  * Variants are removed through `DELETE admin/variants/:id`.
  */
 export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['images'] as const)) {}
+
+// ─── Bulk edit ───────────────────────────────────────────────
+
+/**
+ * Fields an admin may set on many products at once. Everything that makes a
+ * product itself (names, web address, images, sizes / stock / SKUs) is left out,
+ * so every product keeps its own identity.
+ */
+export const BULK_EDITABLE_FIELDS = [
+  'descriptionHe',
+  'descriptionEn',
+  'basePrice',
+  'categoryId',
+  'isActive',
+  'backSoon',
+  'isFeatured',
+  'fabricHe',
+  'fabricEn',
+  'careHe',
+  'careEn',
+  'fitHe',
+  'fitEn',
+] as const;
+
+export class BulkProductChangesDto extends PickType(UpdateProductDto, BULK_EDITABLE_FIELDS) {}
+
+export const BULK_MAX_PRODUCTS = 500;
+
+export class BulkUpdateProductsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(BULK_MAX_PRODUCTS)
+  @IsString({ each: true })
+  productIds!: string[];
+
+  /** Only the fields present here change; omitted fields keep each product's own value. */
+  @IsObject()
+  @ValidateNested()
+  @Type(() => BulkProductChangesDto)
+  changes!: BulkProductChangesDto;
+}

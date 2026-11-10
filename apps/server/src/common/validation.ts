@@ -17,6 +17,8 @@ export type FieldError = {
   field: string;
   code: string;
   message: string;
+  /** For bulk actions: the records the error is about (e.g. products that would break a rule). */
+  productIds?: string[];
 };
 
 /** Shape of every 400/409 body produced by validation or uniqueness checks. */

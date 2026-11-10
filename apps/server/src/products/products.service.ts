@@ -4,7 +4,14 @@ import { Prisma } from '../generated/prisma';
 import { randomUUID } from 'crypto';
 import { productSlugBase, uniqueSlug } from './product-slug';
 import { fieldConflictException, fieldValidationException, type FieldError } from '../common/validation';
-import { CreateProductDto, ImageMetaDto, UpdateProductDto, UpdateVariantDto, VariantDto } from './dto/product.dto';
+import {
+  BulkUpdateProductsDto,
+  CreateProductDto,
+  ImageMetaDto,
+  UpdateProductDto,
+  UpdateVariantDto,
+  VariantDto,
+} from './dto/product.dto';
 import { compareSizes } from './size-sets';
 import { availableStock } from '../common/stock';
 import { StockAlertsService } from '../inventory/stock-alerts.service';
@@ -551,6 +558,85 @@ export class ProductsService {
       await this.images.removeKeys(stored.map((s) => s.key));
       throw err;
     }
+  }
+
+  /**
+   * Sets the same values on many products (Admin -> Categories -> "Edit all
+   * products"). Only the fields sent in `changes` are written; each product keeps
+   * its own name, address, images, sizes and every field not sent. All rules are
+   * checked first and the write is a single statement, so either every product
+   * changes or none does. Errors name the offending products (`productIds`).
+   */
+  async bulkUpdate(dto: BulkUpdateProductsDto) {
+    const ids = [...new Set(dto.productIds)];
+    const changes = Object.fromEntries(
+      Object.entries(dto.changes ?? {}).filter(([, value]) => value !== undefined),
+    ) as BulkUpdateProductsDto['changes'];
+    if (Object.keys(changes).length === 0) {
+      throw fieldValidationException([{ field: 'changes', code: 'noChanges', message: 'Choose at least one field to change' }]);
+    }
+
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        variants: { select: { isActive: true, priceOverride: true, salePrice: true, saleStart: true, saleEnd: true } },
+      },
+    });
+    const found = new Set(products.map((p) => p.id));
+    const missing = ids.filter((id) => !found.has(id));
+    if (missing.length) {
+      throw fieldValidationException([
+        { field: 'productIds', code: 'notFound', message: `${missing.length} product(s) do not exist`, productIds: missing },
+      ]);
+    }
+
+    const errors: FieldError[] = [];
+    if (changes.categoryId !== undefined) {
+      const relation = await this.relationErrors({ categoryId: changes.categoryId });
+      errors.push(...relation.map((e) => ({ ...e, field: `changes.${e.field}` })));
+    }
+    if (changes.basePrice !== undefined) {
+      const basePrice = changes.basePrice;
+      const asNumber = (v: unknown) => (v === null || v === undefined ? null : toNumber(v as DecimalLike));
+      const conflicting = products
+        .filter((p) =>
+          p.variants.some((v) =>
+            pricingErrors({ priceOverride: asNumber(v.priceOverride), salePrice: asNumber(v.salePrice) }, basePrice, '').some(
+              (e) => e.code === 'saleBelowPrice',
+            ),
+          ),
+        )
+        .map((p) => p.id);
+      if (conflicting.length) {
+        errors.push({
+          field: 'changes.basePrice',
+          code: 'saleBelowPrice',
+          message: 'Some products have a sale price that would not be below the new price',
+          productIds: conflicting,
+        });
+      }
+    }
+    if (changes.isActive === true) {
+      const withoutSizes = products.filter((p) => !p.variants.some((v) => v.isActive)).map((p) => p.id);
+      if (withoutSizes.length) {
+        errors.push({
+          field: 'changes.isActive',
+          code: 'noActiveSizes',
+          message: 'Some products have no active sizes, so they cannot be shown in the store',
+          productIds: withoutSizes,
+        });
+      }
+    }
+    if (errors.length) throw fieldValidationException(errors);
+
+    const { basePrice, ...rest } = changes;
+    const data: Prisma.ProductUncheckedUpdateManyInput = {
+      ...rest,
+      ...(basePrice !== undefined ? { basePrice: new Prisma.Decimal(basePrice) } : {}),
+    };
+    const result = await this.prisma.product.updateMany({ where: { id: { in: ids } }, data });
+    return { updated: result.count };
   }
 
   async update(id: string, dto: UpdateProductDto) {
