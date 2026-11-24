@@ -1,6 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { routing } from './i18n/routing';
+import { COMING_SOON_PATH, comingSoonEnabled, isAdminRequest, isOpenPath } from './lib/coming-soon';
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -23,7 +24,7 @@ function isUnder(path: string, base: string): boolean {
  * away from /login and /register by the forms (useLeaveIfSignedIn), which check
  * that the session is real: a stale cookie must not lock anyone out of signing in.
  */
-export default function middleware(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const isAuthenticated = hasSessionCookie(request);
 
@@ -37,11 +38,24 @@ export default function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', `${pathname}${search}`);
       return NextResponse.redirect(loginUrl);
     }
+
+    // Coming Soon: shoppers get the Coming Soon page at whatever address they opened;
+    // Admins (checked against the real session) see the store as usual.
+    if (!isOpenPath(pathWithoutLocale) && (await comingSoonEnabled())) {
+      const admin = isAuthenticated && (await isAdminRequest(request.headers.get('cookie')));
+      if (!admin) {
+        const response = NextResponse.rewrite(new URL(`/${locale}${COMING_SOON_PATH}`, request.url));
+        response.headers.set('Cache-Control', 'no-store');
+        return response;
+      }
+    }
   }
 
   return intlMiddleware(request);
 }
 
 export const config = {
+  // Node runtime: reads API_URL / API_INTERNAL_URL at run time and keeps the flag cache between requests.
+  runtime: 'nodejs',
   matcher: ['/', '/(he|en)/:path*'],
 };

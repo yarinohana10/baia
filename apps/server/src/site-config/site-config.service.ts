@@ -66,6 +66,7 @@ export class SiteConfigService {
       'accessibilityCoordinatorPhone',
       'accessibilityCoordinatorEmail',
       'lowStockThreshold',
+      'comingSoon',
     ] as const;
     for (const key of keys) {
       if (data[key] !== undefined) (updateData as Record<string, unknown>)[key] = data[key];

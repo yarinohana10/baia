@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { BusinessDetailsCard } from '@/components/admin/BusinessDetailsCard';
 import { InventorySettingsCard } from '@/components/admin/InventorySettingsCard';
+import { StoreAccessCard } from '@/components/admin/StoreAccessCard';
 import { Save, Upload, Image as ImageIcon, Truck, Info, Trash2 } from 'lucide-react';
 
 type ApiFieldError = { field: string; code: string };
@@ -174,6 +175,9 @@ export default function SettingsPage() {
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Coming Soon switch - saved on toggle. */}
+        <StoreAccessCard />
+
         {/* Business details (footer, contact and legal pages) - saved on its own. */}
         <BusinessDetailsCard />
 

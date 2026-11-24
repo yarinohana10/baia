@@ -109,6 +109,8 @@ export type SiteConfig = {
   accessibilityCoordinatorEmail: string;
   /** "Only N left" shows at or under this many units; the same threshold drives admin stock alerts. */
   lowStockThreshold?: number;
+  /** While true, shoppers see only the Coming Soon page (Admins see the store). */
+  comingSoon?: boolean;
 };
 
 /** Filter options for a listing scope (`GET /products/facets`). */

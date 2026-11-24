@@ -15,6 +15,8 @@ ENV PNPM_HOME=/pnpm CI=true
 # ── Build: full install, prisma generate, nest build, shared -> CJS ─────────────
 FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+# pnpm patchedDependencies (package.json) are applied at install time.
+COPY patches ./patches
 COPY apps/server/package.json apps/server/
 COPY packages/shared/package.json packages/shared/
 RUN \
@@ -36,6 +38,8 @@ RUN pnpm exec tsc -p tsconfig.json --module commonjs --moduleResolution node --d
 # ── Production dependencies only ────────────────────────────────────────────────
 FROM base AS prod-deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+# pnpm patchedDependencies (package.json) are applied at install time.
+COPY patches ./patches
 COPY apps/server/package.json apps/server/
 COPY packages/shared/package.json packages/shared/
 RUN \

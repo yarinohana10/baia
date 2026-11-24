@@ -148,6 +148,17 @@ describe('SiteConfigService', () => {
         data: expect.objectContaining({ heroCtaUrl: '/category/women' }),
       });
     });
+
+    it('turns the Coming Soon page off and on', async () => {
+      prisma.siteConfig.update.mockResolvedValue({ ...MOCK_CONFIG, comingSoon: false });
+
+      await service.update({ comingSoon: false });
+
+      expect(prisma.siteConfig.update).toHaveBeenCalledWith({
+        where: { id: 'default' },
+        data: { comingSoon: false },
+      });
+    });
   });
 
   describe('uploadHeroImage', () => {
