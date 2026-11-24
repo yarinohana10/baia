@@ -560,6 +560,9 @@ model SiteConfig {
   // Stock alerts: a variant at or below this quantity is "low stock".
   lowStockThreshold Int @default(5)
 
+  // Coming Soon: while on, shoppers see only a "Coming Soon" page; Admins see the store as usual.
+  comingSoon Boolean @default(false)
+
   @@map("site_config")
 }
 

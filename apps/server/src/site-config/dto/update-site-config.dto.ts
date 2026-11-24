@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEmail, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 const emptyToNull = ({ value }: { value: unknown }) => {
   if (typeof value !== 'string') return value;
@@ -116,4 +116,9 @@ export class UpdateSiteConfigDto {
   @Min(0)
   @Max(1000)
   lowStockThreshold?: number;
+
+  /** While true, shoppers see only the "Coming Soon" page; Admins still see the whole store. */
+  @IsOptional()
+  @IsBoolean()
+  comingSoon?: boolean;
 }

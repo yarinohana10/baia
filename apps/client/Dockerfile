@@ -11,6 +11,8 @@ ENV PNPM_HOME=/pnpm CI=true NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+# pnpm patchedDependencies (package.json) are applied at install time.
+COPY patches ./patches
 COPY apps/client/package.json apps/client/
 COPY packages/shared/package.json packages/shared/
 RUN \

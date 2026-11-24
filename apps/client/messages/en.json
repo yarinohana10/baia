@@ -783,7 +783,17 @@
       "removeHeroImage": "Remove image",
       "removeHeroConfirm": "Remove the banner image? It is deleted from storage and the home page shows the default photo.",
       "heroRemoved": "Banner image removed",
-      "heroRemoveFailed": "Could not remove the image"
+      "heroRemoveFailed": "Could not remove the image",
+      "storeAccess": "Store access",
+      "storeAccessDescription": "While \"Coming Soon\" is on, shoppers see only a Coming Soon page. You and the other admins see the whole store as usual.",
+      "comingSoonLabel": "Show \"Coming Soon\" to shoppers",
+      "comingSoonOn": "On: shoppers see the Coming Soon page and cannot browse or order.",
+      "comingSoonOff": "Off: the store is open to everyone.",
+      "comingSoonEnabled": "Coming Soon is on. Shoppers now see the Coming Soon page.",
+      "comingSoonDisabled": "Coming Soon is off. The store is open to everyone.",
+      "comingSoonConfirmOff": "Open the store to everyone? Shoppers will be able to browse and place orders.",
+      "comingSoonSaveFailed": "Couldn't change the store access. Please try again.",
+      "comingSoonPreview": "Preview the Coming Soon page"
     },
     "productForm": {
       "newProduct": "New Product",
@@ -1079,5 +1089,12 @@
     "contact": "Contact us",
     "shop": "Shop {name}",
     "fullGuide": "Full size guide"
+  },
+  "comingSoon": {
+    "metaTitle": "Coming Soon | BAIA Swimwear",
+    "title": "Coming Soon",
+    "body": "We're putting the finishing touches on our new swimwear collection. The store opens very soon.",
+    "follow": "Follow us for the launch",
+    "followOn": "BAIA on {network}"
   }
 }
