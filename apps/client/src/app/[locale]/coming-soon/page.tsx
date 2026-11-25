@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getLogoUrl } from '@/lib/brand';
 import { comingSoonEnabled } from '@/lib/coming-soon';
+import { Link } from '@/i18n/navigation';
 import { SOCIAL_LINKS } from '@/lib/site';
 import { FacebookGlyph, InstagramGlyph, TikTokGlyph } from '@/components/storefront/SocialGlyphs';
 
@@ -64,7 +65,16 @@ export default async function ComingSoonPage({ params }: { params: Promise<{ loc
         </div>
       </main>
 
-      <footer className="px-4 pb-6 text-center text-xs text-black/50">© {new Date().getFullYear()} BAIA Swimwear</footer>
+      <footer className="flex flex-col items-center gap-1 px-4 pb-6 text-center text-xs text-black/50">
+        {/* Admins land here too before signing in; the login page has Google and email. */}
+        <Link
+          href="/login"
+          className="inline-flex min-h-11 items-center px-3 font-medium text-black/60 underline-offset-4 hover:text-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocean-700"
+        >
+          {t('signIn')}
+        </Link>
+        <p>© {new Date().getFullYear()} BAIA Swimwear</p>
+      </footer>
     </div>
   );
 }
