@@ -1095,6 +1095,7 @@
     "title": "Coming Soon",
     "body": "We're putting the finishing touches on our new swimwear collection. The store opens very soon.",
     "follow": "Follow us for the launch",
-    "followOn": "BAIA on {network}"
+    "followOn": "BAIA on {network}",
+    "signIn": "Admin sign-in"
   }
 }
